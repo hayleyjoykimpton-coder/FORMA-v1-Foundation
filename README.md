@@ -1,81 +1,49 @@
-# FORMA — Workout Foundation
+# FORMA — Progressive Overload Trial
 
-A clean, build-tested Next.js workout app.
+This update adds an automatic progressive-overload coach to the working FORMA foundation.
 
-## Build status
+## What changes
 
-This package was tested with:
+For every exercise, FORMA now:
 
-- Next.js 16.2.10
-- React 19.2.0
-- Node.js 22
-- `npm install`
-- `npm run build`
+- Reads the most recent completed session
+- Shows the last-session sets
+- Creates a target before the workout starts
+- Prefills the recommended load into all working sets
+- Uses double progression for strength and hypertrophy work
+- Holds the load when reps or RPE show the weight is not yet mastered
+- Increases load only after all completed sets reach the top of the range
+- Uses smaller load jumps for conditioning movements
+- Supports bodyweight, assisted and manually programmed exercises
+- Lets you set the progression type and load increment in the workout builder
 
-The production build completed successfully before this ZIP was created.
+## Trial logic
 
-## Included
+Example for an 8–10 rep hypertrophy exercise:
 
-- Water · Winter visual theme
-- Your five-session weekly training structure
-- Editable workout titles, days, duration, focus and exercises
-- Add or remove workouts
-- Add or remove exercises
-- Start today’s scheduled workout
-- Start any workout manually
-- Weight, repetitions and RPE logging for every set
-- Add or remove sets during a live workout
-- Previous-weight display
-- Last-used weight carried into the next session
-- 60, 90, 120 and 180-second rest timers
-- Live completion percentage
-- Session notes
-- Workout duration
-- Workout history
-- Local browser saving
-- Mobile-responsive layout
+- All completed sets reach 10 reps at RPE 9 or below → increase next session
+- Sets remain within 8–10 but not all reach 10 → keep load and add reps
+- Half or more sets fall below 8, or average RPE is 9.5+ → hold the load and rebuild reps
 
-## Fresh GitHub setup
+This is a coaching aid, not a requirement to push through pain, illness or poor technique.
 
-Create a brand-new empty repository.
+## Upload this update
 
-Upload everything inside this folder to the repository root. GitHub should show:
+The easiest route is to replace these four files in the existing working GitHub repository:
 
 ```text
-app/
-components/
-lib/
-public/
-.gitignore
-next-env.d.ts
-next.config.ts
-package.json
-package-lock.json
-README.md
-tsconfig.json
+components/WorkoutApp.tsx
+lib/types.ts
+lib/defaults.ts
+app/globals.css
 ```
 
-Do not upload the outer `FORMA_Foundation_Clean` folder as a nested folder.
+Commit directly to `main`. Vercel should deploy automatically using your existing working pnpm/Corepack settings.
 
-## Vercel setup
+The full package also includes `package.json` with:
 
-1. Add a new Vercel project.
-2. Import the new GitHub repository.
-3. Framework preset: Next.js.
-4. Root directory: `./`
-5. Build command: leave as default.
-6. Output directory: leave as default.
-7. Deploy.
-
-## Local use
-
-```bash
-npm install
-npm run dev
+```json
+"packageManager": "pnpm@10.12.1"
 ```
 
-Then open `http://localhost:3000`.
-
-## Current storage
-
-This alpha saves data in the browser on the current device. Cloud accounts and cross-device sync come later.
+Do not turn the Vercel Install Command override back on.

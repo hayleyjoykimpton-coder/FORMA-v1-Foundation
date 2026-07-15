@@ -6,6 +6,14 @@ export type SetLog = {
   done: boolean;
 };
 
+export type ProgressionMode =
+  | "hypertrophy"
+  | "strength"
+  | "conditioning"
+  | "bodyweight"
+  | "assisted"
+  | "manual";
+
 export type Exercise = {
   id: string;
   name: string;
@@ -14,6 +22,8 @@ export type Exercise = {
   targetRpe: string;
   notes: string;
   previousWeight: string;
+  progressionMode?: ProgressionMode;
+  loadIncrement?: number;
 };
 
 export type Workout = {
