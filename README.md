@@ -1,49 +1,43 @@
-# FORMA — Progressive Overload Trial
+# FORMA v0.2 — Ocean Update
 
-This update adds an automatic progressive-overload coach to the working FORMA foundation.
+This is a test-site update for the FORMA prototype.
 
-## What changes
+## Included
 
-For every exercise, FORMA now:
+- Ocean-blue and warm-neutral visual system
+- Foundation / Build / Peak / Align seasons
+- Today dashboard
+- Weekly training plan
+- Set logging with weight, reps, and RPE controls
+- Simple progressive-overload recommendation
+- Progress and recovery screens
+- Responsive mobile layout
 
-- Reads the most recent completed session
-- Shows the last-session sets
-- Creates a target before the workout starts
-- Prefills the recommended load into all working sets
-- Uses double progression for strength and hypertrophy work
-- Holds the load when reps or RPE show the weight is not yet mastered
-- Increases load only after all completed sets reach the top of the range
-- Uses smaller load jumps for conditioning movements
-- Supports bodyweight, assisted and manually programmed exercises
-- Lets you set the progression type and load increment in the workout builder
+## Important media note
 
-## Trial logic
+The app intentionally uses abstract placeholders for exercise media.
 
-Example for an 8–10 rep hypertrophy exercise:
+This avoids showing technically inaccurate AI-generated lifting positions. Replace these placeholders only with:
+- coach-approved photographs,
+- verified exercise videos,
+- or licensed media reviewed for correct technique.
 
-- All completed sets reach 10 reps at RPE 9 or below → increase next session
-- Sets remain within 8–10 but not all reach 10 → keep load and add reps
-- Half or more sets fall below 8, or average RPE is 9.5+ → hold the load and rebuild reps
+## Upload to GitHub
 
-This is a coaching aid, not a requirement to push through pain, illness or poor technique.
+1. Extract this ZIP.
+2. Open your GitHub repository.
+3. Choose **Add file → Upload files**.
+4. Upload the contents of the extracted folder, preserving:
+   - `app`
+   - `components`
+   - `public`
+   - root configuration files
+5. Commit to `main`.
+6. Vercel should redeploy automatically.
 
-## Upload this update
+## Vercel
 
-The easiest route is to replace these four files in the existing working GitHub repository:
-
-```text
-components/WorkoutApp.tsx
-lib/types.ts
-lib/defaults.ts
-app/globals.css
-```
-
-Commit directly to `main`. Vercel should deploy automatically using your existing working pnpm/Corepack settings.
-
-The full package also includes `package.json` with:
-
-```json
-"packageManager": "pnpm@10.12.1"
-```
-
-Do not turn the Vercel Install Command override back on.
+- Framework: Next.js
+- Root Directory: repository root (`./`)
+- Package manager: pnpm via Corepack
+- Use the current Node.js version supported by Vercel

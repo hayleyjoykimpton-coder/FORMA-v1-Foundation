@@ -1,5 +1,5 @@
-import WorkoutApp from "@/components/WorkoutApp";
+import FormaApp from "@/components/FormaApp";
 
 export default function Home() {
-  return <WorkoutApp />;
+  return <FormaApp />;
 }
