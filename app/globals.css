@@ -468,3 +468,621 @@ body {
 .bottom-nav {
   box-shadow: 0 10px 24px rgba(86,65,44,.1);
 }
+
+
+/* FORMA v1.1 usable training features */
+.loading {
+  display: grid;
+  place-items: center;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  color: var(--bronze-dark);
+}
+
+.start-button {
+  width: 100%;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 999px;
+  padding: 15px 18px;
+  background: linear-gradient(145deg, #d0ad8d, #9d7c58);
+  color: #fffaf4;
+  font-weight: 700;
+}
+
+.start-button:disabled,
+.session-header button:disabled,
+.session-nav button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.recommendation-row em {
+  display: block;
+  margin-top: 6px;
+  color: #8a6748;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.toolbar {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(109,88,64,.11);
+}
+
+.compact {
+  gap: 4px;
+}
+
+.compact button {
+  min-width: 28px;
+}
+
+.exercise-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reorder-buttons {
+  display: grid;
+  gap: 3px;
+}
+
+.reorder-buttons button {
+  width: 27px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(157,124,88,.12);
+  color: #75583f;
+}
+
+.session-header {
+  display: grid;
+  grid-template-columns: 70px 1fr 70px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.session-header > div {
+  text-align: center;
+}
+
+.session-header strong {
+  display: block;
+  margin-top: 3px;
+}
+
+.session-header button {
+  border: 0;
+  background: transparent;
+  color: #75583f;
+  font-weight: 700;
+}
+
+.session-header button:last-child {
+  text-align: right;
+}
+
+.session-hero {
+  position: relative;
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  padding: 24px;
+  overflow: hidden;
+  border-radius: 28px;
+  color: #fffaf4;
+  background:
+    radial-gradient(circle at 86% 10%, rgba(255,255,255,.28), transparent 35%),
+    linear-gradient(145deg, #c9a785, #9d7c58 55%, #6f543b);
+}
+
+.session-hero h1 {
+  margin: 7px 0;
+  font-size: 42px;
+  line-height: 1.02;
+}
+
+.session-hero p {
+  margin: 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.session-hero small {
+  color: rgba(255,250,244,.82);
+  line-height: 1.45;
+}
+
+.session-card {
+  margin-top: 12px;
+}
+
+.session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.session-meta span,
+.season-pill {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(157,124,88,.11);
+  color: #72563e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.set-list {
+  display: grid;
+  gap: 9px;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: 52px repeat(3, 1fr) 50px;
+  gap: 7px;
+  align-items: end;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(239,229,217,.72);
+  border: 1px solid rgba(112,86,61,.08);
+}
+
+.set-row.complete {
+  background: rgba(213,193,170,.58);
+}
+
+.set-row > strong {
+  align-self: center;
+  font-size: 12px;
+}
+
+.set-row label {
+  display: grid;
+  gap: 3px;
+}
+
+.set-row label span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.set-row input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(112,86,61,.14);
+  border-radius: 9px;
+  padding: 8px 5px;
+  background: rgba(255,250,244,.8);
+  text-align: center;
+}
+
+.set-complete {
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #9d7c58;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.exercise-note {
+  margin: 14px 0 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255,250,244,.55);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.rest-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 15px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #efe3d5, #d6b99d);
+  border: 1px solid rgba(113,85,59,.1);
+}
+
+.rest-card strong {
+  display: block;
+  margin-top: 3px;
+  font-family: Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+}
+
+.rest-card button,
+.session-nav button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 12px;
+  background: rgba(255,250,244,.68);
+  color: #6f543b;
+  font-weight: 700;
+}
+
+.session-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.session-nav button:last-child {
+  background: #9d7c58;
+  color: white;
+}
+
+.material-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 25px;
+  padding: 22px;
+  background:
+    linear-gradient(rgba(247,237,226,.9), rgba(226,207,188,.9)),
+    repeating-linear-gradient(0deg, rgba(126,96,69,.04) 0 1px, transparent 1px 6px);
+  border: 1px solid rgba(126,96,69,.11);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+}
+
+.progress-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.progress-summary > div {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,250,244,.52);
+}
+
+.progress-summary strong {
+  display: block;
+  margin-top: 8px;
+  font-family: Georgia, serif;
+  font-size: 42px;
+  font-weight: 400;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.history-card p {
+  display: grid;
+  gap: 4px;
+  margin: 13px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(105,81,59,.1);
+}
+
+.history-card p span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty-state {
+  color: var(--muted);
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 390px) {
+  .set-row {
+    grid-template-columns: 46px repeat(3, 1fr);
+  }
+
+  .set-complete {
+    grid-column: 1 / -1;
+  }
+}
+
+
+/* FORMA v1.2 — Editorial Wellness Direction
+   Elevated, feminine, calm, strong, and materially rich. */
+
+:root {
+  --ivory: #f6f1e8;
+  --porcelain: #fbf8f3;
+  --sandstone: #d9c8b3;
+  --warm-taupe: #a79383;
+  --espresso: #342b26;
+  --cacao: #5d4739;
+  --bronze: #9f7658;
+  --clay: #bd8c69;
+  --smoked-olive: #797767;
+  --sea-glass: #a9c1bf;
+  --ink: #282321;
+}
+
+html, body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,255,255,.8), transparent 32%),
+    linear-gradient(145deg, #ddd2c4 0%, #eee6dc 48%, #d9cab9 100%);
+  color: var(--ink);
+}
+
+.app-canvas {
+  background:
+    radial-gradient(circle at 10% 4%, rgba(255,255,255,.78), transparent 30%),
+    radial-gradient(circle at 90% 18%, rgba(169,193,191,.16), transparent 22%),
+    linear-gradient(155deg, #d8cec2 0%, #f1e9df 50%, #d8c7b4 100%);
+}
+
+.phone {
+  background:
+    linear-gradient(rgba(247,242,234,.94), rgba(247,242,234,.94)),
+    repeating-linear-gradient(0deg, rgba(120,93,70,.028) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(120,93,70,.02) 0 1px, transparent 1px 7px);
+  box-shadow:
+    0 35px 90px rgba(67,49,35,.2),
+    inset 0 1px 0 rgba(255,255,255,.55);
+}
+
+.linen {
+  opacity: .19;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(116,88,64,.07) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(116,88,64,.045) 0 1px, transparent 1px 5px);
+}
+
+.contour {
+  opacity: .085;
+  background-image:
+    radial-gradient(ellipse at 108% 12%, transparent 0 57%, rgba(125,119,103,.38) 57.4% 57.9%, transparent 58.3% 65%, rgba(125,119,103,.28) 65.4% 65.9%, transparent 66.3%),
+    radial-gradient(ellipse at -10% 82%, transparent 0 53%, rgba(159,118,88,.34) 53.4% 53.9%, transparent 54.3% 61%, rgba(159,118,88,.22) 61.4% 61.9%, transparent 62.3%);
+}
+
+.travertine {
+  opacity: .1;
+  background-image:
+    radial-gradient(circle at 12% 16%, rgba(109,91,70,.48) 0 1px, transparent 2px),
+    radial-gradient(circle at 67% 43%, rgba(109,91,70,.34) 0 1px, transparent 2px),
+    radial-gradient(circle at 33% 82%, rgba(109,91,70,.28) 0 1px, transparent 2px),
+    linear-gradient(118deg, transparent 0 46%, rgba(176,145,116,.06) 47%, transparent 49%);
+  background-size: 120px 120px, 175px 175px, 220px 220px, 100% 100%;
+}
+
+h1, h2, .season-card h2, .progress-summary strong, .session-hero h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -.025em;
+}
+
+h1 {
+  font-size: 46px;
+  line-height: .96;
+}
+
+h2 {
+  font-size: 39px;
+  line-height: 1.02;
+}
+
+.eyebrow {
+  letter-spacing: .18em;
+  font-size: 9px;
+}
+
+.topbar {
+  padding-top: 4px;
+  margin-bottom: 24px;
+}
+
+.round-btn {
+  border-radius: 50%;
+  border-color: rgba(105,78,55,.1);
+  background: rgba(255,250,244,.7);
+  color: var(--bronze);
+  box-shadow: 0 8px 24px rgba(86,61,39,.08);
+}
+
+.season-card {
+  min-height: 380px;
+  border-radius: 32px;
+  box-shadow:
+    0 18px 42px rgba(70,47,30,.12),
+    inset 0 1px 0 rgba(255,255,255,.28);
+}
+
+.foundation {
+  color: #342b26;
+  background:
+    radial-gradient(circle at 76% 14%, rgba(255,255,255,.55), transparent 28%),
+    linear-gradient(145deg, #eee6dc, #d8c8b4 58%, #bda487);
+}
+
+.foundation .light,
+.foundation small {
+  color: rgba(52,43,38,.68);
+}
+
+.build {
+  background:
+    radial-gradient(circle at 82% 12%, rgba(255,232,209,.28), transparent 28%),
+    linear-gradient(145deg, #cfa07d, #9b674d 56%, #5e4134);
+}
+
+.peak {
+  background:
+    radial-gradient(circle at 78% 16%, rgba(255,255,255,.12), transparent 26%),
+    linear-gradient(145deg, #57483f, #352d29 60%, #211d1a);
+}
+
+.align {
+  color: #332c28;
+  background:
+    radial-gradient(circle at 78% 10%, rgba(255,255,255,.62), transparent 30%),
+    linear-gradient(145deg, #e8e2d9, #d3c7b8 58%, #b7a895);
+}
+
+.align .light,
+.align small {
+  color: rgba(51,44,40,.66);
+}
+
+.material-highlight {
+  opacity: .22;
+}
+
+.season-tabs {
+  margin-top: 16px;
+  gap: 8px;
+}
+
+.season-tabs button {
+  border-color: rgba(143,108,80,.18);
+  background: rgba(255,250,244,.42);
+  color: #6f5c4c;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+}
+
+.season-tabs button.active {
+  color: #fffaf4;
+  background: linear-gradient(145deg, #b98a67, #8b654d);
+  border-color: transparent;
+  box-shadow: 0 8px 18px rgba(116,78,51,.15);
+}
+
+.stone-card,
+.metric,
+.bottom-nav,
+.exercise-editor {
+  background:
+    linear-gradient(rgba(255,250,244,.88), rgba(255,250,244,.88)),
+    repeating-linear-gradient(0deg, rgba(116,92,70,.035) 0 1px, transparent 1px 6px);
+  border-color: rgba(114,87,62,.09);
+}
+
+.stone-card {
+  border-radius: 26px;
+  box-shadow:
+    0 15px 36px rgba(70,47,30,.07),
+    inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+.metric {
+  border-radius: 22px;
+  min-height: 116px;
+}
+
+.metric strong {
+  color: var(--espresso);
+}
+
+.number,
+.start-button,
+.set-complete,
+.session-nav button:last-child,
+.primary-btn {
+  background: linear-gradient(145deg, #b98a67, #8e664e);
+  color: #fffaf4;
+}
+
+.secondary-btn {
+  background: rgba(189,140,105,.12);
+  color: #6f543f;
+}
+
+.card-header button,
+.editor-actions button,
+.bottom-nav button.active,
+.recommendation-row em {
+  color: #8b654d;
+}
+
+.exercise-row {
+  border-color: rgba(112,86,61,.08);
+}
+
+.exercise-row small,
+.exercise-editor small,
+.history-card p span {
+  color: #81756d;
+}
+
+.material-card {
+  background:
+    linear-gradient(rgba(248,239,229,.92), rgba(226,207,188,.92)),
+    repeating-linear-gradient(0deg, rgba(118,92,68,.04) 0 1px, transparent 1px 6px);
+  border-color: rgba(121,89,62,.1);
+  box-shadow: 0 14px 36px rgba(70,47,30,.08);
+}
+
+.recovery-card {
+  color: var(--espresso);
+  background:
+    radial-gradient(circle at 72% 16%, rgba(255,255,255,.52), transparent 24%),
+    linear-gradient(145deg, #e9dfd3, #cbb9a5 58%, #aa927b);
+}
+
+.wave {
+  border-color: rgba(255,255,255,.24);
+}
+
+.bottom-nav {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  border-radius: 24px;
+  padding: 14px 8px;
+  box-shadow: 0 14px 34px rgba(70,47,30,.11);
+}
+
+.bottom-nav button {
+  color: #80736a;
+  letter-spacing: .02em;
+}
+
+.session-hero {
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(255,240,222,.24), transparent 28%),
+    linear-gradient(145deg, #c69a79, #8f6048 56%, #5a3d31);
+  box-shadow: 0 18px 42px rgba(70,47,30,.14);
+}
+
+.rest-card {
+  background:
+    linear-gradient(rgba(241,226,211,.94), rgba(213,188,163,.94)),
+    repeating-linear-gradient(0deg, rgba(120,93,68,.035) 0 1px, transparent 1px 6px);
+}
+
+.set-row {
+  background: rgba(239,229,217,.62);
+}
+
+.set-row.complete {
+  background: rgba(216,192,167,.56);
+}
+
+input,
+textarea {
+  outline-color: rgba(159,118,88,.35);
+}
+
+@media (max-width: 480px) {
+  .phone {
+    box-shadow: none;
+  }
+}

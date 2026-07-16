@@ -1,6 +1,6 @@
 {
-  "name": "forma-mediterranean-textile-update",
-  "version": "0.4.0",
+  "name": "forma-v1-editorial-wellness",
+  "version": "1.2.0",
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {

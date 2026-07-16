@@ -1,37 +1,45 @@
-# FORMA v0.4 — Mediterranean Textile Update
+# FORMA v1.2 — Editorial Wellness Update
 
-This version keeps the editable workout planner and all existing functionality, while replacing the blue/green visual direction with the warmer Mediterranean palette requested.
+This update preserves the usable training features from v1.1 while shifting the visual direction toward the elevated wellness mood board provided.
 
-## Visual update
+## Visual direction
 
-- Removed blue and sage-green accents
-- Warm limestone, sand, clay, bronze, taupe, and travertine palette
-- Stronger linen and plaster-like background texture
-- Softer stone-inspired cards
-- Warm bronze active states and buttons
-- Material-led Foundation / Build / Peak / Align cards
-- More cohesive quiet-luxury wellness styling
+- Elevated editorial wellness aesthetic
+- Warm ivory, clay, cacao, taupe, smoked olive, and restrained sea-glass tones
+- Strong feminine visual language without bright pink or aggressive gym styling
+- Richer linen, plaster, and travertine-inspired interface texture
+- Softer cards, deeper spacing, and more magazine-like typography
+- Calm, nervous-system-friendly contrast and transitions
+- Foundation / Build / Peak / Align each have a distinct material identity
 
-## Functionality preserved
+## Functionality retained
 
-- Editable workout plan
-- Add and delete workouts
-- Edit workout day, title, and duration
-- Add, edit, and delete exercises
-- Edit sets, rep ranges, weight, RPE, and notes
-- Local browser saving
-- Today, Plan, Progress, and Recovery screens
+- Editable workouts and exercises
+- Add, delete, duplicate, and reorder workouts
+- Reorder exercises
+- Start and complete real workout sessions
+- Log weight, reps, and RPE for each set
+- Automatic rest timer
+- Local workout history
+- Progressive overload recommendations
+- Increase, hold, or reduce-load guidance
 - Foundation / Build / Peak / Align switching
+- Progress and recovery screens
+- Local browser saving
+
+## Media note
+
+This package intentionally does not copy Pinterest imagery into the app. Those images are mood-board references and may not be licensed for product use. Add only original, licensed, or coach-approved imagery before launch.
 
 ## Upload to GitHub
 
-1. Download and extract the ZIP.
-2. Open your GitHub repository.
-3. Choose **Add file → Upload files**.
-4. Upload all extracted contents while preserving the folder structure.
+1. Extract the ZIP.
+2. Open the `FORMA-v1-Foundation-main` folder.
+3. Upload its contents to the root of your GitHub repository.
+4. Replace existing files.
 5. Commit to `main`.
-6. Vercel should redeploy automatically.
+6. Vercel will redeploy automatically.
 
-Suggested commit message:
+Suggested commit:
 
-`feat: replace blue-green UI with Mediterranean textile palette`
+`feat: apply editorial wellness design to usable training app`
