@@ -1,64 +1,20 @@
-export type SetLog = {
-  id: string;
-  weight: string;
-  reps: string;
-  rpe: string;
-  done: boolean;
-};
-
-export type ProgressionMode =
-  | "hypertrophy"
-  | "strength"
-  | "conditioning"
-  | "bodyweight"
-  | "assisted"
-  | "manual";
+export type Season = "Foundation" | "Build" | "Peak" | "Align";
 
 export type Exercise = {
   id: string;
   name: string;
-  targetSets: number;
-  repRange: string;
-  targetRpe: string;
+  sets: number;
+  repMin: number;
+  repMax: number;
+  weight: number;
+  rpe: number;
   notes: string;
-  previousWeight: string;
-  progressionMode?: ProgressionMode;
-  loadIncrement?: number;
 };
 
 export type Workout = {
   id: string;
-  name: string;
   day: string;
+  title: string;
   duration: number;
-  focus: string;
   exercises: Exercise[];
-};
-
-export type ActiveExercise = Exercise & { sets: SetLog[] };
-
-export type ActiveWorkout = {
-  workoutId: string;
-  name: string;
-  startedAt: string;
-  exercises: ActiveExercise[];
-  notes: string;
-};
-
-export type WorkoutHistory = {
-  id: string;
-  workoutId: string;
-  name: string;
-  date: string;
-  durationMinutes: number;
-  completedSets: number;
-  totalSets: number;
-  notes: string;
-  exercises: ActiveExercise[];
-};
-
-export type AppState = {
-  workouts: Workout[];
-  activeWorkout: ActiveWorkout | null;
-  history: WorkoutHistory[];
 };

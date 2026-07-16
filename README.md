@@ -1,43 +1,37 @@
-# FORMA v0.2 — Ocean Update
+# FORMA v0.4 — Mediterranean Textile Update
 
-This is a test-site update for the FORMA prototype.
+This version keeps the editable workout planner and all existing functionality, while replacing the blue/green visual direction with the warmer Mediterranean palette requested.
 
-## Included
+## Visual update
 
-- Ocean-blue and warm-neutral visual system
-- Foundation / Build / Peak / Align seasons
-- Today dashboard
-- Weekly training plan
-- Set logging with weight, reps, and RPE controls
-- Simple progressive-overload recommendation
-- Progress and recovery screens
-- Responsive mobile layout
+- Removed blue and sage-green accents
+- Warm limestone, sand, clay, bronze, taupe, and travertine palette
+- Stronger linen and plaster-like background texture
+- Softer stone-inspired cards
+- Warm bronze active states and buttons
+- Material-led Foundation / Build / Peak / Align cards
+- More cohesive quiet-luxury wellness styling
 
-## Important media note
+## Functionality preserved
 
-The app intentionally uses abstract placeholders for exercise media.
-
-This avoids showing technically inaccurate AI-generated lifting positions. Replace these placeholders only with:
-- coach-approved photographs,
-- verified exercise videos,
-- or licensed media reviewed for correct technique.
+- Editable workout plan
+- Add and delete workouts
+- Edit workout day, title, and duration
+- Add, edit, and delete exercises
+- Edit sets, rep ranges, weight, RPE, and notes
+- Local browser saving
+- Today, Plan, Progress, and Recovery screens
+- Foundation / Build / Peak / Align switching
 
 ## Upload to GitHub
 
-1. Extract this ZIP.
+1. Download and extract the ZIP.
 2. Open your GitHub repository.
 3. Choose **Add file → Upload files**.
-4. Upload the contents of the extracted folder, preserving:
-   - `app`
-   - `components`
-   - `public`
-   - root configuration files
+4. Upload all extracted contents while preserving the folder structure.
 5. Commit to `main`.
 6. Vercel should redeploy automatically.
 
-## Vercel
+Suggested commit message:
 
-- Framework: Next.js
-- Root Directory: repository root (`./`)
-- Package manager: pnpm via Corepack
-- Use the current Node.js version supported by Vercel
+`feat: replace blue-green UI with Mediterranean textile palette`
