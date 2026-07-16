@@ -43,3 +43,17 @@ This package intentionally does not copy Pinterest imagery into the app. Those i
 Suggested commit:
 
 `feat: apply editorial wellness design to usable training app`
+
+
+## FORMA v1.3 Sprint 1 Roadmap (Planned)
+
+This repository is the base for Sprint 1.
+
+Planned additions:
+- Welcome onboarding experience
+- Automatic Foundation phase
+- Hidden phase management (remove manual selector)
+- Restored weekly training plan
+- Coach card on Home
+- Progressive overload recommendations
+- Mediterranean editorial refinement
