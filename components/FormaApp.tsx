@@ -10,7 +10,6 @@ import {
   NUTRITION_TARGETS,
   PHASES,
   PROGRESS_GALLERY,
-  USER_NAME,
   WEEKLY_SCHEDULE,
   phaseCopy,
 } from "@/lib/content";
@@ -32,6 +31,11 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma } from "@/lib/migrations";
+import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
+import type { UserProfile } from "@/lib/user";
+import { generateProgram } from "@/lib/programGenerator";
+import { Onboarding } from "@/components/Onboarding";
+import { ProfileScreen } from "@/components/ProfileScreen";
 import {
   Eyebrow,
   Field,
@@ -77,6 +81,8 @@ export default function FormaApp() {
   const [hydrated, setHydrated] = useState(false);
   const [water, setWater] = useState(0);
   const [journal, setJournal] = useState<Record<string, string>>({});
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -87,6 +93,7 @@ export default function FormaApp() {
       setWeek(state.week);
       setWater(state.water);
       setJournal(state.journal);
+      setProfile(loadProfile());
     } catch {
       // Keep safe defaults when stored data cannot be read.
     } finally {
@@ -132,6 +139,32 @@ export default function FormaApp() {
 
   const phaseDef = getPhaseForWeek(week);
   const season = phaseDef.id;
+
+  const applyGeneratedProgram = (nextProfile: UserProfile) => {
+    const generated = generateProgram(nextProfile);
+    setWorkouts(generated);
+    setActiveWorkoutId(generated[0]?.id ?? "");
+  };
+
+  const handleOnboardingComplete = (nextProfile: UserProfile) => {
+    saveProfile(nextProfile);
+    setProfile(nextProfile);
+    applyGeneratedProgram(nextProfile);
+    setTab("today");
+  };
+
+  const handleProfileSave = (updated: UserProfile) => {
+    const trainingChanged =
+      !profile ||
+      profile.goal !== updated.goal ||
+      profile.experienceLevel !== updated.experienceLevel ||
+      profile.trainingDays !== updated.trainingDays ||
+      profile.equipmentAccess !== updated.equipmentAccess;
+    saveProfile(updated);
+    setProfile(updated);
+    if (trainingChanged) applyGeneratedProgram(updated);
+    setProfileOpen(false);
+  };
 
   const startWorkout = (workout: Workout) => {
     const results = createSessionResults(workout, history, phaseDef);
@@ -283,6 +316,14 @@ export default function FormaApp() {
     );
   }
 
+  if (!profile) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  if (profileOpen) {
+    return <ProfileScreen profile={profile} onSave={handleProfileSave} onClose={() => setProfileOpen(false)} />;
+  }
+
   if (session && activeWorkout) {
     const exercise = activeWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
@@ -389,12 +430,14 @@ export default function FormaApp() {
   const todayISO = new Date().toISOString().slice(0, 10);
   const focusExercise = activeWorkout?.exercises[0];
   const focusRec = focusExercise ? getRecommendation(focusExercise, history, phaseDef) : null;
+  const goalLabel = GOAL_LABELS[profile.goal];
+  const goalLower = goalLabel.toLowerCase();
   const encouragement =
     history.length === 0
-      ? "Welcome to Foundation. Your first session sets the tone — begin gently and let consistency do the work."
+      ? `Welcome to Foundation, ${profile.firstName}. Your ${profile.trainingDays}-day plan is built to ${goalLower} — begin gently and let consistency lead.`
       : streak >= 3
-        ? `A ${streak}-day rhythm — this is exactly how lasting strength is built. Keep it flowing.`
-        : "Consistency over intensity. Show up today and let the work quietly compound.";
+        ? `A ${streak}-day rhythm, ${profile.firstName} — this is exactly how you ${goalLower}. Keep it flowing.`
+        : `Consistency over intensity. Today's session moves you toward "${goalLower}".`;
 
   return (
     <div className="app">
@@ -403,7 +446,7 @@ export default function FormaApp() {
           <div className="screen home-screen">
             <header className="topbar">
               <span className="wordmark">FORMA</span>
-              <div className="avatar">{USER_NAME.charAt(0)}</div>
+              <button className="avatar" onClick={() => setProfileOpen(true)} aria-label="Open profile">{profile.firstName.charAt(0)}</button>
             </header>
 
             <section
@@ -412,7 +455,7 @@ export default function FormaApp() {
             >
               <div className="home-hero-copy">
                 <span className="eyebrow light">{greeting},</span>
-                <h1 className="hero-name">{USER_NAME}</h1>
+                <h1 className="hero-name">{profile.firstName}</h1>
                 <div className="hero-tags">
                   <span className="hero-chip">Foundation Phase</span>
                   <span className="hero-chip subtle">Today · {activeWorkout.title}</span>
@@ -462,7 +505,7 @@ export default function FormaApp() {
                 <div className="coach-avatar">F</div>
                 <div>
                   <strong>Coach FORMA</strong>
-                  <small>Foundation guidance</small>
+                  <small>{goalLabel} · Foundation</small>
                 </div>
               </div>
               <p className="coach-message">{encouragement}</p>

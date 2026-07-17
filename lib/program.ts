@@ -244,7 +244,7 @@ export function buildExerciseInstance(slot: ExerciseSlot, phase: PhaseDefinition
   };
 }
 
-function buildWorkout(day: DayTemplate, phase: PhaseDefinition): Workout {
+export function buildWorkout(day: DayTemplate, phase: PhaseDefinition): Workout {
   const exercises = day.slots.map((slot) => buildExerciseInstance(slot, phase));
   return {
     id: uid(),
