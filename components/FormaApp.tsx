@@ -2,6 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_WORKOUTS } from "@/lib/defaults";
+import {
+  ACTIVE_PHASE,
+  COACH_REMINDERS,
+  HYDRATION_GOAL,
+  IMAGES,
+  MEASUREMENTS,
+  NUTRITION_TARGETS,
+  PHASES,
+  PROGRESS_GALLERY,
+  USER_NAME,
+  WEEKLY_SCHEDULE,
+  phaseCopy,
+} from "@/lib/content";
 import type {
   Exercise,
   ExerciseResult,
@@ -10,6 +23,14 @@ import type {
   Workout,
   WorkoutSession,
 } from "@/lib/types";
+import {
+  Eyebrow,
+  Field,
+  PhaseJourney,
+  SectionHeading,
+  StatTile,
+  WeeklySchedule,
+} from "@/components/ui";
 
 type Tab = "today" | "training" | "progress" | "recovery";
 type SessionDraft = {
@@ -22,14 +43,16 @@ const STORAGE = {
   workouts: "forma-workouts-v11",
   history: "forma-history-v11",
   season: "forma-season-v11",
+  water: "forma-water-v1",
+  journal: "forma-journal-v1",
 };
 
-const seasonCopy: Record<Season, { line: string; focus: string; className: string }> = {
-  Foundation: { line: "Build the base.", focus: "Movement · Capacity · Consistency", className: "foundation" },
-  Build: { line: "Stronger every session.", focus: "Strength · Hypertrophy · Progression", className: "build" },
-  Peak: { line: "Express your strength.", focus: "Performance · Power · Precision", className: "peak" },
-  Align: { line: "Recover to grow.", focus: "Recovery · Mobility · Readiness", className: "align" },
-};
+const TABS: { key: Tab; label: string }[] = [
+  { key: "today", label: "Home" },
+  { key: "training", label: "Training" },
+  { key: "progress", label: "Progress" },
+  { key: "recovery", label: "Recovery" },
+];
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -116,9 +139,38 @@ function getRecommendation(exercise: Exercise, history: WorkoutSession[]) {
   };
 }
 
+function greetingFor(hour: number) {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function sessionVolume(session: WorkoutSession) {
+  return session.exercises.reduce(
+    (total, exercise) =>
+      total +
+      exercise.sets
+        .filter((set) => set.complete)
+        .reduce((sum, set) => sum + set.weight * set.reps, 0),
+    0,
+  );
+}
+
+function computeStreak(history: WorkoutSession[]) {
+  const days = new Set(history.map((item) => new Date(item.completedAt).toDateString()));
+  const cursor = new Date();
+  if (!days.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (days.has(cursor.toDateString())) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 export default function FormaApp() {
   const [tab, setTab] = useState<Tab>("today");
-  const [season, setSeason] = useState<Season>("Build");
+  const [season] = useState<Season>(ACTIVE_PHASE);
   const [workouts, setWorkouts] = useState<Workout[]>(DEFAULT_WORKOUTS);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [activeWorkoutId, setActiveWorkoutId] = useState(DEFAULT_WORKOUTS[0].id);
@@ -127,12 +179,15 @@ export default function FormaApp() {
   const [session, setSession] = useState<SessionDraft | null>(null);
   const [restRemaining, setRestRemaining] = useState(0);
   const [hydrated, setHydrated] = useState(false);
+  const [water, setWater] = useState(0);
+  const [journal, setJournal] = useState<Record<string, string>>({});
 
   useEffect(() => {
     try {
       const savedWorkouts = window.localStorage.getItem(STORAGE.workouts);
       const savedHistory = window.localStorage.getItem(STORAGE.history);
-      const savedSeason = window.localStorage.getItem(STORAGE.season) as Season | null;
+      const savedWater = window.localStorage.getItem(STORAGE.water);
+      const savedJournal = window.localStorage.getItem(STORAGE.journal);
 
       if (savedWorkouts) {
         const parsed = normalizeWorkouts(JSON.parse(savedWorkouts) as Workout[]);
@@ -142,7 +197,11 @@ export default function FormaApp() {
         }
       }
       if (savedHistory) setHistory(JSON.parse(savedHistory) as WorkoutSession[]);
-      if (savedSeason && seasonCopy[savedSeason]) setSeason(savedSeason);
+      if (savedWater) {
+        const parsed = JSON.parse(savedWater) as { date: string; count: number };
+        if (parsed.date === new Date().toDateString()) setWater(parsed.count);
+      }
+      if (savedJournal) setJournal(JSON.parse(savedJournal) as Record<string, string>);
     } catch {
       // Keep safe defaults when older browser data cannot be read.
     } finally {
@@ -158,6 +217,19 @@ export default function FormaApp() {
   }, [workouts, history, season, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(
+      STORAGE.water,
+      JSON.stringify({ date: new Date().toDateString(), count: water }),
+    );
+  }, [water, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(STORAGE.journal, JSON.stringify(journal));
+  }, [journal, hydrated]);
+
+  useEffect(() => {
     if (restRemaining <= 0) return;
     const timer = window.setInterval(() => {
       setRestRemaining((current) => Math.max(0, current - 1));
@@ -166,11 +238,50 @@ export default function FormaApp() {
   }, [restRemaining]);
 
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
-  const seasonData = seasonCopy[season];
   const weeklySets = useMemo(
     () => workouts.reduce((total, workout) => total + workout.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), 0),
     [workouts],
   );
+  const streak = useMemo(() => computeStreak(history), [history]);
+  const completedSets = useMemo(
+    () =>
+      history.reduce(
+        (total, item) =>
+          total + item.exercises.reduce((sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length, 0),
+        0,
+      ),
+    [history],
+  );
+  const weekSessions = useMemo(() => {
+    const now = Date.now();
+    return history.filter((item) => now - new Date(item.completedAt).getTime() <= 7 * 86_400_000).length;
+  }, [history]);
+  const volumeSeries = useMemo(
+    () =>
+      [...history].slice(-6).map((item) => ({
+        label: new Date(item.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        value: sessionVolume(item),
+      })),
+    [history],
+  );
+  const strengthProgress = useMemo(() => {
+    const planned = new Map<string, number>();
+    workouts.forEach((workout) =>
+      workout.exercises.forEach((exercise) => {
+        if (!planned.has(exercise.name)) planned.set(exercise.name, exercise.weight);
+      }),
+    );
+    const latest = new Map<string, number>();
+    history.forEach((item) =>
+      item.exercises.forEach((exercise) => {
+        const done = exercise.sets.filter((set) => set.complete);
+        if (done.length) latest.set(exercise.name, done[0].weight);
+      }),
+    );
+    return Array.from(planned.entries())
+      .map(([name, base]) => ({ name, base, current: latest.get(name) ?? base }))
+      .slice(0, 5);
+  }, [workouts, history]);
 
   const startWorkout = (workout: Workout) => {
     const recommendations = workout.exercises.map((exercise) => getRecommendation(exercise, history));
@@ -309,7 +420,16 @@ export default function FormaApp() {
   };
 
   if (!hydrated) {
-    return <main className="app-canvas"><section className="phone loading">Preparing FORMA…</section></main>;
+    return (
+      <div className="app">
+        <div className="shell">
+          <div className="loading">
+            <span className="wordmark">FORMA</span>
+            <p>Preparing your practice…</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (session && activeWorkout) {
@@ -319,180 +439,303 @@ export default function FormaApp() {
     const allComplete = session.results.every((item) => item.sets.every((set) => set.complete));
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
+    const setsDone = result.sets.filter((set) => set.complete).length;
+    const progressPct = Math.round((setsDone / result.sets.length) * 100);
 
     return (
-      <main className="app-canvas">
-        <section className="phone">
-          <div className="textile-layer linen" />
-          <div className="textile-layer contour" />
-          <div className="textile-layer travertine" />
+      <div className="app">
+        <div className="shell">
+          <div className="screen session-screen">
+            <header className="session-top">
+              <button className="ghost-btn" onClick={() => setSession(null)}>‹ Exit</button>
+              <div className="session-count">
+                <span className="eyebrow">{activeWorkout.title}</span>
+                <strong>{session.exerciseIndex + 1} / {activeWorkout.exercises.length}</strong>
+              </div>
+              <button className="ghost-btn strong" onClick={finishWorkout} disabled={!allComplete}>Finish</button>
+            </header>
 
-          <header className="session-header">
-            <button onClick={() => setSession(null)}>‹ Exit</button>
-            <div>
-              <span className="eyebrow">{activeWorkout.title}</span>
-              <strong>{session.exerciseIndex + 1} / {activeWorkout.exercises.length}</strong>
-            </div>
-            <button onClick={finishWorkout} disabled={!allComplete}>Finish</button>
-          </header>
-
-          <section className="session-hero">
-            <span className="eyebrow light">{season} · Primary target</span>
-            <h1>{exercise.name}</h1>
-            <p>{recommendation.title}</p>
-            <small>{recommendation.detail}</small>
-          </section>
-
-          <section className="stone-card session-card">
-            <div className="session-meta">
-              <span>{exercise.sets} sets</span>
-              <span>{exercise.repMin}–{exercise.repMax} reps</span>
-              <span>RPE {exercise.rpe}</span>
-            </div>
-
-            <div className="set-list">
-              {result.sets.map((set, setIndex) => (
-                <article className={`set-row ${set.complete ? "complete" : ""}`} key={setIndex}>
-                  <strong>Set {setIndex + 1}</strong>
-                  <label>
-                    <span>kg</span>
-                    <input type="number" step="0.5" value={set.weight} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { weight: Number(event.target.value) })} />
-                  </label>
-                  <label>
-                    <span>reps</span>
-                    <input type="number" value={set.reps} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { reps: Number(event.target.value) })} />
-                  </label>
-                  <label>
-                    <span>RPE</span>
-                    <input type="number" min="1" max="10" step="0.5" value={set.rpe} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { rpe: Number(event.target.value) })} />
-                  </label>
-                  <button
-                    className="set-complete"
-                    onClick={() => {
-                      const nextComplete = !set.complete;
-                      updateSet(session.exerciseIndex, setIndex, { complete: nextComplete });
-                      if (nextComplete) setRestRemaining(exercise.restSeconds);
-                    }}
-                  >
-                    {set.complete ? "✓" : "Done"}
-                  </button>
-                </article>
-              ))}
-            </div>
-
-            {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
-          </section>
-
-          <section className="rest-card">
-            <div>
-              <span className="eyebrow">Rest timer</span>
-              <strong>{minutes}:{seconds}</strong>
-            </div>
-            <button onClick={() => setRestRemaining(exercise.restSeconds)}>Restart</button>
-            <button onClick={() => setRestRemaining(0)}>Skip</button>
-          </section>
-
-          <div className="session-nav">
-            <button disabled={session.exerciseIndex === 0} onClick={() => setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 })}>Previous</button>
-            <button
-              disabled={session.exerciseIndex === activeWorkout.exercises.length - 1}
-              onClick={() => setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 })}
+            <section
+              className="session-hero"
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.12), rgba(58,42,32,.62)), url(${IMAGES.strength})` }}
             >
-              Next exercise
-            </button>
+              <span className="eyebrow light">Foundation · Primary target</span>
+              <h1>{exercise.name}</h1>
+              <p>{recommendation.title}</p>
+              <small>{recommendation.detail}</small>
+              <div className="session-progress">
+                <span style={{ width: `${progressPct}%` }} />
+              </div>
+            </section>
+
+            <article className="card session-card">
+              <div className="session-meta">
+                <span>{exercise.sets} sets</span>
+                <span>{exercise.repMin}–{exercise.repMax} reps</span>
+                <span>RPE {exercise.rpe}</span>
+              </div>
+
+              <div className="set-list">
+                {result.sets.map((set, setIndex) => (
+                  <article className={`set-row ${set.complete ? "complete" : ""}`} key={setIndex}>
+                    <strong>Set {setIndex + 1}</strong>
+                    <label>
+                      <span>kg</span>
+                      <input type="number" step="0.5" value={set.weight} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { weight: Number(event.target.value) })} />
+                    </label>
+                    <label>
+                      <span>reps</span>
+                      <input type="number" value={set.reps} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { reps: Number(event.target.value) })} />
+                    </label>
+                    <label>
+                      <span>RPE</span>
+                      <input type="number" min="1" max="10" step="0.5" value={set.rpe} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { rpe: Number(event.target.value) })} />
+                    </label>
+                    <button
+                      className="set-complete"
+                      onClick={() => {
+                        const nextComplete = !set.complete;
+                        updateSet(session.exerciseIndex, setIndex, { complete: nextComplete });
+                        if (nextComplete) setRestRemaining(exercise.restSeconds);
+                      }}
+                    >
+                      {set.complete ? "✓" : "Done"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+
+              {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
+            </article>
+
+            <article className="card rest-card">
+              <div>
+                <span className="eyebrow">Rest timer</span>
+                <strong>{minutes}:{seconds}</strong>
+              </div>
+              <div className="rest-actions">
+                <button onClick={() => setRestRemaining(exercise.restSeconds)}>Restart</button>
+                <button onClick={() => setRestRemaining(0)}>Skip</button>
+              </div>
+            </article>
+
+            <div className="session-nav">
+              <button disabled={session.exerciseIndex === 0} onClick={() => setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 })}>Previous</button>
+              <button
+                disabled={session.exerciseIndex === activeWorkout.exercises.length - 1}
+                onClick={() => setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 })}
+              >
+                Next exercise
+              </button>
+            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </div>
     );
   }
 
+  const greeting = greetingFor(new Date().getHours());
+  const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const focusExercise = activeWorkout?.exercises[0];
+  const focusRec = focusExercise ? getRecommendation(focusExercise, history) : null;
+  const encouragement =
+    history.length === 0
+      ? "Welcome to Foundation. Your first session sets the tone — begin gently and let consistency do the work."
+      : streak >= 3
+        ? `A ${streak}-day rhythm — this is exactly how lasting strength is built. Keep it flowing.`
+        : "Consistency over intensity. Show up today and let the work quietly compound.";
+
   return (
-    <main className="app-canvas">
-      <section className="phone">
-        <div className="textile-layer linen" />
-        <div className="textile-layer contour" />
-        <div className="textile-layer travertine" />
-
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">Your practice,</span>
-            <h1>Hayley</h1>
-          </div>
-          <button className="round-btn">◌</button>
-        </header>
-
+    <div className="app">
+      <div className="shell">
         {tab === "today" && activeWorkout && (
-          <section className="content">
-            <article className={`season-card ${seasonData.className}`}>
-              <div className="material-highlight" />
-              <span className="eyebrow light">Current season</span>
-              <h2>{season}</h2>
-              <p>{seasonData.line}</p>
-              <small>{seasonData.focus}</small>
+          <div className="screen home-screen">
+            <header className="topbar">
+              <span className="wordmark">FORMA</span>
+              <div className="avatar">{USER_NAME.charAt(0)}</div>
+            </header>
+
+            <section
+              className="home-hero"
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.04) 30%, rgba(58,42,32,.58)), url(${IMAGES.hero})` }}
+            >
+              <div className="home-hero-copy">
+                <span className="eyebrow light">{greeting},</span>
+                <h1 className="hero-name">{USER_NAME}</h1>
+                <div className="hero-tags">
+                  <span className="hero-chip">Foundation Phase</span>
+                  <span className="hero-chip subtle">Today · {activeWorkout.title}</span>
+                </div>
+              </div>
+            </section>
+
+            <div className="stat-grid three">
+              <StatTile label="Day streak" value={String(streak)} note="Keep it going" />
+              <StatTile label="Sessions" value={String(history.length)} note="All time" />
+              <StatTile label="Weekly sets" value={String(weeklySets)} note="Planned" />
+            </div>
+
+            <SectionHeading eyebrow="Today's workout" title={activeWorkout.title} />
+            <article className="card workout-today">
+              <div className="workout-today-media" style={{ backgroundImage: `url(${IMAGES.strength})` }}>
+                <span className="media-chip">{activeWorkout.duration} min</span>
+                <button className="media-edit" onClick={() => { setEditingWorkoutId(activeWorkout.id); setTab("training"); }}>Edit</button>
+              </div>
+              <div className="workout-today-body">
+                <span className="eyebrow">{activeWorkout.day} · Foundation</span>
+                <ul className="exercise-preview">
+                  {activeWorkout.exercises.map((item, index) => {
+                    const recommendation = getRecommendation(item, history);
+                    return (
+                      <li key={item.id}>
+                        <span className="ep-index">{index + 1}</span>
+                        <div>
+                          <strong>{item.name}</strong>
+                          <small>{item.sets} × {item.repMin}–{item.repMax} · RPE {item.rpe}</small>
+                          <em>{recommendation.title}</em>
+                        </div>
+                      </li>
+                    );
+                  })}
+                  {!activeWorkout.exercises.length && <li className="ep-empty">No exercises yet — add some in Training.</li>}
+                </ul>
+                <button className="cta-btn" disabled={!activeWorkout.exercises.length} onClick={() => startWorkout(activeWorkout)}>
+                  Start workout
+                </button>
+              </div>
             </article>
 
-            <div className="season-tabs">
-              {(["Foundation", "Build", "Peak", "Align"] as Season[]).map((item) => (
-                <button key={item} className={season === item ? "active" : ""} onClick={() => setSeason(item)}>{item}</button>
+            <SectionHeading eyebrow="Your coach" title="Daily note" />
+            <article className="card coach-card">
+              <div className="coach-top">
+                <div className="coach-avatar">F</div>
+                <div>
+                  <strong>Coach FORMA</strong>
+                  <small>Foundation guidance</small>
+                </div>
+              </div>
+              <p className="coach-message">{encouragement}</p>
+              {focusRec && focusExercise && (
+                <div className="coach-rec">
+                  <span className="eyebrow">Progressive overload</span>
+                  <strong>{focusExercise.name}</strong>
+                  <p>{focusRec.title}. {focusRec.detail}</p>
+                </div>
+              )}
+              <div className="coach-reminders">
+                {COACH_REMINDERS.map((reminder) => (
+                  <div className={`reminder accent-${reminder.accent}`} key={reminder.title}>
+                    <strong>{reminder.title}</strong>
+                    <small>{reminder.text}</small>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
+            <div className="stat-grid three">
+              {NUTRITION_TARGETS.map((target) => (
+                <StatTile key={target.label} label={target.label} value={target.value} note={target.unit} accent={target.accent} />
               ))}
             </div>
-
-            <div className="section-title">
-              <div><span className="eyebrow">Today</span><h3>{activeWorkout.title}</h3></div>
-              <span>{activeWorkout.duration} min</span>
-            </div>
-
-            <article className="stone-card">
-              <div className="card-header">
-                <div>
-                  <span className="eyebrow">{activeWorkout.day}</span>
-                  <h3>{activeWorkout.title}</h3>
-                </div>
-                <button onClick={() => { setEditingWorkoutId(activeWorkout.id); setTab("training"); }}>Edit</button>
+            <article
+              className="card image-card"
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.02) 40%, rgba(58,42,32,.5)), url(${IMAGES.nutrition})` }}
+            >
+              <div className="image-card-copy">
+                <span className="eyebrow light">Meals</span>
+                <h3>Balanced, protein-led plates</h3>
+                <span className="link-cue">Bright greens · lean protein · slow carbs</span>
               </div>
-
-              <div className="exercise-stack">
-                {activeWorkout.exercises.map((exercise, index) => {
-                  const recommendation = getRecommendation(exercise, history);
-                  return (
-                    <div className="exercise-row recommendation-row" key={exercise.id}>
-                      <span className="number">{index + 1}</span>
-                      <div>
-                        <strong>{exercise.name}</strong>
-                        <small>{exercise.sets} sets · {exercise.repMin}–{exercise.repMax} reps · RPE {exercise.rpe}</small>
-                        <em>{recommendation.title}</em>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <button className="start-button" disabled={!activeWorkout.exercises.length} onClick={() => startWorkout(activeWorkout)}>
-                Start workout
-              </button>
             </article>
 
-            <section className="metric-grid">
-              <Metric label="Weekly sets" value={String(weeklySets)} note="Across all sessions" />
-              <Metric label="Sessions" value={String(history.length)} note="Saved locally" />
-              <Metric label="Recovery" value="82%" note="Nervous system settled" />
-            </section>
-          </section>
+            <SectionHeading eyebrow="Hydration" title="Water intake" />
+            <article className="card hydration-card">
+              <div className="hydration-head">
+                <div>
+                  <strong className="hydration-count">{water}<small> / {HYDRATION_GOAL} glasses</small></strong>
+                  <small className="muted">{water >= HYDRATION_GOAL ? "Goal reached — beautifully done." : "Small sips, all day long."}</small>
+                </div>
+                <div className="hydration-controls">
+                  <button onClick={() => setWater((current) => Math.max(0, current - 1))} aria-label="Remove a glass">−</button>
+                  <button onClick={() => setWater((current) => Math.min(HYDRATION_GOAL, current + 1))} aria-label="Add a glass">+</button>
+                </div>
+              </div>
+              <div className="hydration-track">
+                {Array.from({ length: HYDRATION_GOAL }).map((_, index) => (
+                  <span key={index} className={`drop${index < water ? " filled" : ""}`} />
+                ))}
+              </div>
+            </article>
+
+            <SectionHeading eyebrow="Wellbeing" title="Recovery & progress" />
+            <div className="dual-grid">
+              <article
+                className="card image-card tall"
+                style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.02) 35%, rgba(58,42,32,.55)), url(${IMAGES.recovery})` }}
+                role="button"
+                tabIndex={0}
+                onClick={() => setTab("recovery")}
+                onKeyDown={(event) => { if (event.key === "Enter") setTab("recovery"); }}
+              >
+                <div className="image-card-copy">
+                  <span className="eyebrow light">Recovery</span>
+                  <h3>82% recovered</h3>
+                  <span className="link-cue">Return to balance ›</span>
+                </div>
+              </article>
+              <article className="card progress-preview" role="button" tabIndex={0} onClick={() => setTab("progress")} onKeyDown={(event) => { if (event.key === "Enter") setTab("progress"); }}>
+                <Eyebrow>Progress</Eyebrow>
+                <strong className="progress-preview-value">{history.length}</strong>
+                <small className="muted">sessions logged</small>
+                <div className="progress-preview-meta">
+                  <span>{streak} day streak</span>
+                  <span>{completedSets} sets</span>
+                </div>
+                <span className="link-cue">View journey ›</span>
+              </article>
+            </div>
+
+            <SectionHeading eyebrow="Your phase" title="Foundation" />
+            <article className="card phase-card">
+              <p className="muted">{phaseCopy.Foundation.line} {phaseCopy.Foundation.focus}</p>
+              <PhaseJourney phases={PHASES} active={ACTIVE_PHASE} />
+            </article>
+
+            <SectionHeading eyebrow="Journal" title="Today's reflection" />
+            <article className="card journal-card">
+              <textarea
+                value={journal[todayISO] ?? ""}
+                onChange={(event) => setJournal((current) => ({ ...current, [todayISO]: event.target.value }))}
+                placeholder="How did today feel? A word or two is enough."
+              />
+            </article>
+
+            <SectionHeading eyebrow="This week" title="Weekly schedule" />
+            <WeeklySchedule schedule={WEEKLY_SCHEDULE} todayName={todayName} />
+          </div>
         )}
 
         {tab === "training" && (
-          <section className="content page-section">
-            <div className="page-heading">
-              <div><span className="eyebrow">Training</span><h2>Your week</h2></div>
-              <button className="primary-btn" onClick={addWorkout}>+ Workout</button>
-            </div>
+          <div className="screen">
+            <header className="topbar">
+              <div>
+                <span className="eyebrow">Training</span>
+                <h2>Your workouts</h2>
+              </div>
+              <button className="pill-btn" onClick={addWorkout}>+ Workout</button>
+            </header>
+
+            <SectionHeading eyebrow="This week" title="Weekly schedule" />
+            <WeeklySchedule schedule={WEEKLY_SCHEDULE} todayName={todayName} />
 
             <div className="workout-list">
               {workouts.map((workout) => {
                 const isEditing = editingWorkoutId === workout.id;
                 return (
-                  <article className="stone-card workout-editor" key={workout.id}>
-                    <div className="card-header">
+                  <article className="card workout-card" key={workout.id}>
+                    <div className="workout-card-head">
                       <div className="workout-title-block">
                         {isEditing ? (
                           <>
@@ -507,9 +750,9 @@ export default function FormaApp() {
                         )}
                       </div>
                       <div className="editor-actions compact">
-                        <button onClick={() => moveWorkout(workout.id, -1)}>↑</button>
-                        <button onClick={() => moveWorkout(workout.id, 1)}>↓</button>
-                        <button onClick={() => startWorkout(workout)}>Start</button>
+                        <button onClick={() => moveWorkout(workout.id, -1)} aria-label="Move up">↑</button>
+                        <button onClick={() => moveWorkout(workout.id, 1)} aria-label="Move down">↓</button>
+                        <button className="pill-btn small" onClick={() => startWorkout(workout)}>Start</button>
                       </div>
                     </div>
 
@@ -545,23 +788,24 @@ export default function FormaApp() {
                                 </div>
                                 <textarea placeholder="Exercise notes" value={exercise.notes} onChange={(event) => updateExercise(workout.id, exercise.id, { notes: event.target.value })} />
                                 <div className="editor-actions">
-                                  <button onClick={() => setEditingExerciseId(null)}>Done</button>
+                                  <button className="pill-btn small" onClick={() => setEditingExerciseId(null)}>Done</button>
                                   <button className="danger" onClick={() => deleteExercise(workout.id, exercise.id)}>Delete</button>
                                 </div>
                               </>
                             ) : (
                               <>
                                 <div className="exercise-summary">
+                                  <div className="exercise-thumb" style={{ backgroundImage: `url(${IMAGES.strength})` }} aria-hidden />
                                   <div className="reorder-buttons">
-                                    <button onClick={() => moveExercise(workout.id, exercise.id, -1)}>↑</button>
-                                    <button onClick={() => moveExercise(workout.id, exercise.id, 1)}>↓</button>
+                                    <button onClick={() => moveExercise(workout.id, exercise.id, -1)} aria-label="Move exercise up">↑</button>
+                                    <button onClick={() => moveExercise(workout.id, exercise.id, 1)} aria-label="Move exercise down">↓</button>
                                   </div>
                                   <div>
                                     <strong>{exercise.name}</strong>
                                     <small>{exercise.sets} × {exercise.repMin}–{exercise.repMax} · {exercise.weight} kg · RPE {exercise.rpe}</small>
                                   </div>
                                 </div>
-                                <button onClick={() => setEditingExerciseId(exercise.id)}>Edit</button>
+                                <button className="text-btn" onClick={() => setEditingExerciseId(exercise.id)}>Edit</button>
                               </>
                             )}
                           </div>
@@ -573,29 +817,94 @@ export default function FormaApp() {
                 );
               })}
             </div>
-          </section>
+          </div>
         )}
 
         {tab === "progress" && (
-          <section className="content page-section">
-            <span className="eyebrow">Progress</span>
-            <h2>Your training history</h2>
-
-            <article className="material-card progress-summary">
+          <div className="screen">
+            <header className="topbar">
               <div>
-                <span className="eyebrow">Completed sessions</span>
-                <strong>{history.length}</strong>
+                <span className="eyebrow">Progress</span>
+                <h2>Your journey</h2>
               </div>
-              <div>
-                <span className="eyebrow">Completed sets</span>
-                <strong>{history.reduce((total, item) => total + item.exercises.reduce((sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length, 0), 0)}</strong>
+            </header>
+
+            <div className="stat-grid four">
+              <StatTile label="Sessions" value={String(history.length)} accent="pink" />
+              <StatTile label="Sets" value={String(completedSets)} accent="mocha" />
+              <StatTile label="Streak" value={`${streak}d`} accent="green" />
+              <StatTile label="This week" value={`${weekSessions}/5`} accent="sage" />
+            </div>
+
+            <SectionHeading eyebrow="Charts" title="Training volume" />
+            <article className="card chart-card">
+              {volumeSeries.length ? (
+                <div className="bar-chart">
+                  {volumeSeries.map((point, index) => {
+                    const max = Math.max(1, ...volumeSeries.map((entry) => entry.value));
+                    const height = Math.max(6, Math.round((point.value / max) * 100));
+                    return (
+                      <div className="bar-col" key={index}>
+                        <span className="bar" style={{ height: `${height}%` }} />
+                        <small>{point.label}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="muted centered">Complete a workout to see your training volume grow.</p>
+              )}
+            </article>
+
+            <SectionHeading eyebrow="Strength" title="Strength progress" />
+            <article className="card">
+              <div className="strength-list">
+                {strengthProgress.map((entry) => {
+                  const delta = entry.current - entry.base;
+                  return (
+                    <div className="strength-row" key={entry.name}>
+                      <div>
+                        <strong>{entry.name}</strong>
+                        <small>{entry.current} kg working weight</small>
+                      </div>
+                      <span className={`delta ${delta > 0 ? "up" : delta < 0 ? "down" : "flat"}`}>
+                        {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "—"} kg
+                      </span>
+                    </div>
+                  );
+                })}
+                {!strengthProgress.length && <p className="muted centered">Add exercises to track strength progress.</p>}
               </div>
             </article>
 
+            <div className="dual-grid">
+              <article className="card measurements-card">
+                <Eyebrow>Measurements</Eyebrow>
+                <div className="measurement-list">
+                  {MEASUREMENTS.map((item) => (
+                    <div className="measurement-row" key={item.label}>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </article>
+              <article className="card photos-card">
+                <Eyebrow>Progress photos</Eyebrow>
+                <div className="photo-strip">
+                  {PROGRESS_GALLERY.map((src, index) => (
+                    <div className="photo-thumb" key={index} style={{ backgroundImage: `url(${src})` }} aria-hidden />
+                  ))}
+                </div>
+                <small className="muted">A gentle visual record of your progress.</small>
+              </article>
+            </div>
+
+            <SectionHeading eyebrow="History" title="Recent sessions" />
             <div className="history-list">
               {[...history].reverse().map((item) => (
-                <article className="stone-card history-card" key={item.id}>
-                  <div className="card-header">
+                <article className="card history-card" key={item.id}>
+                  <div className="workout-card-head">
                     <div>
                       <span className="eyebrow">{new Date(item.completedAt).toLocaleDateString()}</span>
                       <h3>{item.workoutTitle}</h3>
@@ -613,56 +922,57 @@ export default function FormaApp() {
                   })}
                 </article>
               ))}
-              {!history.length && <article className="stone-card empty-state">Complete your first workout to build your progress history.</article>}
+              {!history.length && <article className="card empty-state">Complete your first workout to build your progress history.</article>}
             </div>
-          </section>
+          </div>
         )}
 
         {tab === "recovery" && (
-          <section className="content page-section">
-            <span className="eyebrow">Recovery</span>
-            <h2>Return to balance</h2>
-            <article className="material-card recovery-card">
-              <div className="wave wave-a" />
-              <div className="wave wave-b" />
-              <strong>82%</strong>
-              <small>Well recovered</small>
+          <div className="screen">
+            <header className="topbar">
+              <div>
+                <span className="eyebrow">Recovery</span>
+                <h2>Return to balance</h2>
+              </div>
+            </header>
+
+            <article
+              className="card image-card tall recovery-hero"
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.02) 30%, rgba(58,42,32,.5)), url(${IMAGES.recovery})` }}
+            >
+              <div className="image-card-copy">
+                <span className="eyebrow light">Readiness</span>
+                <h3 className="recovery-score">82%</h3>
+                <span className="link-cue">Well recovered — train as planned</span>
+              </div>
             </article>
-            <section className="metric-grid">
-              <Metric label="Stress" value="Low" note="Good" />
-              <Metric label="Readiness" value="High" note="Train as planned" />
-              <Metric label="Soreness" value="Mild" note="Normal" />
-            </section>
-          </section>
+
+            <div className="stat-grid three">
+              <StatTile label="Stress" value="Low" note="Settled" accent="sage" />
+              <StatTile label="Readiness" value="High" note="Go" accent="green" />
+              <StatTile label="Soreness" value="Mild" note="Normal" accent="pink" />
+            </div>
+
+            <SectionHeading eyebrow="Tonight" title="Wind-down ritual" />
+            <article className="card coach-card">
+              <p className="coach-message">Dim the lights an hour before bed, stretch gently, and let your nervous system settle. Rest is where your Foundation work takes hold.</p>
+              <div className="coach-reminders">
+                <div className="reminder accent-blue"><strong>Hydrate</strong><small>A final glass of water to close the day.</small></div>
+                <div className="reminder accent-mocha"><strong>Nourish</strong><small>A little protein supports overnight recovery.</small></div>
+                <div className="reminder accent-sage"><strong>Sleep</strong><small>Aim for 8 restful hours tonight.</small></div>
+              </div>
+            </article>
+          </div>
         )}
 
-        <nav className="bottom-nav">
-          {(["today", "training", "progress", "recovery"] as Tab[]).map((item) => (
-            <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
-              {item === "today" ? "Today" : item[0].toUpperCase() + item.slice(1)}
+        <nav className="tabbar">
+          {TABS.map((item) => (
+            <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => setTab(item.key)}>
+              {item.label}
             </button>
           ))}
         </nav>
-      </section>
-    </main>
-  );
-}
-
-function Field({ label, value, onChange, step = "1" }: { label: string; value: number; onChange: (value: number) => void; step?: string }) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input type="number" step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} />
-    </label>
-  );
-}
-
-function Metric({ label, value, note }: { label: string; value: string; note: string }) {
-  return (
-    <article className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{note}</small>
-    </article>
+      </div>
+    </div>
   );
 }
