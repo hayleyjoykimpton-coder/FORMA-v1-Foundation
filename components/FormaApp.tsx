@@ -1,28 +1,54 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_WORKOUTS } from "@/lib/defaults";
 import {
   ACTIVE_PHASE,
   COACH_REMINDERS,
   HYDRATION_GOAL,
   IMAGES,
-  MEASUREMENTS,
   NUTRITION_TARGETS,
   PHASES,
-  PROGRESS_GALLERY,
-  USER_NAME,
-  WEEKLY_SCHEDULE,
   phaseCopy,
 } from "@/lib/content";
 import type {
   Exercise,
   ExerciseResult,
-  Season,
   SetResult,
   Workout,
   WorkoutSession,
 } from "@/lib/types";
+import { buildWorkoutsForWeek, getPhaseForWeek } from "@/lib/program";
+import { createSessionResults, getRecommendation, uid } from "@/lib/progression";
+import {
+  buildVolumeSeries,
+  computeStreak,
+  computeStrengthProgress,
+  plannedWeeklySets,
+  totalCompletedSets,
+  weekSessionCount,
+} from "@/lib/analytics";
+import { STORAGE, loadForma } from "@/lib/migrations";
+import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
+import type { UserProfile } from "@/lib/user";
+import { generateProgram } from "@/lib/programGenerator";
+import {
+  adjustResultsForReadiness,
+  coachDashboard,
+  exerciseCoaching,
+  gluteScore,
+  personalRecords,
+  postWorkoutSummary,
+  previousPerformance,
+  strengthTrends,
+  weeklyReview,
+} from "@/lib/coach";
+import type { Readiness } from "@/lib/coach";
+import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
+import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
+import { Onboarding } from "@/components/Onboarding";
+import { ProfileScreen } from "@/components/ProfileScreen";
+import { ReadinessCheck } from "@/components/Readiness";
+import { ProgressPanel } from "@/components/ProgressPanel";
 import {
   Eyebrow,
   Field,
@@ -37,14 +63,7 @@ type SessionDraft = {
   workoutId: string;
   exerciseIndex: number;
   results: ExerciseResult[];
-};
-
-const STORAGE = {
-  workouts: "forma-workouts-v11",
-  history: "forma-history-v11",
-  season: "forma-season-v11",
-  water: "forma-water-v1",
-  journal: "forma-journal-v1",
+  readiness?: number;
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -54,90 +73,8 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "recovery", label: "Recovery" },
 ];
 
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-function normalizeExercise(exercise: Exercise): Exercise {
-  return {
-    ...exercise,
-    increment: exercise.increment ?? 2.5,
-    restSeconds: exercise.restSeconds ?? 90,
-  };
-}
-
-function normalizeWorkouts(workouts: Workout[]): Workout[] {
-  return workouts.map((workout) => ({
-    ...workout,
-    exercises: workout.exercises.map(normalizeExercise),
-  }));
-}
-
-function createResults(workout: Workout): ExerciseResult[] {
-  return workout.exercises.map((exercise) => ({
-    exerciseId: exercise.id,
-    name: exercise.name,
-    repMin: exercise.repMin,
-    repMax: exercise.repMax,
-    increment: exercise.increment,
-    sets: Array.from({ length: exercise.sets }, () => ({
-      reps: exercise.repMin,
-      weight: exercise.weight,
-      rpe: exercise.rpe,
-      complete: false,
-    })),
-  }));
-}
-
-function getRecommendation(exercise: Exercise, history: WorkoutSession[]) {
-  const previous = history
-    .flatMap((session) => session.exercises)
-    .filter((result) => result.exerciseId === exercise.id || result.name === exercise.name)
-    .at(-1);
-
-  if (!previous) {
-    return {
-      title: "Establish your baseline",
-      detail: `${exercise.weight} kg for ${exercise.repMin}–${exercise.repMax} reps at about RPE ${exercise.rpe}.`,
-      targetWeight: exercise.weight,
-    };
-  }
-
-  const completed = previous.sets.filter((set) => set.complete);
-  if (!completed.length) {
-    return {
-      title: "Repeat the planned target",
-      detail: "The previous session was not completed.",
-      targetWeight: exercise.weight,
-    };
-  }
-
-  const allTopRange = completed.every((set) => set.reps >= exercise.repMax);
-  const averageRpe = completed.reduce((sum, set) => sum + set.rpe, 0) / completed.length;
-  const previousWeight = completed[0]?.weight ?? exercise.weight;
-
-  if (allTopRange && averageRpe <= 8.5) {
-    const next = previousWeight + exercise.increment;
-    return {
-      title: `Increase to ${next} kg`,
-      detail: `You reached the top of the rep range with manageable effort.`,
-      targetWeight: next,
-    };
-  }
-
-  if (averageRpe >= 9.5) {
-    const next = Math.max(0, previousWeight - exercise.increment);
-    return {
-      title: `Reduce to ${next} kg`,
-      detail: "Effort was very high. Reduce the load and rebuild clean reps.",
-      targetWeight: next,
-    };
-  }
-
-  return {
-    title: `Stay at ${previousWeight} kg`,
-    detail: `Add reps until every completed set reaches ${exercise.repMax}.`,
-    targetWeight: previousWeight,
-  };
-}
+/** Seed workouts for the current programme (used before hydration and as a fallback). */
+const INITIAL_WORKOUTS: Workout[] = buildWorkoutsForWeek(1);
 
 function greetingFor(hour: number) {
   if (hour < 12) return "Good morning";
@@ -145,35 +82,12 @@ function greetingFor(hour: number) {
   return "Good evening";
 }
 
-function sessionVolume(session: WorkoutSession) {
-  return session.exercises.reduce(
-    (total, exercise) =>
-      total +
-      exercise.sets
-        .filter((set) => set.complete)
-        .reduce((sum, set) => sum + set.weight * set.reps, 0),
-    0,
-  );
-}
-
-function computeStreak(history: WorkoutSession[]) {
-  const days = new Set(history.map((item) => new Date(item.completedAt).toDateString()));
-  const cursor = new Date();
-  if (!days.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (days.has(cursor.toDateString())) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
-}
-
 export default function FormaApp() {
   const [tab, setTab] = useState<Tab>("today");
-  const [season] = useState<Season>(ACTIVE_PHASE);
-  const [workouts, setWorkouts] = useState<Workout[]>(DEFAULT_WORKOUTS);
+  const [week, setWeek] = useState(1);
+  const [workouts, setWorkouts] = useState<Workout[]>(INITIAL_WORKOUTS);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
-  const [activeWorkoutId, setActiveWorkoutId] = useState(DEFAULT_WORKOUTS[0].id);
+  const [activeWorkoutId, setActiveWorkoutId] = useState(INITIAL_WORKOUTS[0]?.id ?? "");
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [session, setSession] = useState<SessionDraft | null>(null);
@@ -181,29 +95,26 @@ export default function FormaApp() {
   const [hydrated, setHydrated] = useState(false);
   const [water, setWater] = useState(0);
   const [journal, setJournal] = useState<Record<string, string>>({});
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
+  const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
+  const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
 
   useEffect(() => {
     try {
-      const savedWorkouts = window.localStorage.getItem(STORAGE.workouts);
-      const savedHistory = window.localStorage.getItem(STORAGE.history);
-      const savedWater = window.localStorage.getItem(STORAGE.water);
-      const savedJournal = window.localStorage.getItem(STORAGE.journal);
-
-      if (savedWorkouts) {
-        const parsed = normalizeWorkouts(JSON.parse(savedWorkouts) as Workout[]);
-        if (parsed.length) {
-          setWorkouts(parsed);
-          setActiveWorkoutId(parsed[0].id);
-        }
-      }
-      if (savedHistory) setHistory(JSON.parse(savedHistory) as WorkoutSession[]);
-      if (savedWater) {
-        const parsed = JSON.parse(savedWater) as { date: string; count: number };
-        if (parsed.date === new Date().toDateString()) setWater(parsed.count);
-      }
-      if (savedJournal) setJournal(JSON.parse(savedJournal) as Record<string, string>);
+      const state = loadForma();
+      setWorkouts(state.workouts);
+      setActiveWorkoutId(state.workouts[0]?.id ?? "");
+      setHistory(state.history);
+      setWeek(state.week);
+      setWater(state.water);
+      setJournal(state.journal);
+      setProfile(loadProfile());
+      setProgressEntries(loadProgress());
+      setProgressPhotos(loadPhotos());
     } catch {
-      // Keep safe defaults when older browser data cannot be read.
+      // Keep safe defaults when stored data cannot be read.
     } finally {
       setHydrated(true);
     }
@@ -213,8 +124,8 @@ export default function FormaApp() {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
     window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
-    window.localStorage.setItem(STORAGE.season, season);
-  }, [workouts, history, season, hydrated]);
+    window.localStorage.setItem(STORAGE.program, JSON.stringify({ week }));
+  }, [workouts, history, week, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -230,6 +141,16 @@ export default function FormaApp() {
   }, [journal, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    saveProgress(progressEntries);
+  }, [progressEntries, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    savePhotos(progressPhotos);
+  }, [progressPhotos, hydrated]);
+
+  useEffect(() => {
     if (restRemaining <= 0) return;
     const timer = window.setInterval(() => {
       setRestRemaining((current) => Math.max(0, current - 1));
@@ -238,72 +159,118 @@ export default function FormaApp() {
   }, [restRemaining]);
 
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
-  const weeklySets = useMemo(
-    () => workouts.reduce((total, workout) => total + workout.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), 0),
+  const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
+  const streak = useMemo(() => computeStreak(history), [history]);
+  const completedSets = useMemo(() => totalCompletedSets(history), [history]);
+  const weekSessions = useMemo(() => weekSessionCount(history), [history]);
+  const volumeSeries = useMemo(() => buildVolumeSeries(history), [history]);
+  const strengthProgress = useMemo(() => computeStrengthProgress(workouts, history), [workouts, history]);
+  const dashboard = useMemo(() => (profile ? coachDashboard(profile, history) : null), [profile, history]);
+  const records = useMemo(() => personalRecords(history), [history]);
+  const trends = useMemo(() => strengthTrends(history), [history]);
+  const glute = useMemo(() => gluteScore(history), [history]);
+  const review = useMemo(() => (profile ? weeklyReview(profile, history) : null), [profile, history]);
+  const latestSummary = useMemo(
+    () => (history.length ? postWorkoutSummary(history[history.length - 1], history) : []),
+    [history],
+  );
+  // The weekly schedule reflects the user's actual (personalised) plan.
+  const weeklySchedule = useMemo(
+    () =>
+      workouts.map((workout) => ({
+        day: workout.day,
+        short: workout.day.slice(0, 3),
+        focus: workout.title,
+        image: /pilates|movement|mobility|recovery/i.test(workout.title) ? IMAGES.pilates : IMAGES.strength,
+      })),
     [workouts],
   );
-  const streak = useMemo(() => computeStreak(history), [history]);
-  const completedSets = useMemo(
-    () =>
-      history.reduce(
-        (total, item) =>
-          total + item.exercises.reduce((sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length, 0),
-        0,
-      ),
-    [history],
-  );
-  const weekSessions = useMemo(() => {
-    const now = Date.now();
-    return history.filter((item) => now - new Date(item.completedAt).getTime() <= 7 * 86_400_000).length;
-  }, [history]);
-  const volumeSeries = useMemo(
-    () =>
-      [...history].slice(-6).map((item) => ({
-        label: new Date(item.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-        value: sessionVolume(item),
-      })),
-    [history],
-  );
-  const strengthProgress = useMemo(() => {
-    const planned = new Map<string, number>();
-    workouts.forEach((workout) =>
-      workout.exercises.forEach((exercise) => {
-        if (!planned.has(exercise.name)) planned.set(exercise.name, exercise.weight);
-      }),
-    );
-    const latest = new Map<string, number>();
-    history.forEach((item) =>
-      item.exercises.forEach((exercise) => {
-        const done = exercise.sets.filter((set) => set.complete);
-        if (done.length) latest.set(exercise.name, done[0].weight);
-      }),
-    );
-    return Array.from(planned.entries())
-      .map(([name, base]) => ({ name, base, current: latest.get(name) ?? base }))
-      .slice(0, 5);
-  }, [workouts, history]);
+
+  const phaseDef = getPhaseForWeek(week);
+  const season = phaseDef.id;
+
+  const applyGeneratedProgram = (nextProfile: UserProfile) => {
+    const generated = generateProgram(nextProfile);
+    setWorkouts(generated);
+    setActiveWorkoutId(generated[0]?.id ?? "");
+  };
+
+  const handleOnboardingComplete = (nextProfile: UserProfile) => {
+    saveProfile(nextProfile);
+    setProfile(nextProfile);
+    applyGeneratedProgram(nextProfile);
+    setTab("today");
+  };
+
+  const handleProfileSave = (updated: UserProfile) => {
+    const trainingChanged =
+      !profile ||
+      profile.goal !== updated.goal ||
+      profile.experienceLevel !== updated.experienceLevel ||
+      profile.trainingDays !== updated.trainingDays ||
+      profile.equipmentAccess !== updated.equipmentAccess;
+    const weightChanged = !!profile && profile.weight !== updated.weight && typeof updated.weight === "number";
+    saveProfile(updated);
+    setProfile(updated);
+    if (trainingChanged) applyGeneratedProgram(updated);
+    // Keep the progress log in sync so profile weight edits appear in Progress.
+    if (weightChanged) {
+      const last = progressEntries[progressEntries.length - 1];
+      setProgressEntries((current) => [
+        ...current,
+        {
+          id: uid(),
+          date: new Date().toISOString(),
+          weight: updated.weight,
+          measurements: last?.measurements ?? {},
+          notes: "Updated in profile",
+        },
+      ]);
+    }
+    setProfileOpen(false);
+  };
+
+  const handleSaveProgressEntry = (entry: ProgressEntry) => {
+    setProgressEntries((current) => [...current, entry]);
+    if (typeof entry.weight === "number" && profile) {
+      const synced = { ...profile, weight: entry.weight };
+      saveProfile(synced);
+      setProfile(synced);
+    }
+  };
+
+  const handleAddPhoto = (photo: ProgressPhoto) => setProgressPhotos((current) => [...current, photo]);
+  const handleDeletePhoto = (id: string) => setProgressPhotos((current) => current.filter((photo) => photo.id !== id));
 
   const startWorkout = (workout: Workout) => {
-    const recommendations = workout.exercises.map((exercise) => getRecommendation(exercise, history));
-    const results = createResults(workout).map((result, index) => ({
-      ...result,
-      sets: result.sets.map((set) => ({ ...set, weight: recommendations[index].targetWeight })),
-    }));
+    setReadinessWorkout(workout);
+  };
+
+  const beginSession = (workout: Workout, readiness: Readiness) => {
+    const base = createSessionResults(workout, history, phaseDef);
+    const results = adjustResultsForReadiness(base, readiness);
     setActiveWorkoutId(workout.id);
-    setSession({ workoutId: workout.id, exerciseIndex: 0, results });
+    setSession({ workoutId: workout.id, exerciseIndex: 0, results, readiness: readiness.score });
+    setReadinessWorkout(null);
     setTab("today");
     setRestRemaining(0);
   };
 
   const finishWorkout = () => {
     if (!session || !activeWorkout) return;
+    const exercises = session.results.map((result) => ({
+      ...result,
+      sets: result.sets.map((set) => ({ ...set, skipped: !set.complete })),
+    }));
     const completed: WorkoutSession = {
       id: uid(),
       workoutId: activeWorkout.id,
       workoutTitle: activeWorkout.title,
       completedAt: new Date().toISOString(),
       season,
-      exercises: session.results,
+      week,
+      readiness: session.readiness,
+      exercises,
     };
     setHistory((current) => [...current, completed]);
     setSession(null);
@@ -343,7 +310,7 @@ export default function FormaApp() {
     setWorkouts((current) => {
       const next = current.filter((workout) => workout.id !== id);
       if (activeWorkoutId === id && next[0]) setActiveWorkoutId(next[0].id);
-      return next.length ? next : DEFAULT_WORKOUTS;
+      return next.length ? next : INITIAL_WORKOUTS;
     });
   };
 
@@ -432,11 +399,37 @@ export default function FormaApp() {
     );
   }
 
+  if (!profile) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  if (profileOpen) {
+    return (
+      <ProfileScreen
+        profile={profile}
+        onSave={handleProfileSave}
+        onClose={() => setProfileOpen(false)}
+        onViewProgress={() => { setProfileOpen(false); setTab("progress"); }}
+      />
+    );
+  }
+
+  if (readinessWorkout && !session) {
+    return (
+      <ReadinessCheck
+        workout={readinessWorkout}
+        onSubmit={(readiness) => beginSession(readinessWorkout, readiness)}
+        onCancel={() => setReadinessWorkout(null)}
+      />
+    );
+  }
+
   if (session && activeWorkout) {
     const exercise = activeWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
-    const recommendation = getRecommendation(exercise, history);
-    const allComplete = session.results.every((item) => item.sets.every((set) => set.complete));
+    const recommendation = getRecommendation(exercise, history, phaseDef);
+    const prev = previousPerformance(exercise, history);
+    const coaching = exerciseCoaching(exercise);
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
     const setsDone = result.sets.filter((set) => set.complete).length;
@@ -452,7 +445,7 @@ export default function FormaApp() {
                 <span className="eyebrow">{activeWorkout.title}</span>
                 <strong>{session.exerciseIndex + 1} / {activeWorkout.exercises.length}</strong>
               </div>
-              <button className="ghost-btn strong" onClick={finishWorkout} disabled={!allComplete}>Finish</button>
+              <button className="ghost-btn strong" onClick={finishWorkout}>Finish</button>
             </header>
 
             <section
@@ -467,6 +460,24 @@ export default function FormaApp() {
                 <span style={{ width: `${progressPct}%` }} />
               </div>
             </section>
+
+            <article className="card coach-prev">
+              <div className="coach-prev-head">
+                <span className="eyebrow">Last session</span>
+                {prev.pbWeight > 0 && <span className="season-pill">PB {prev.pbWeight}kg × {prev.pbReps}</span>}
+              </div>
+              {prev.hasData ? (
+                <div className="coach-prev-stats">
+                  <div><small>Weight</small><strong>{Math.max(...prev.weights)}kg</strong></div>
+                  <div><small>Reps</small><strong>{prev.reps.join(" / ")}</strong></div>
+                  <div><small>Avg RPE</small><strong>{prev.avgRpe}</strong></div>
+                  <div><small>Volume</small><strong>{Math.round(prev.volume)}kg</strong></div>
+                </div>
+              ) : (
+                <p className="muted">First time logging this exercise — today sets your baseline.</p>
+              )}
+              <p className="coach-prev-rec"><strong>Today:</strong> {recommendation.title}. {recommendation.detail}</p>
+            </article>
 
             <article className="card session-card">
               <div className="session-meta">
@@ -508,6 +519,36 @@ export default function FormaApp() {
               {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
             </article>
 
+            <article className="card coach-guide">
+              <span className="eyebrow">Coaching · {exercise.name}</span>
+              <div className="coach-guide-meta">
+                <span>{coaching.primary}</span>
+                <span>{coaching.equipment}</span>
+                <span>Tempo {coaching.tempo.split(" · ")[0]}</span>
+                <span>Rest {coaching.restSeconds}s</span>
+              </div>
+              {coaching.secondary !== "—" ? <p className="muted coach-guide-sub">Secondary: {coaching.secondary}</p> : null}
+              {coaching.cues.length > 0 && (
+                <div className="coach-block">
+                  <strong>Focus</strong>
+                  <ul className="coach-list">
+                    {coaching.cues.map((cue) => <li key={cue}>{cue}</li>)}
+                  </ul>
+                </div>
+              )}
+              {coaching.mistakes.length > 0 && (
+                <div className="coach-block">
+                  <strong>Avoid</strong>
+                  <ul className="coach-list">
+                    {coaching.mistakes.map((mistake) => <li key={mistake}>{mistake}</li>)}
+                  </ul>
+                </div>
+              )}
+              {coaching.substitutions.length > 0 && (
+                <p className="muted coach-guide-sub">Swaps: {coaching.substitutions.join(" · ")}</p>
+              )}
+            </article>
+
             <article className="card rest-card">
               <div>
                 <span className="eyebrow">Rest timer</span>
@@ -538,13 +579,15 @@ export default function FormaApp() {
   const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayISO = new Date().toISOString().slice(0, 10);
   const focusExercise = activeWorkout?.exercises[0];
-  const focusRec = focusExercise ? getRecommendation(focusExercise, history) : null;
+  const focusRec = focusExercise ? getRecommendation(focusExercise, history, phaseDef) : null;
+  const goalLabel = GOAL_LABELS[profile.goal];
+  const goalLower = goalLabel.toLowerCase();
   const encouragement =
     history.length === 0
-      ? "Welcome to Foundation. Your first session sets the tone — begin gently and let consistency do the work."
+      ? `Welcome to Foundation, ${profile.firstName}. Your ${profile.trainingDays}-day plan is built to ${goalLower} — begin gently and let consistency lead.`
       : streak >= 3
-        ? `A ${streak}-day rhythm — this is exactly how lasting strength is built. Keep it flowing.`
-        : "Consistency over intensity. Show up today and let the work quietly compound.";
+        ? `A ${streak}-day rhythm, ${profile.firstName} — this is exactly how you ${goalLower}. Keep it flowing.`
+        : `Consistency over intensity. Today's session moves you toward "${goalLower}".`;
 
   return (
     <div className="app">
@@ -553,7 +596,7 @@ export default function FormaApp() {
           <div className="screen home-screen">
             <header className="topbar">
               <span className="wordmark">FORMA</span>
-              <div className="avatar">{USER_NAME.charAt(0)}</div>
+              <button className="avatar" onClick={() => setProfileOpen(true)} aria-label="Open profile">{profile.firstName.charAt(0)}</button>
             </header>
 
             <section
@@ -562,7 +605,7 @@ export default function FormaApp() {
             >
               <div className="home-hero-copy">
                 <span className="eyebrow light">{greeting},</span>
-                <h1 className="hero-name">{USER_NAME}</h1>
+                <h1 className="hero-name">{profile.firstName}</h1>
                 <div className="hero-tags">
                   <span className="hero-chip">Foundation Phase</span>
                   <span className="hero-chip subtle">Today · {activeWorkout.title}</span>
@@ -586,7 +629,7 @@ export default function FormaApp() {
                 <span className="eyebrow">{activeWorkout.day} · Foundation</span>
                 <ul className="exercise-preview">
                   {activeWorkout.exercises.map((item, index) => {
-                    const recommendation = getRecommendation(item, history);
+                    const recommendation = getRecommendation(item, history, phaseDef);
                     return (
                       <li key={item.id}>
                         <span className="ep-index">{index + 1}</span>
@@ -612,7 +655,7 @@ export default function FormaApp() {
                 <div className="coach-avatar">F</div>
                 <div>
                   <strong>Coach FORMA</strong>
-                  <small>Foundation guidance</small>
+                  <small>{goalLabel} · Foundation</small>
                 </div>
               </div>
               <p className="coach-message">{encouragement}</p>
@@ -713,7 +756,7 @@ export default function FormaApp() {
             </article>
 
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
-            <WeeklySchedule schedule={WEEKLY_SCHEDULE} todayName={todayName} />
+            <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
           </div>
         )}
 
@@ -728,7 +771,7 @@ export default function FormaApp() {
             </header>
 
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
-            <WeeklySchedule schedule={WEEKLY_SCHEDULE} todayName={todayName} />
+            <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
 
             <div className="workout-list">
               {workouts.map((workout) => {
@@ -836,6 +879,43 @@ export default function FormaApp() {
               <StatTile label="This week" value={`${weekSessions}/5`} accent="sage" />
             </div>
 
+            {dashboard && (
+              <>
+                <SectionHeading eyebrow="Coach" title="This week's focus" />
+                <article className="card coach-card">
+                  {latestSummary.length > 0 && <p className="coach-message">{latestSummary[0]}</p>}
+                  <div className="dash-grid">
+                    <div className="dash-row"><span>Focus</span><strong>{dashboard.focus}</strong></div>
+                    <div className="dash-row"><span>Strongest</span><strong>{dashboard.strongestArea}</strong></div>
+                    <div className="dash-row"><span>Needs work</span><strong>{dashboard.needsImprovement}</strong></div>
+                    <div className="dash-row"><span>Recovery</span><strong>{dashboard.recoveryStatus}</strong></div>
+                    <div className="dash-row"><span>Next milestone</span><strong>{dashboard.nextMilestone}</strong></div>
+                    <div className="dash-row"><span>Completion</span><strong>{dashboard.weeklyCompletion}</strong></div>
+                  </div>
+                  {latestSummary.length > 1 && (
+                    <div className="coach-rec">
+                      <span className="eyebrow">Coach note</span>
+                      <p>{latestSummary.slice(1).join(" ")}</p>
+                    </div>
+                  )}
+                </article>
+              </>
+            )}
+
+            <SectionHeading eyebrow="Physique" title="Glute score" />
+            <article className="card glute-card">
+              <div className="glute-score">
+                <strong>{glute.score}</strong>
+                <span className={`score-badge band-${glute.band.replace(/\s/g, "").toLowerCase()}`}>{glute.band}</span>
+              </div>
+              <div className="dash-grid">
+                <div className="dash-row"><span>Glute sets · 7d</span><strong>{glute.gluteSets}</strong></div>
+                <div className="dash-row"><span>Consistency</span><strong>{glute.consistency}%</strong></div>
+                <div className="dash-row"><span>Improving lifts</span><strong>{glute.progression}</strong></div>
+                <div className="dash-row"><span>Recovery</span><strong>{glute.recovery}</strong></div>
+              </div>
+            </article>
+
             <SectionHeading eyebrow="Charts" title="Training volume" />
             <article className="card chart-card">
               {volumeSeries.length ? (
@@ -877,28 +957,59 @@ export default function FormaApp() {
               </div>
             </article>
 
-            <div className="dual-grid">
-              <article className="card measurements-card">
-                <Eyebrow>Measurements</Eyebrow>
-                <div className="measurement-list">
-                  {MEASUREMENTS.map((item) => (
-                    <div className="measurement-row" key={item.label}>
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
+            <SectionHeading eyebrow="Trends" title="Strength trends" />
+            <article className="card">
+              <div className="strength-list">
+                {trends.map((entry) => (
+                  <div className="strength-row" key={entry.name}>
+                    <div>
+                      <strong>{entry.name}</strong>
+                      <small>{entry.previous}kg → {entry.current}kg</small>
                     </div>
-                  ))}
-                </div>
-              </article>
-              <article className="card photos-card">
-                <Eyebrow>Progress photos</Eyebrow>
-                <div className="photo-strip">
-                  {PROGRESS_GALLERY.map((src, index) => (
-                    <div className="photo-thumb" key={index} style={{ backgroundImage: `url(${src})` }} aria-hidden />
-                  ))}
-                </div>
-                <small className="muted">A gentle visual record of your progress.</small>
-              </article>
+                    <span className={`delta ${entry.trend === "improving" ? "up" : entry.trend === "declining" ? "down" : "flat"}`}>
+                      {entry.trend === "improving" ? "Improving" : entry.trend === "declining" ? "Declining" : "Maintaining"}
+                    </span>
+                  </div>
+                ))}
+                {!trends.length && <p className="muted centered">Log a few sessions to reveal your strength trends.</p>}
+              </div>
+            </article>
+
+            <SectionHeading eyebrow="Records" title="Personal records" />
+            <div className="stat-grid four">
+              <StatTile label="Heaviest" value={records.heaviestWeight ? `${records.heaviestWeight.value}kg` : "—"} note={records.heaviestWeight?.name ?? "Log a set"} accent="pink" />
+              <StatTile label="Best e1RM" value={records.bestE1RM ? `${records.bestE1RM.value}kg` : "—"} note={records.bestE1RM?.name ?? "—"} accent="mocha" />
+              <StatTile label="Top volume" value={records.highestVolume ? String(records.highestVolume.value) : "—"} note="single session" accent="sage" />
+              <StatTile label="Longest streak" value={`${records.longestStreak}d`} note={records.mostImproved ? `Most improved · ${records.mostImproved.name}` : "—"} accent="green" />
             </div>
+
+            <ProgressPanel
+              profile={profile}
+              entries={progressEntries}
+              photos={progressPhotos}
+              onSaveEntry={handleSaveProgressEntry}
+              onAddPhoto={handleAddPhoto}
+              onDeletePhoto={handleDeletePhoto}
+            />
+
+            {review && (
+              <>
+                <SectionHeading eyebrow="Sunday" title="Weekly review" />
+                <article className="card coach-card">
+                  <p className="coach-message">{review.summary}</p>
+                  <div className="stat-grid four">
+                    <StatTile label="Workouts" value={String(review.workouts)} accent="pink" />
+                    <StatTile label="Consistency" value={`${review.consistency}%`} accent="sage" />
+                    <StatTile label="Volume" value={String(review.volume)} accent="mocha" />
+                    <StatTile label="Lifts up" value={String(review.strengthGained)} accent="green" />
+                  </div>
+                  <div className="coach-rec">
+                    <span className="eyebrow">Goal for next week</span>
+                    <p>{review.nextGoal}</p>
+                  </div>
+                </article>
+              </>
+            )}
 
             <SectionHeading eyebrow="History" title="Recent sessions" />
             <div className="history-list">
