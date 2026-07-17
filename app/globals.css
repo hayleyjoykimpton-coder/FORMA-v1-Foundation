@@ -901,3 +901,44 @@ button.avatar { padding: 0; }
 .readiness-score.band-high { color: #4c8a5f; }
 .readiness-score.band-moderate { color: var(--text); }
 .readiness-score.band-low { color: #b06a8a; }
+
+/* ==========================================================================
+   Progress & body transformation (Sprint 2.5) — new surfaces, existing tokens.
+   ========================================================================== */
+
+.transform-stats { margin: 14px 0 6px; }
+.transform-empty { padding: 12px 0; }
+
+.weight-chart { width: 100%; height: 96px; display: block; margin: 8px 0 14px; }
+.weight-line { stroke: var(--cta); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.weight-dot { fill: var(--cta); }
+
+.log-form { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.log-form .cta-btn { margin-top: 4px; }
+
+.measurement-value { display: flex; align-items: baseline; gap: 8px; }
+.measurement-value strong { font-family: var(--font-heading); font-size: 18px; font-weight: 400; }
+
+.photo-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.photo-upload { display: inline-flex; align-items: center; }
+
+.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.photo-cell { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.photo-cell img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); }
+.photo-del {
+  position: absolute; top: 6px; right: 6px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92); color: var(--text);
+  font-size: 15px; line-height: 1; box-shadow: var(--shadow-xs);
+}
+.photo-cap { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-2); }
+
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.compare-cell { display: flex; flex-direction: column; gap: 6px; }
+.compare-cell img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 16px; border: 1px solid var(--line); }
+.compare-placeholder {
+  aspect-ratio: 3 / 4; border-radius: 16px;
+  border: 1px dashed var(--line); background: var(--bg);
+  display: grid; place-items: center; text-align: center;
+  padding: 14px; color: var(--text-2); font-size: 12px; line-height: 1.4;
+}

@@ -32,10 +32,12 @@ export function ProfileScreen({
   profile,
   onSave,
   onClose,
+  onViewProgress,
 }: {
   profile: UserProfile;
   onSave: (profile: UserProfile) => void;
   onClose: () => void;
+  onViewProgress: () => void;
 }) {
   const [draft, setDraft] = useState<UserProfile>(profile);
 
@@ -58,6 +60,8 @@ export function ProfileScreen({
               <h2>{draft.firstName || "Your name"}</h2>
             </div>
           </div>
+
+          <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
 
           <article className="card profile-section">
             <span className="eyebrow">Name</span>

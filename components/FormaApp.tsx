@@ -6,10 +6,8 @@ import {
   COACH_REMINDERS,
   HYDRATION_GOAL,
   IMAGES,
-  MEASUREMENTS,
   NUTRITION_TARGETS,
   PHASES,
-  PROGRESS_GALLERY,
   phaseCopy,
 } from "@/lib/content";
 import type {
@@ -45,9 +43,12 @@ import {
   weeklyReview,
 } from "@/lib/coach";
 import type { Readiness } from "@/lib/coach";
+import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
+import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
+import { ProgressPanel } from "@/components/ProgressPanel";
 import {
   Eyebrow,
   Field,
@@ -97,6 +98,8 @@ export default function FormaApp() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
+  const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
+  const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
 
   useEffect(() => {
     try {
@@ -108,6 +111,8 @@ export default function FormaApp() {
       setWater(state.water);
       setJournal(state.journal);
       setProfile(loadProfile());
+      setProgressEntries(loadProgress());
+      setProgressPhotos(loadPhotos());
     } catch {
       // Keep safe defaults when stored data cannot be read.
     } finally {
@@ -134,6 +139,16 @@ export default function FormaApp() {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.journal, JSON.stringify(journal));
   }, [journal, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveProgress(progressEntries);
+  }, [progressEntries, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    savePhotos(progressPhotos);
+  }, [progressPhotos, hydrated]);
 
   useEffect(() => {
     if (restRemaining <= 0) return;
@@ -194,11 +209,38 @@ export default function FormaApp() {
       profile.experienceLevel !== updated.experienceLevel ||
       profile.trainingDays !== updated.trainingDays ||
       profile.equipmentAccess !== updated.equipmentAccess;
+    const weightChanged = !!profile && profile.weight !== updated.weight && typeof updated.weight === "number";
     saveProfile(updated);
     setProfile(updated);
     if (trainingChanged) applyGeneratedProgram(updated);
+    // Keep the progress log in sync so profile weight edits appear in Progress.
+    if (weightChanged) {
+      const last = progressEntries[progressEntries.length - 1];
+      setProgressEntries((current) => [
+        ...current,
+        {
+          id: uid(),
+          date: new Date().toISOString(),
+          weight: updated.weight,
+          measurements: last?.measurements ?? {},
+          notes: "Updated in profile",
+        },
+      ]);
+    }
     setProfileOpen(false);
   };
+
+  const handleSaveProgressEntry = (entry: ProgressEntry) => {
+    setProgressEntries((current) => [...current, entry]);
+    if (typeof entry.weight === "number" && profile) {
+      const synced = { ...profile, weight: entry.weight };
+      saveProfile(synced);
+      setProfile(synced);
+    }
+  };
+
+  const handleAddPhoto = (photo: ProgressPhoto) => setProgressPhotos((current) => [...current, photo]);
+  const handleDeletePhoto = (id: string) => setProgressPhotos((current) => current.filter((photo) => photo.id !== id));
 
   const startWorkout = (workout: Workout) => {
     setReadinessWorkout(workout);
@@ -362,7 +404,14 @@ export default function FormaApp() {
   }
 
   if (profileOpen) {
-    return <ProfileScreen profile={profile} onSave={handleProfileSave} onClose={() => setProfileOpen(false)} />;
+    return (
+      <ProfileScreen
+        profile={profile}
+        onSave={handleProfileSave}
+        onClose={() => setProfileOpen(false)}
+        onViewProgress={() => { setProfileOpen(false); setTab("progress"); }}
+      />
+    );
   }
 
   if (readinessWorkout && !session) {
@@ -934,28 +983,14 @@ export default function FormaApp() {
               <StatTile label="Longest streak" value={`${records.longestStreak}d`} note={records.mostImproved ? `Most improved · ${records.mostImproved.name}` : "—"} accent="green" />
             </div>
 
-            <div className="dual-grid">
-              <article className="card measurements-card">
-                <Eyebrow>Measurements</Eyebrow>
-                <div className="measurement-list">
-                  {MEASUREMENTS.map((item) => (
-                    <div className="measurement-row" key={item.label}>
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </article>
-              <article className="card photos-card">
-                <Eyebrow>Progress photos</Eyebrow>
-                <div className="photo-strip">
-                  {PROGRESS_GALLERY.map((src, index) => (
-                    <div className="photo-thumb" key={index} style={{ backgroundImage: `url(${src})` }} aria-hidden />
-                  ))}
-                </div>
-                <small className="muted">A gentle visual record of your progress.</small>
-              </article>
-            </div>
+            <ProgressPanel
+              profile={profile}
+              entries={progressEntries}
+              photos={progressPhotos}
+              onSaveEntry={handleSaveProgressEntry}
+              onAddPhoto={handleAddPhoto}
+              onDeletePhoto={handleDeletePhoto}
+            />
 
             {review && (
               <>
