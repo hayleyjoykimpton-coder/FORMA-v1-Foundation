@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_WORKOUTS } from "@/lib/defaults";
 import {
   ACTIVE_PHASE,
   COACH_REMINDERS,
@@ -18,11 +17,21 @@ import {
 import type {
   Exercise,
   ExerciseResult,
-  Season,
   SetResult,
   Workout,
   WorkoutSession,
 } from "@/lib/types";
+import { buildWorkoutsForWeek, getPhaseForWeek } from "@/lib/program";
+import { createSessionResults, getRecommendation, uid } from "@/lib/progression";
+import {
+  buildVolumeSeries,
+  computeStreak,
+  computeStrengthProgress,
+  plannedWeeklySets,
+  totalCompletedSets,
+  weekSessionCount,
+} from "@/lib/analytics";
+import { STORAGE, loadForma } from "@/lib/migrations";
 import {
   Eyebrow,
   Field,
@@ -39,14 +48,6 @@ type SessionDraft = {
   results: ExerciseResult[];
 };
 
-const STORAGE = {
-  workouts: "forma-workouts-v11",
-  history: "forma-history-v11",
-  season: "forma-season-v11",
-  water: "forma-water-v1",
-  journal: "forma-journal-v1",
-};
-
 const TABS: { key: Tab; label: string }[] = [
   { key: "today", label: "Home" },
   { key: "training", label: "Training" },
@@ -54,90 +55,8 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "recovery", label: "Recovery" },
 ];
 
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-function normalizeExercise(exercise: Exercise): Exercise {
-  return {
-    ...exercise,
-    increment: exercise.increment ?? 2.5,
-    restSeconds: exercise.restSeconds ?? 90,
-  };
-}
-
-function normalizeWorkouts(workouts: Workout[]): Workout[] {
-  return workouts.map((workout) => ({
-    ...workout,
-    exercises: workout.exercises.map(normalizeExercise),
-  }));
-}
-
-function createResults(workout: Workout): ExerciseResult[] {
-  return workout.exercises.map((exercise) => ({
-    exerciseId: exercise.id,
-    name: exercise.name,
-    repMin: exercise.repMin,
-    repMax: exercise.repMax,
-    increment: exercise.increment,
-    sets: Array.from({ length: exercise.sets }, () => ({
-      reps: exercise.repMin,
-      weight: exercise.weight,
-      rpe: exercise.rpe,
-      complete: false,
-    })),
-  }));
-}
-
-function getRecommendation(exercise: Exercise, history: WorkoutSession[]) {
-  const previous = history
-    .flatMap((session) => session.exercises)
-    .filter((result) => result.exerciseId === exercise.id || result.name === exercise.name)
-    .at(-1);
-
-  if (!previous) {
-    return {
-      title: "Establish your baseline",
-      detail: `${exercise.weight} kg for ${exercise.repMin}–${exercise.repMax} reps at about RPE ${exercise.rpe}.`,
-      targetWeight: exercise.weight,
-    };
-  }
-
-  const completed = previous.sets.filter((set) => set.complete);
-  if (!completed.length) {
-    return {
-      title: "Repeat the planned target",
-      detail: "The previous session was not completed.",
-      targetWeight: exercise.weight,
-    };
-  }
-
-  const allTopRange = completed.every((set) => set.reps >= exercise.repMax);
-  const averageRpe = completed.reduce((sum, set) => sum + set.rpe, 0) / completed.length;
-  const previousWeight = completed[0]?.weight ?? exercise.weight;
-
-  if (allTopRange && averageRpe <= 8.5) {
-    const next = previousWeight + exercise.increment;
-    return {
-      title: `Increase to ${next} kg`,
-      detail: `You reached the top of the rep range with manageable effort.`,
-      targetWeight: next,
-    };
-  }
-
-  if (averageRpe >= 9.5) {
-    const next = Math.max(0, previousWeight - exercise.increment);
-    return {
-      title: `Reduce to ${next} kg`,
-      detail: "Effort was very high. Reduce the load and rebuild clean reps.",
-      targetWeight: next,
-    };
-  }
-
-  return {
-    title: `Stay at ${previousWeight} kg`,
-    detail: `Add reps until every completed set reaches ${exercise.repMax}.`,
-    targetWeight: previousWeight,
-  };
-}
+/** Seed workouts for the current programme (used before hydration and as a fallback). */
+const INITIAL_WORKOUTS: Workout[] = buildWorkoutsForWeek(1);
 
 function greetingFor(hour: number) {
   if (hour < 12) return "Good morning";
@@ -145,35 +64,12 @@ function greetingFor(hour: number) {
   return "Good evening";
 }
 
-function sessionVolume(session: WorkoutSession) {
-  return session.exercises.reduce(
-    (total, exercise) =>
-      total +
-      exercise.sets
-        .filter((set) => set.complete)
-        .reduce((sum, set) => sum + set.weight * set.reps, 0),
-    0,
-  );
-}
-
-function computeStreak(history: WorkoutSession[]) {
-  const days = new Set(history.map((item) => new Date(item.completedAt).toDateString()));
-  const cursor = new Date();
-  if (!days.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (days.has(cursor.toDateString())) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
-}
-
 export default function FormaApp() {
   const [tab, setTab] = useState<Tab>("today");
-  const [season] = useState<Season>(ACTIVE_PHASE);
-  const [workouts, setWorkouts] = useState<Workout[]>(DEFAULT_WORKOUTS);
+  const [week, setWeek] = useState(1);
+  const [workouts, setWorkouts] = useState<Workout[]>(INITIAL_WORKOUTS);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
-  const [activeWorkoutId, setActiveWorkoutId] = useState(DEFAULT_WORKOUTS[0].id);
+  const [activeWorkoutId, setActiveWorkoutId] = useState(INITIAL_WORKOUTS[0]?.id ?? "");
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [session, setSession] = useState<SessionDraft | null>(null);
@@ -184,26 +80,15 @@ export default function FormaApp() {
 
   useEffect(() => {
     try {
-      const savedWorkouts = window.localStorage.getItem(STORAGE.workouts);
-      const savedHistory = window.localStorage.getItem(STORAGE.history);
-      const savedWater = window.localStorage.getItem(STORAGE.water);
-      const savedJournal = window.localStorage.getItem(STORAGE.journal);
-
-      if (savedWorkouts) {
-        const parsed = normalizeWorkouts(JSON.parse(savedWorkouts) as Workout[]);
-        if (parsed.length) {
-          setWorkouts(parsed);
-          setActiveWorkoutId(parsed[0].id);
-        }
-      }
-      if (savedHistory) setHistory(JSON.parse(savedHistory) as WorkoutSession[]);
-      if (savedWater) {
-        const parsed = JSON.parse(savedWater) as { date: string; count: number };
-        if (parsed.date === new Date().toDateString()) setWater(parsed.count);
-      }
-      if (savedJournal) setJournal(JSON.parse(savedJournal) as Record<string, string>);
+      const state = loadForma();
+      setWorkouts(state.workouts);
+      setActiveWorkoutId(state.workouts[0]?.id ?? "");
+      setHistory(state.history);
+      setWeek(state.week);
+      setWater(state.water);
+      setJournal(state.journal);
     } catch {
-      // Keep safe defaults when older browser data cannot be read.
+      // Keep safe defaults when stored data cannot be read.
     } finally {
       setHydrated(true);
     }
@@ -213,8 +98,8 @@ export default function FormaApp() {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
     window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
-    window.localStorage.setItem(STORAGE.season, season);
-  }, [workouts, history, season, hydrated]);
+    window.localStorage.setItem(STORAGE.program, JSON.stringify({ week }));
+  }, [workouts, history, week, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -238,57 +123,18 @@ export default function FormaApp() {
   }, [restRemaining]);
 
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
-  const weeklySets = useMemo(
-    () => workouts.reduce((total, workout) => total + workout.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), 0),
-    [workouts],
-  );
+  const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
   const streak = useMemo(() => computeStreak(history), [history]);
-  const completedSets = useMemo(
-    () =>
-      history.reduce(
-        (total, item) =>
-          total + item.exercises.reduce((sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length, 0),
-        0,
-      ),
-    [history],
-  );
-  const weekSessions = useMemo(() => {
-    const now = Date.now();
-    return history.filter((item) => now - new Date(item.completedAt).getTime() <= 7 * 86_400_000).length;
-  }, [history]);
-  const volumeSeries = useMemo(
-    () =>
-      [...history].slice(-6).map((item) => ({
-        label: new Date(item.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-        value: sessionVolume(item),
-      })),
-    [history],
-  );
-  const strengthProgress = useMemo(() => {
-    const planned = new Map<string, number>();
-    workouts.forEach((workout) =>
-      workout.exercises.forEach((exercise) => {
-        if (!planned.has(exercise.name)) planned.set(exercise.name, exercise.weight);
-      }),
-    );
-    const latest = new Map<string, number>();
-    history.forEach((item) =>
-      item.exercises.forEach((exercise) => {
-        const done = exercise.sets.filter((set) => set.complete);
-        if (done.length) latest.set(exercise.name, done[0].weight);
-      }),
-    );
-    return Array.from(planned.entries())
-      .map(([name, base]) => ({ name, base, current: latest.get(name) ?? base }))
-      .slice(0, 5);
-  }, [workouts, history]);
+  const completedSets = useMemo(() => totalCompletedSets(history), [history]);
+  const weekSessions = useMemo(() => weekSessionCount(history), [history]);
+  const volumeSeries = useMemo(() => buildVolumeSeries(history), [history]);
+  const strengthProgress = useMemo(() => computeStrengthProgress(workouts, history), [workouts, history]);
+
+  const phaseDef = getPhaseForWeek(week);
+  const season = phaseDef.id;
 
   const startWorkout = (workout: Workout) => {
-    const recommendations = workout.exercises.map((exercise) => getRecommendation(exercise, history));
-    const results = createResults(workout).map((result, index) => ({
-      ...result,
-      sets: result.sets.map((set) => ({ ...set, weight: recommendations[index].targetWeight })),
-    }));
+    const results = createSessionResults(workout, history, phaseDef);
     setActiveWorkoutId(workout.id);
     setSession({ workoutId: workout.id, exerciseIndex: 0, results });
     setTab("today");
@@ -297,13 +143,18 @@ export default function FormaApp() {
 
   const finishWorkout = () => {
     if (!session || !activeWorkout) return;
+    const exercises = session.results.map((result) => ({
+      ...result,
+      sets: result.sets.map((set) => ({ ...set, skipped: !set.complete })),
+    }));
     const completed: WorkoutSession = {
       id: uid(),
       workoutId: activeWorkout.id,
       workoutTitle: activeWorkout.title,
       completedAt: new Date().toISOString(),
       season,
-      exercises: session.results,
+      week,
+      exercises,
     };
     setHistory((current) => [...current, completed]);
     setSession(null);
@@ -343,7 +194,7 @@ export default function FormaApp() {
     setWorkouts((current) => {
       const next = current.filter((workout) => workout.id !== id);
       if (activeWorkoutId === id && next[0]) setActiveWorkoutId(next[0].id);
-      return next.length ? next : DEFAULT_WORKOUTS;
+      return next.length ? next : INITIAL_WORKOUTS;
     });
   };
 
@@ -435,8 +286,7 @@ export default function FormaApp() {
   if (session && activeWorkout) {
     const exercise = activeWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
-    const recommendation = getRecommendation(exercise, history);
-    const allComplete = session.results.every((item) => item.sets.every((set) => set.complete));
+    const recommendation = getRecommendation(exercise, history, phaseDef);
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
     const setsDone = result.sets.filter((set) => set.complete).length;
@@ -452,7 +302,7 @@ export default function FormaApp() {
                 <span className="eyebrow">{activeWorkout.title}</span>
                 <strong>{session.exerciseIndex + 1} / {activeWorkout.exercises.length}</strong>
               </div>
-              <button className="ghost-btn strong" onClick={finishWorkout} disabled={!allComplete}>Finish</button>
+              <button className="ghost-btn strong" onClick={finishWorkout}>Finish</button>
             </header>
 
             <section
@@ -538,7 +388,7 @@ export default function FormaApp() {
   const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayISO = new Date().toISOString().slice(0, 10);
   const focusExercise = activeWorkout?.exercises[0];
-  const focusRec = focusExercise ? getRecommendation(focusExercise, history) : null;
+  const focusRec = focusExercise ? getRecommendation(focusExercise, history, phaseDef) : null;
   const encouragement =
     history.length === 0
       ? "Welcome to Foundation. Your first session sets the tone — begin gently and let consistency do the work."
@@ -586,7 +436,7 @@ export default function FormaApp() {
                 <span className="eyebrow">{activeWorkout.day} · Foundation</span>
                 <ul className="exercise-preview">
                   {activeWorkout.exercises.map((item, index) => {
-                    const recommendation = getRecommendation(item, history);
+                    const recommendation = getRecommendation(item, history, phaseDef);
                     return (
                       <li key={item.id}>
                         <span className="ep-index">{index + 1}</span>
