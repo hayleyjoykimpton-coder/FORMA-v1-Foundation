@@ -10,7 +10,6 @@ import {
   NUTRITION_TARGETS,
   PHASES,
   PROGRESS_GALLERY,
-  WEEKLY_SCHEDULE,
   phaseCopy,
 } from "@/lib/content";
 import type {
@@ -136,6 +135,17 @@ export default function FormaApp() {
   const weekSessions = useMemo(() => weekSessionCount(history), [history]);
   const volumeSeries = useMemo(() => buildVolumeSeries(history), [history]);
   const strengthProgress = useMemo(() => computeStrengthProgress(workouts, history), [workouts, history]);
+  // The weekly schedule reflects the user's actual (personalised) plan.
+  const weeklySchedule = useMemo(
+    () =>
+      workouts.map((workout) => ({
+        day: workout.day,
+        short: workout.day.slice(0, 3),
+        focus: workout.title,
+        image: /pilates|movement|mobility|recovery/i.test(workout.title) ? IMAGES.pilates : IMAGES.strength,
+      })),
+    [workouts],
+  );
 
   const phaseDef = getPhaseForWeek(week);
   const season = phaseDef.id;
@@ -606,7 +616,7 @@ export default function FormaApp() {
             </article>
 
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
-            <WeeklySchedule schedule={WEEKLY_SCHEDULE} todayName={todayName} />
+            <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
           </div>
         )}
 
@@ -621,7 +631,7 @@ export default function FormaApp() {
             </header>
 
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
-            <WeeklySchedule schedule={WEEKLY_SCHEDULE} todayName={todayName} />
+            <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
 
             <div className="workout-list">
               {workouts.map((workout) => {
