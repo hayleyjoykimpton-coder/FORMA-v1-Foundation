@@ -33,8 +33,21 @@ import { STORAGE, loadForma } from "@/lib/migrations";
 import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import { generateProgram } from "@/lib/programGenerator";
+import {
+  adjustResultsForReadiness,
+  coachDashboard,
+  exerciseCoaching,
+  gluteScore,
+  personalRecords,
+  postWorkoutSummary,
+  previousPerformance,
+  strengthTrends,
+  weeklyReview,
+} from "@/lib/coach";
+import type { Readiness } from "@/lib/coach";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
+import { ReadinessCheck } from "@/components/Readiness";
 import {
   Eyebrow,
   Field,
@@ -49,6 +62,7 @@ type SessionDraft = {
   workoutId: string;
   exerciseIndex: number;
   results: ExerciseResult[];
+  readiness?: number;
 };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -82,6 +96,7 @@ export default function FormaApp() {
   const [journal, setJournal] = useState<Record<string, string>>({});
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
 
   useEffect(() => {
     try {
@@ -135,6 +150,15 @@ export default function FormaApp() {
   const weekSessions = useMemo(() => weekSessionCount(history), [history]);
   const volumeSeries = useMemo(() => buildVolumeSeries(history), [history]);
   const strengthProgress = useMemo(() => computeStrengthProgress(workouts, history), [workouts, history]);
+  const dashboard = useMemo(() => (profile ? coachDashboard(profile, history) : null), [profile, history]);
+  const records = useMemo(() => personalRecords(history), [history]);
+  const trends = useMemo(() => strengthTrends(history), [history]);
+  const glute = useMemo(() => gluteScore(history), [history]);
+  const review = useMemo(() => (profile ? weeklyReview(profile, history) : null), [profile, history]);
+  const latestSummary = useMemo(
+    () => (history.length ? postWorkoutSummary(history[history.length - 1], history) : []),
+    [history],
+  );
   // The weekly schedule reflects the user's actual (personalised) plan.
   const weeklySchedule = useMemo(
     () =>
@@ -177,9 +201,15 @@ export default function FormaApp() {
   };
 
   const startWorkout = (workout: Workout) => {
-    const results = createSessionResults(workout, history, phaseDef);
+    setReadinessWorkout(workout);
+  };
+
+  const beginSession = (workout: Workout, readiness: Readiness) => {
+    const base = createSessionResults(workout, history, phaseDef);
+    const results = adjustResultsForReadiness(base, readiness);
     setActiveWorkoutId(workout.id);
-    setSession({ workoutId: workout.id, exerciseIndex: 0, results });
+    setSession({ workoutId: workout.id, exerciseIndex: 0, results, readiness: readiness.score });
+    setReadinessWorkout(null);
     setTab("today");
     setRestRemaining(0);
   };
@@ -197,6 +227,7 @@ export default function FormaApp() {
       completedAt: new Date().toISOString(),
       season,
       week,
+      readiness: session.readiness,
       exercises,
     };
     setHistory((current) => [...current, completed]);
@@ -334,10 +365,22 @@ export default function FormaApp() {
     return <ProfileScreen profile={profile} onSave={handleProfileSave} onClose={() => setProfileOpen(false)} />;
   }
 
+  if (readinessWorkout && !session) {
+    return (
+      <ReadinessCheck
+        workout={readinessWorkout}
+        onSubmit={(readiness) => beginSession(readinessWorkout, readiness)}
+        onCancel={() => setReadinessWorkout(null)}
+      />
+    );
+  }
+
   if (session && activeWorkout) {
     const exercise = activeWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
     const recommendation = getRecommendation(exercise, history, phaseDef);
+    const prev = previousPerformance(exercise, history);
+    const coaching = exerciseCoaching(exercise);
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
     const setsDone = result.sets.filter((set) => set.complete).length;
@@ -368,6 +411,24 @@ export default function FormaApp() {
                 <span style={{ width: `${progressPct}%` }} />
               </div>
             </section>
+
+            <article className="card coach-prev">
+              <div className="coach-prev-head">
+                <span className="eyebrow">Last session</span>
+                {prev.pbWeight > 0 && <span className="season-pill">PB {prev.pbWeight}kg × {prev.pbReps}</span>}
+              </div>
+              {prev.hasData ? (
+                <div className="coach-prev-stats">
+                  <div><small>Weight</small><strong>{Math.max(...prev.weights)}kg</strong></div>
+                  <div><small>Reps</small><strong>{prev.reps.join(" / ")}</strong></div>
+                  <div><small>Avg RPE</small><strong>{prev.avgRpe}</strong></div>
+                  <div><small>Volume</small><strong>{Math.round(prev.volume)}kg</strong></div>
+                </div>
+              ) : (
+                <p className="muted">First time logging this exercise — today sets your baseline.</p>
+              )}
+              <p className="coach-prev-rec"><strong>Today:</strong> {recommendation.title}. {recommendation.detail}</p>
+            </article>
 
             <article className="card session-card">
               <div className="session-meta">
@@ -407,6 +468,36 @@ export default function FormaApp() {
               </div>
 
               {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
+            </article>
+
+            <article className="card coach-guide">
+              <span className="eyebrow">Coaching · {exercise.name}</span>
+              <div className="coach-guide-meta">
+                <span>{coaching.primary}</span>
+                <span>{coaching.equipment}</span>
+                <span>Tempo {coaching.tempo.split(" · ")[0]}</span>
+                <span>Rest {coaching.restSeconds}s</span>
+              </div>
+              {coaching.secondary !== "—" ? <p className="muted coach-guide-sub">Secondary: {coaching.secondary}</p> : null}
+              {coaching.cues.length > 0 && (
+                <div className="coach-block">
+                  <strong>Focus</strong>
+                  <ul className="coach-list">
+                    {coaching.cues.map((cue) => <li key={cue}>{cue}</li>)}
+                  </ul>
+                </div>
+              )}
+              {coaching.mistakes.length > 0 && (
+                <div className="coach-block">
+                  <strong>Avoid</strong>
+                  <ul className="coach-list">
+                    {coaching.mistakes.map((mistake) => <li key={mistake}>{mistake}</li>)}
+                  </ul>
+                </div>
+              )}
+              {coaching.substitutions.length > 0 && (
+                <p className="muted coach-guide-sub">Swaps: {coaching.substitutions.join(" · ")}</p>
+              )}
             </article>
 
             <article className="card rest-card">
@@ -739,6 +830,43 @@ export default function FormaApp() {
               <StatTile label="This week" value={`${weekSessions}/5`} accent="sage" />
             </div>
 
+            {dashboard && (
+              <>
+                <SectionHeading eyebrow="Coach" title="This week's focus" />
+                <article className="card coach-card">
+                  {latestSummary.length > 0 && <p className="coach-message">{latestSummary[0]}</p>}
+                  <div className="dash-grid">
+                    <div className="dash-row"><span>Focus</span><strong>{dashboard.focus}</strong></div>
+                    <div className="dash-row"><span>Strongest</span><strong>{dashboard.strongestArea}</strong></div>
+                    <div className="dash-row"><span>Needs work</span><strong>{dashboard.needsImprovement}</strong></div>
+                    <div className="dash-row"><span>Recovery</span><strong>{dashboard.recoveryStatus}</strong></div>
+                    <div className="dash-row"><span>Next milestone</span><strong>{dashboard.nextMilestone}</strong></div>
+                    <div className="dash-row"><span>Completion</span><strong>{dashboard.weeklyCompletion}</strong></div>
+                  </div>
+                  {latestSummary.length > 1 && (
+                    <div className="coach-rec">
+                      <span className="eyebrow">Coach note</span>
+                      <p>{latestSummary.slice(1).join(" ")}</p>
+                    </div>
+                  )}
+                </article>
+              </>
+            )}
+
+            <SectionHeading eyebrow="Physique" title="Glute score" />
+            <article className="card glute-card">
+              <div className="glute-score">
+                <strong>{glute.score}</strong>
+                <span className={`score-badge band-${glute.band.replace(/\s/g, "").toLowerCase()}`}>{glute.band}</span>
+              </div>
+              <div className="dash-grid">
+                <div className="dash-row"><span>Glute sets · 7d</span><strong>{glute.gluteSets}</strong></div>
+                <div className="dash-row"><span>Consistency</span><strong>{glute.consistency}%</strong></div>
+                <div className="dash-row"><span>Improving lifts</span><strong>{glute.progression}</strong></div>
+                <div className="dash-row"><span>Recovery</span><strong>{glute.recovery}</strong></div>
+              </div>
+            </article>
+
             <SectionHeading eyebrow="Charts" title="Training volume" />
             <article className="card chart-card">
               {volumeSeries.length ? (
@@ -780,6 +908,32 @@ export default function FormaApp() {
               </div>
             </article>
 
+            <SectionHeading eyebrow="Trends" title="Strength trends" />
+            <article className="card">
+              <div className="strength-list">
+                {trends.map((entry) => (
+                  <div className="strength-row" key={entry.name}>
+                    <div>
+                      <strong>{entry.name}</strong>
+                      <small>{entry.previous}kg → {entry.current}kg</small>
+                    </div>
+                    <span className={`delta ${entry.trend === "improving" ? "up" : entry.trend === "declining" ? "down" : "flat"}`}>
+                      {entry.trend === "improving" ? "Improving" : entry.trend === "declining" ? "Declining" : "Maintaining"}
+                    </span>
+                  </div>
+                ))}
+                {!trends.length && <p className="muted centered">Log a few sessions to reveal your strength trends.</p>}
+              </div>
+            </article>
+
+            <SectionHeading eyebrow="Records" title="Personal records" />
+            <div className="stat-grid four">
+              <StatTile label="Heaviest" value={records.heaviestWeight ? `${records.heaviestWeight.value}kg` : "—"} note={records.heaviestWeight?.name ?? "Log a set"} accent="pink" />
+              <StatTile label="Best e1RM" value={records.bestE1RM ? `${records.bestE1RM.value}kg` : "—"} note={records.bestE1RM?.name ?? "—"} accent="mocha" />
+              <StatTile label="Top volume" value={records.highestVolume ? String(records.highestVolume.value) : "—"} note="single session" accent="sage" />
+              <StatTile label="Longest streak" value={`${records.longestStreak}d`} note={records.mostImproved ? `Most improved · ${records.mostImproved.name}` : "—"} accent="green" />
+            </div>
+
             <div className="dual-grid">
               <article className="card measurements-card">
                 <Eyebrow>Measurements</Eyebrow>
@@ -802,6 +956,25 @@ export default function FormaApp() {
                 <small className="muted">A gentle visual record of your progress.</small>
               </article>
             </div>
+
+            {review && (
+              <>
+                <SectionHeading eyebrow="Sunday" title="Weekly review" />
+                <article className="card coach-card">
+                  <p className="coach-message">{review.summary}</p>
+                  <div className="stat-grid four">
+                    <StatTile label="Workouts" value={String(review.workouts)} accent="pink" />
+                    <StatTile label="Consistency" value={`${review.consistency}%`} accent="sage" />
+                    <StatTile label="Volume" value={String(review.volume)} accent="mocha" />
+                    <StatTile label="Lifts up" value={String(review.strengthGained)} accent="green" />
+                  </div>
+                  <div className="coach-rec">
+                    <span className="eyebrow">Goal for next week</span>
+                    <p>{review.nextGoal}</p>
+                  </div>
+                </article>
+              </>
+            )}
 
             <SectionHeading eyebrow="History" title="Recent sessions" />
             <div className="history-list">

@@ -59,5 +59,7 @@ export type WorkoutSession = {
   /** Program week the session belongs to (for periodised analytics). */
   week?: number;
   notes?: string;
+  /** Pre-workout readiness score (0–100) captured at the check-in. */
+  readiness?: number;
   exercises: ExerciseResult[];
 };

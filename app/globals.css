@@ -831,3 +831,73 @@ button.avatar { padding: 0; }
 .profile-section { display: flex; flex-direction: column; gap: 12px; }
 .profile-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .mini-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-2); margin-top: 4px; }
+
+/* ==========================================================================
+   Intelligent Coach (Sprint 3) — new intelligence surfaces, existing tokens.
+   ========================================================================== */
+
+/* Session: previous performance */
+.coach-prev { display: flex; flex-direction: column; gap: 12px; }
+.coach-prev-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.coach-prev-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.coach-prev-stats div { display: flex; flex-direction: column; gap: 2px; }
+.coach-prev-stats small { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-2); }
+.coach-prev-stats strong { font-family: var(--font-heading); font-size: 18px; font-weight: 400; }
+.coach-prev-rec { font-size: 13px; line-height: 1.5; color: var(--text); }
+
+/* Session: exercise coaching */
+.coach-guide { display: flex; flex-direction: column; gap: 12px; }
+.coach-guide-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.coach-guide-meta span {
+  font-size: 11px; font-weight: 600; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line);
+  padding: 6px 10px; border-radius: var(--r-pill);
+}
+.coach-guide-sub { font-size: 12px; }
+.coach-block { display: flex; flex-direction: column; gap: 6px; }
+.coach-block > strong { font-size: 13px; }
+.coach-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.coach-list li { color: var(--text-2); font-size: 13px; line-height: 1.45; }
+
+/* Dashboard rows (coach dashboard, glute score) */
+.dash-grid { display: grid; gap: 2px; }
+.dash-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+.dash-row:first-child { border-top: 0; }
+.dash-row span { color: var(--text-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.dash-row strong { font-size: 14px; text-align: right; }
+
+/* Glute score */
+.glute-card { display: flex; flex-direction: column; gap: 14px; }
+.glute-score { display: flex; align-items: center; gap: 14px; }
+.glute-score > strong { font-family: var(--font-heading); font-size: 46px; font-weight: 400; line-height: 1; }
+.score-badge {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 7px 14px; border-radius: var(--r-pill); color: var(--text);
+}
+.score-badge.band-excellent { background: linear-gradient(160deg, #edf6ef, var(--green)); }
+.score-badge.band-good { background: linear-gradient(160deg, #fdf0f4, var(--pink)); }
+.score-badge.band-needsattention { background: linear-gradient(160deg, #f5efe9, var(--mocha)); }
+
+/* Readiness check-in */
+.readiness-list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.readiness-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.readiness-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.readiness-scale { display: flex; gap: 6px; }
+.readiness-dot {
+  width: 38px; height: 38px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--card);
+  color: var(--text-2); font-size: 13px; font-weight: 600;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.readiness-dot:active { transform: scale(0.92); }
+.readiness-dot.selected { background: linear-gradient(160deg, #fdf0f4, var(--pink)); border-color: var(--cta); color: var(--text); }
+.readiness-preview {
+  margin-top: 20px; padding: 16px 18px;
+  border-radius: var(--r-lg); background: var(--card); border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs); display: flex; flex-direction: column; gap: 8px;
+}
+.readiness-preview > div { display: flex; align-items: center; gap: 12px; }
+.readiness-score { font-family: var(--font-heading); font-size: 34px; font-weight: 400; }
+.readiness-score.band-high { color: #4c8a5f; }
+.readiness-score.band-moderate { color: var(--text); }
+.readiness-score.band-low { color: #b06a8a; }
