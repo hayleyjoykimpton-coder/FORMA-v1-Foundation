@@ -32,7 +32,11 @@ import {
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
 import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
-import { generateProgram, PROGRAM_SCHEMA_VERSION } from "@/lib/programGenerator";
+import {
+  generateProgram,
+  PROGRAM_SCHEMA_VERSION,
+  programmeNeedsUpgrade,
+} from "@/lib/programGenerator";
 import { ensureHayleyData, transferExerciseWeights } from "@/lib/hayleySeed";
 import { fileToResizedDataUrl } from "@/lib/images";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -127,9 +131,10 @@ export default function FormaApp() {
     const savedProfile = opts?.seedHayley === false ? loadProfile() : ensureHayleyData();
     let nextWorkouts = state.workouts;
 
-    if (savedProfile && state.needsProgramRefresh) {
-      const generated = generateProgram(savedProfile);
-      nextWorkouts = transferExerciseWeights(state.workouts, generated);
+    // Rebuild when schema is behind OR workouts still use legacy titles (Full Body A/B).
+    const storedSchema = state.needsProgramRefresh ? 0 : PROGRAM_SCHEMA_VERSION;
+    if (savedProfile && programmeNeedsUpgrade(state.workouts, savedProfile, storedSchema)) {
+      nextWorkouts = transferExerciseWeights(state.workouts, generateProgram(savedProfile));
     }
 
     setWorkouts(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
@@ -160,14 +165,12 @@ export default function FormaApp() {
 
     // Prefer cloud when it has a profile; otherwise keep local and upload.
     if (cloud?.profile) {
-      let nextWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
-      const needsRefresh =
-        cloud.workouts.length === 0 || cloud.schemaVersion < PROGRAM_SCHEMA_VERSION;
-      if (needsRefresh) {
-        nextWorkouts = transferExerciseWeights(
-          cloud.workouts.length ? cloud.workouts : local.workouts,
-          generateProgram(cloud.profile),
-        );
+      const sourceWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
+      let nextWorkouts = sourceWorkouts;
+      let didUpgrade = false;
+      if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
+        nextWorkouts = transferExerciseWeights(sourceWorkouts, generateProgram(cloud.profile));
+        didUpgrade = true;
       }
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
@@ -196,6 +199,20 @@ export default function FormaApp() {
       );
       saveProgress(cloud.progress);
       savePhotos(cloud.photos);
+
+      // Persist upgraded programme immediately so the next boot does not re-load legacy titles.
+      if (didUpgrade) {
+        await pushUserState({
+          workouts: nextWorkouts,
+          history: cloud.history,
+          week: cloud.week,
+          progress: cloud.progress,
+          photos: cloud.photos,
+          water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
+          journal: cloud.journal,
+          sessionDraft: cloud.sessionDraft,
+        });
+      }
     } else {
       applyLocalBundle({ seedHayley: !localProfile });
       const profileToSave = loadProfile();
@@ -702,6 +719,12 @@ export default function FormaApp() {
         onSave={handleProfileSave}
         onClose={() => setProfileOpen(false)}
         onViewProgress={() => { setProfileOpen(false); setTab("progress"); }}
+        onRebuildProgramme={() => {
+          applyGeneratedProgram(profile);
+          setProfileOpen(false);
+          setTab("programme");
+          setSyncNote("Programme rebuilt");
+        }}
         accountMode={authMode}
         syncNote={syncNote}
         onSignOut={async () => {

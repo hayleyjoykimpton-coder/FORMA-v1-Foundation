@@ -237,5 +237,27 @@ export function generateProgram(profile: UserProfile): Workout[] {
   });
 }
 
+/** Old 3/4-day titles before the elevated-split upgrade. */
+const LEGACY_SESSION_TITLE = /^(Full Body [AB]|Lower Body|Upper Body|Glute Focus)$/i;
+
+/**
+ * True when stored workouts should be regenerated for this profile.
+ * Also catches the case where schemaVersion was stamped current while
+ * workouts were still the legacy Full Body A/B templates.
+ */
+export function programmeNeedsUpgrade(
+  workouts: Workout[],
+  profile: UserProfile,
+  storedSchemaVersion: number,
+): boolean {
+  if (storedSchemaVersion < PROGRAM_SCHEMA_VERSION) return true;
+  if (!workouts.length) return true;
+  if (workouts.some((workout) => LEGACY_SESSION_TITLE.test(workout.title))) return true;
+
+  const expected = generateProgram(profile);
+  if (workouts.length !== expected.length) return true;
+  return workouts.some((workout, index) => workout.title !== expected[index]?.title);
+}
+
 /** Current programme schema version — bump when the weekly structure changes. */
-export const PROGRAM_SCHEMA_VERSION = 3;
+export const PROGRAM_SCHEMA_VERSION = 4;

@@ -34,6 +34,7 @@ export function ProfileScreen({
   onSave,
   onClose,
   onViewProgress,
+  onRebuildProgramme,
   accountMode = "local",
   syncNote = null,
   onSignOut,
@@ -43,6 +44,7 @@ export function ProfileScreen({
   onSave: (profile: UserProfile) => void;
   onClose: () => void;
   onViewProgress: () => void;
+  onRebuildProgramme?: () => void;
   accountMode?: "local" | "cloud" | "gate" | "booting";
   syncNote?: string | null;
   onSignOut?: () => void | Promise<void>;
@@ -162,6 +164,16 @@ export function ProfileScreen({
               selected={draft.trainingDays}
               onSelect={(v) => set("trainingDays", v)}
             />
+            {onRebuildProgramme ? (
+              <button
+                type="button"
+                className="secondary-btn"
+                style={{ marginTop: 12 }}
+                onClick={onRebuildProgramme}
+              >
+                Rebuild this week&apos;s programme
+              </button>
+            ) : null}
             <label className="mini-label">Equipment</label>
             <ChoiceRow
               options={(Object.keys(EQUIPMENT_LABELS) as EquipmentAccess[]).map((v) => ({ value: v, label: EQUIPMENT_LABELS[v] }))}
