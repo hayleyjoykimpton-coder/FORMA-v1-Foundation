@@ -216,7 +216,35 @@ p { margin: 0; color: var(--text-2); line-height: 1.55; }
   opacity: 0.75;
   transition: opacity 0.2s ease;
 }
-.text-btn:hover { opacity: 1; }
+.auth-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 100vh;
+  justify-content: center;
+}
+.auth-screen h1 { font-size: 36px; margin-top: 8px; }
+.auth-screen .wordmark { margin-bottom: 4px; }
+.auth-error {
+  margin: 0;
+  color: #8a4b3a;
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-info {
+  margin: 0;
+  color: var(--serenity, #6f8498);
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-note { font-size: 12px; margin-top: 8px; }
+.auth-screen code {
+  font-size: 11px;
+  background: var(--wash-earth);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+.text-btn.centered { width: 100%; text-align: center; margin-top: 4px; }
 
 .ghost-btn {
   color: var(--text);

@@ -30,11 +30,19 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
-import { GOAL_LABELS, saveProfile } from "@/lib/user";
+import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import { generateProgram, PROGRAM_SCHEMA_VERSION } from "@/lib/programGenerator";
 import { ensureHayleyData, transferExerciseWeights } from "@/lib/hayleySeed";
 import { fileToResizedDataUrl } from "@/lib/images";
+import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  getSessionUserId,
+  pullCloudState,
+  pushProfile,
+  pushUserState,
+  signOut,
+} from "@/lib/sync";
 import {
   adjustResultsForReadiness,
   coachDashboard,
@@ -49,6 +57,7 @@ import {
 import type { Readiness } from "@/lib/coach";
 import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
+import { AuthScreen } from "@/components/AuthScreen";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
@@ -69,6 +78,9 @@ type SessionDraft = {
   results: ExerciseResult[];
   readiness?: number;
 };
+type AuthMode = "booting" | "gate" | "local" | "cloud";
+
+const LOCAL_ONLY_KEY = "forma-local-only-v1";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "today", label: "Home" },
@@ -105,46 +117,151 @@ export default function FormaApp() {
   const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
   const [pausedDraft, setPausedDraft] = useState<SessionDraftStored | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>("booting");
+  const [cloudUserId, setCloudUserId] = useState<string | null>(null);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    try {
-      const state = loadForma();
-      // Seed Hayley only when no profile exists — never overwrite saved data.
-      const savedProfile = ensureHayleyData();
-      let nextWorkouts = state.workouts;
+  const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
+    const state = loadForma();
+    const savedProfile = opts?.seedHayley === false ? loadProfile() : ensureHayleyData();
+    let nextWorkouts = state.workouts;
 
-      // Programme schema bump (e.g. Weighted Abs day / no Pilates): rebuild
-      // from profile while keeping history, progress, photos, and exercise weights.
-      if (savedProfile && state.needsProgramRefresh) {
-        const generated = generateProgram(savedProfile);
-        nextWorkouts = transferExerciseWeights(state.workouts, generated);
+    if (savedProfile && state.needsProgramRefresh) {
+      const generated = generateProgram(savedProfile);
+      nextWorkouts = transferExerciseWeights(state.workouts, generated);
+    }
+
+    setWorkouts(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
+    setHistory(state.history);
+    setWeek(state.week);
+    setWater(state.water);
+    setJournal(state.journal);
+    setProfile(savedProfile);
+    setProgressEntries(loadProgress());
+    setProgressPhotos(loadPhotos());
+
+    const today = pickTodaysWorkout(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
+    setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? INITIAL_WORKOUTS[0]?.id ?? "");
+
+    const draft = state.sessionDraft;
+    if (draft && nextWorkouts.some((workout) => workout.id === draft.workoutId)) {
+      setPausedDraft(draft);
+    } else if (draft) {
+      persistSessionDraft(null);
+      setPausedDraft(null);
+    }
+  };
+
+  const applyCloudBundle = async (userId: string) => {
+    const cloud = await pullCloudState(userId);
+    const local = loadForma();
+    const localProfile = loadProfile();
+
+    // Prefer cloud when it has a profile; otherwise keep local and upload.
+    if (cloud?.profile) {
+      let nextWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
+      if (cloud.workouts.length === 0) {
+        nextWorkouts = generateProgram(cloud.profile);
       }
-
+      setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
-      setHistory(state.history);
-      setWeek(state.week);
-      setWater(state.water);
-      setJournal(state.journal);
-      setProfile(savedProfile);
-      setProgressEntries(loadProgress());
-      setProgressPhotos(loadPhotos());
-
+      setHistory(cloud.history);
+      setWeek(cloud.week);
+      setProgressEntries(cloud.progress);
+      setProgressPhotos(cloud.photos);
+      setJournal(cloud.journal);
+      if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
+      else setWater(0);
       const today = pickTodaysWorkout(nextWorkouts);
       setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
-
-      // Crash recovery / resume: keep draft available without forcing the session open.
-      const draft = state.sessionDraft;
-      if (draft && nextWorkouts.some((workout) => workout.id === draft.workoutId)) {
-        setPausedDraft(draft);
-      } else if (draft) {
-        persistSessionDraft(null);
+      if (cloud.sessionDraft && nextWorkouts.some((w) => w.id === cloud.sessionDraft!.workoutId)) {
+        setPausedDraft(cloud.sessionDraft);
       }
-    } catch {
-      // Keep safe defaults when stored data cannot be read.
-    } finally {
-      setHydrated(true);
+      saveProfile(cloud.profile);
+      window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
+      window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
+      saveProgress(cloud.progress);
+      savePhotos(cloud.photos);
+    } else {
+      applyLocalBundle({ seedHayley: !localProfile });
+      const profileToSave = loadProfile();
+      if (profileToSave) {
+        await pushProfile({ ...profileToSave, id: userId, email: profileToSave.email || "" });
+      }
+      await pushUserState({
+        workouts: local.workouts,
+        history: local.history,
+        week: local.week,
+        progress: loadProgress(),
+        photos: loadPhotos(),
+        water: { date: new Date().toDateString(), count: local.water },
+        journal: local.journal,
+        sessionDraft: local.sessionDraft,
+      });
     }
+
+    setCloudUserId(userId);
+    setAuthMode("cloud");
+    window.localStorage.removeItem(LOCAL_ONLY_KEY);
+    setSyncNote("Synced to your account");
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const boot = async () => {
+      try {
+        if (!isSupabaseConfigured()) {
+          applyLocalBundle({ seedHayley: true });
+          if (!cancelled) setAuthMode("local");
+          return;
+        }
+
+        const userId = await getSessionUserId();
+        if (cancelled) return;
+
+        if (userId) {
+          await applyCloudBundle(userId);
+          return;
+        }
+
+        if (window.localStorage.getItem(LOCAL_ONLY_KEY) === "1") {
+          applyLocalBundle({ seedHayley: true });
+          setAuthMode("local");
+          return;
+        }
+
+        // Show account gate; keep any local cache warm underneath.
+        applyLocalBundle({ seedHayley: false });
+        setAuthMode("gate");
+      } catch {
+        applyLocalBundle({ seedHayley: true });
+        if (!cancelled) setAuthMode("local");
+      } finally {
+        if (!cancelled) setHydrated(true);
+      }
+    };
+
+    void boot();
+
+    const supabase = getSupabase();
+    const subscription = supabase?.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        setCloudUserId(null);
+        setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
+        return;
+      }
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user.id) {
+        await applyCloudBundle(session.user.id);
+        setHydrated(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription?.data.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -163,6 +280,45 @@ export default function FormaApp() {
     persistSessionDraft({ ...session, restRemaining });
     setPausedDraft({ ...session, restRemaining });
   }, [session, restRemaining, hydrated]);
+
+  // Cloud sync (debounced) whenever signed-in state changes.
+  useEffect(() => {
+    if (!hydrated || authMode !== "cloud" || !cloudUserId || !profile) return;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const profileResult = await pushProfile(profile);
+        const stateResult = await pushUserState({
+          workouts,
+          history,
+          week,
+          progress: progressEntries,
+          photos: progressPhotos,
+          water: { date: new Date().toDateString(), count: water },
+          journal,
+          sessionDraft: pausedDraft,
+        });
+        if (profileResult.error || stateResult.error) {
+          setSyncNote(profileResult.error || stateResult.error || "Sync failed");
+        } else {
+          setSyncNote("Synced just now");
+        }
+      })();
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [
+    authMode,
+    cloudUserId,
+    profile,
+    workouts,
+    history,
+    week,
+    progressEntries,
+    progressPhotos,
+    water,
+    journal,
+    pausedDraft,
+    hydrated,
+  ]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -493,7 +649,7 @@ export default function FormaApp() {
     });
   };
 
-  if (!hydrated) {
+  if (!hydrated || authMode === "booting") {
     return (
       <div className="app">
         <div className="shell">
@@ -503,6 +659,22 @@ export default function FormaApp() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (authMode === "gate") {
+    return (
+      <AuthScreen
+        onAuthenticated={() => {
+          // Auth listener will pull cloud state and set authMode to cloud.
+          setHydrated(true);
+        }}
+        onContinueLocal={() => {
+          window.localStorage.setItem(LOCAL_ONLY_KEY, "1");
+          applyLocalBundle({ seedHayley: true });
+          setAuthMode("local");
+        }}
+      />
     );
   }
 
@@ -517,6 +689,20 @@ export default function FormaApp() {
         onSave={handleProfileSave}
         onClose={() => setProfileOpen(false)}
         onViewProgress={() => { setProfileOpen(false); setTab("progress"); }}
+        accountMode={authMode}
+        syncNote={syncNote}
+        onSignOut={async () => {
+          await signOut();
+          window.localStorage.removeItem(LOCAL_ONLY_KEY);
+          setCloudUserId(null);
+          setAuthMode("gate");
+          setProfileOpen(false);
+        }}
+        onSignIn={() => {
+          window.localStorage.removeItem(LOCAL_ONLY_KEY);
+          setAuthMode("gate");
+          setProfileOpen(false);
+        }}
       />
     );
   }

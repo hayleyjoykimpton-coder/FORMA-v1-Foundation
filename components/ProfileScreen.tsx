@@ -34,11 +34,19 @@ export function ProfileScreen({
   onSave,
   onClose,
   onViewProgress,
+  accountMode = "local",
+  syncNote = null,
+  onSignOut,
+  onSignIn,
 }: {
   profile: UserProfile;
   onSave: (profile: UserProfile) => void;
   onClose: () => void;
   onViewProgress: () => void;
+  accountMode?: "local" | "cloud" | "gate" | "booting";
+  syncNote?: string | null;
+  onSignOut?: () => void | Promise<void>;
+  onSignIn?: () => void;
 }) {
   const [draft, setDraft] = useState<UserProfile>(profile);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +110,22 @@ export function ProfileScreen({
           </div>
 
           <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
+
+          <article className="card profile-section">
+            <span className="eyebrow">Account</span>
+            <p className="muted">
+              {accountMode === "cloud"
+                ? "Signed in — your programme and progress sync across devices."
+                : "This device only — create an account to sync across phone and laptop."}
+            </p>
+            {syncNote && accountMode === "cloud" ? <p className="auth-info">{syncNote}</p> : null}
+            {accountMode === "cloud" && onSignOut ? (
+              <button className="secondary-btn" onClick={() => void onSignOut()}>Sign out</button>
+            ) : null}
+            {accountMode === "local" && onSignIn ? (
+              <button className="cta-btn" onClick={onSignIn}>Sign in / create account</button>
+            ) : null}
+          </article>
 
           <article className="card profile-section">
             <span className="eyebrow">Name</span>
