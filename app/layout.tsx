@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "FORMA",
   description: "A premium personal strength & wellness system.",
   other: {
-    "theme-color": "#5B4337",
+    "theme-color": "#4A372C",
   },
 };
 

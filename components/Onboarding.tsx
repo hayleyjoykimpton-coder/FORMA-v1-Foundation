@@ -89,7 +89,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) 
               <span className="wordmark">FORMA</span>
               <div
                 className="onboard-hero-img"
-                style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.04), rgba(58,42,32,.4)), url(${IMAGES.hero})` }}
+                style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.04), rgba(74,55,44,.4)), url(${IMAGES.hero})` }}
                 aria-hidden
               />
               <h1>Welcome to FORMA</h1>

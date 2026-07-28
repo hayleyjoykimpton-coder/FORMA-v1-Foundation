@@ -555,7 +555,7 @@ export default function FormaApp() {
 
             <section
               className="session-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.12), rgba(58,42,32,.62)), url(${IMAGES.strength})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${IMAGES.strength})` }}
             >
               <span className="eyebrow light">Foundation · Primary target</span>
               <h1>{exercise.name}</h1>
@@ -739,7 +739,7 @@ export default function FormaApp() {
             <section
               className="home-hero"
               style={{
-                backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.04) 30%, rgba(58,42,32,.58)), url(${profile.profilePhoto || IMAGES.hero})`,
+                backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.04) 30%, rgba(74,55,44,.58)), url(${profile.profilePhoto || IMAGES.hero})`,
               }}
             >
               <input
@@ -878,7 +878,7 @@ export default function FormaApp() {
             </div>
             <article
               className="card image-card"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.02) 40%, rgba(58,42,32,.5)), url(${IMAGES.nutrition})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 40%, rgba(74,55,44,.5)), url(${IMAGES.nutrition})` }}
             >
               <div className="image-card-copy">
                 <span className="eyebrow light">Meals</span>
@@ -910,7 +910,7 @@ export default function FormaApp() {
             <div className="dual-grid">
               <article
                 className="card image-card tall"
-                style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.02) 35%, rgba(58,42,32,.55)), url(${IMAGES.recovery})` }}
+                style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 35%, rgba(74,55,44,.55)), url(${IMAGES.recovery})` }}
                 role="button"
                 tabIndex={0}
                 onClick={() => setTab("recovery")}
@@ -1243,7 +1243,7 @@ export default function FormaApp() {
 
             <article
               className="card image-card tall recovery-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.02) 30%, rgba(58,42,32,.5)), url(${IMAGES.recovery})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 30%, rgba(74,55,44,.5)), url(${IMAGES.recovery})` }}
             >
               <div className="image-card-copy">
                 <span className="eyebrow light">Readiness</span>

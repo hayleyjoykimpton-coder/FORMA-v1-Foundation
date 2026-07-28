@@ -1,21 +1,32 @@
 /* ==========================================================================
-   FORMA v2 — Premium Editorial Redesign
-   Rhode Skin × Apple × FORM by Sami Clarke. Warm, feminine, minimal, luxe.
+   FORMA — Neutral Elegance × Blue Serenity × Warm Earth
+   Cream foundations, chocolate brand, soft serenity blues, terracotta accents.
    ========================================================================== */
 
 :root {
-  /* Palette */
-  --bg: #fcfaf7;
-  --card: #ffffff;
-  --text: #5b4337;        /* espresso brown — primary text & logo */
-  --text-2: #6f6a67;      /* secondary text */
-  --line: #efeae4;        /* almost invisible borders */
-  --pink: #f6d9e3;        /* rhode pink */
-  --cta: #efafc4;         /* CTA pink */
-  --blue: #d9eaf7;        /* hydration */
-  --mocha: #d8c6ba;       /* nutrition */
-  --sage: #d9e2d4;        /* recovery */
-  --green: #a8d5b3;       /* success */
+  /* Foundation — Neutral Elegance + Warm Earth */
+  --bg: #f3efe8;          /* warm ivory */
+  --card: #faf8f5;        /* soft off-white */
+  --text: #4a372c;        /* chocolate brown — brand & logo */
+  --text-2: #7a7268;      /* warm mid-grey */
+  --line: #e3ddd4;        /* light greige */
+
+  /* Accents */
+  --pink: #ead9cc;        /* warm sand / soft peach (legacy token name) */
+  --cta: #c4a484;         /* terracotta earth — primary CTA */
+  --blue: #d2dfea;        /* Blue Serenity soft */
+  --mocha: #d6c4b2;       /* warm camel earth */
+  --sage: #d5dde6;        /* serenity blue-grey (recovery) */
+  --green: #b7c7b0;       /* muted earth success */
+  --serenity: #a9bcd0;    /* Blue Serenity mid */
+  --earth-deep: #5b4337;  /* deep chocolate */
+
+  /* Soft gradient stops */
+  --wash-peach: #f6efe8;
+  --wash-blue: #eef3f8;
+  --wash-earth: #f3ebe3;
+  --wash-sage: #eef2f5;
+  --wash-green: #eef3eb;
 
   /* Radius */
   --r-card: 28px;
@@ -23,11 +34,11 @@
   --r-btn: 20px;
   --r-pill: 999px;
 
-  /* Shadows — soft and low */
-  --shadow-xs: 0 2px 8px rgba(91, 67, 55, 0.05);
-  --shadow-sm: 0 8px 22px rgba(91, 67, 55, 0.06);
-  --shadow: 0 18px 44px rgba(91, 67, 55, 0.1);
-  --shadow-lg: 0 40px 90px rgba(91, 67, 55, 0.16);
+  /* Shadows — soft chocolate */
+  --shadow-xs: 0 2px 8px rgba(74, 55, 44, 0.05);
+  --shadow-sm: 0 8px 22px rgba(74, 55, 44, 0.06);
+  --shadow: 0 18px 44px rgba(74, 55, 44, 0.1);
+  --shadow-lg: 0 40px 90px rgba(74, 55, 44, 0.16);
 
   --font-heading: var(--font-serif), Georgia, "Times New Roman", serif;
   --font-body: var(--font-sans), Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -47,7 +58,7 @@ html, body {
 
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
-input, textarea { outline-color: rgba(239, 175, 196, 0.55); }
+input, textarea { outline-color: rgba(169, 188, 208, 0.65); }
 
 /* ---------- App shell ---------------------------------------------------- */
 
@@ -56,8 +67,9 @@ input, textarea { outline-color: rgba(239, 175, 196, 0.55); }
   display: grid;
   place-items: start center;
   background:
-    radial-gradient(circle at 15% -5%, #fff 0%, transparent 42%),
-    radial-gradient(circle at 100% 0%, rgba(246, 217, 227, 0.35) 0%, transparent 34%),
+    radial-gradient(circle at 15% -5%, #fffcf8 0%, transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(169, 188, 208, 0.28) 0%, transparent 36%),
+    radial-gradient(circle at 0% 80%, rgba(196, 164, 132, 0.12) 0%, transparent 40%),
     var(--bg);
 }
 
@@ -162,10 +174,10 @@ p { margin: 0; color: var(--text-2); line-height: 1.55; }
   color: var(--text);
   font-weight: 600;
   letter-spacing: 0.01em;
-  box-shadow: 0 12px 26px rgba(239, 175, 196, 0.4);
+  box-shadow: 0 12px 26px rgba(196, 164, 132, 0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
-.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(239, 175, 196, 0.5); }
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(196, 164, 132, 0.45); }
 .cta-btn:active { transform: scale(0.98); }
 
 .pill-btn {
@@ -298,11 +310,11 @@ button:disabled { cursor: not-allowed; }
 .stat-value { font-family: var(--font-heading); font-size: 26px; font-weight: 400; color: var(--text); }
 .stat-note { font-size: 11px; color: var(--text-2); }
 
-.accent-pink { background: linear-gradient(160deg, #fdf0f4, var(--pink)); border-color: transparent; }
-.accent-blue { background: linear-gradient(160deg, #eef6fc, var(--blue)); border-color: transparent; }
-.accent-mocha { background: linear-gradient(160deg, #f1e9e2, var(--mocha)); border-color: transparent; }
-.accent-sage { background: linear-gradient(160deg, #eef2ea, var(--sage)); border-color: transparent; }
-.accent-green { background: linear-gradient(160deg, #edf6ef, var(--green)); border-color: transparent; }
+.accent-pink { background: linear-gradient(160deg, var(--wash-peach), var(--pink)); border-color: transparent; }
+.accent-blue { background: linear-gradient(160deg, var(--wash-blue), var(--blue)); border-color: transparent; }
+.accent-mocha { background: linear-gradient(160deg, var(--wash-earth), var(--mocha)); border-color: transparent; }
+.accent-sage { background: linear-gradient(160deg, var(--wash-sage), var(--sage)); border-color: transparent; }
+.accent-green { background: linear-gradient(160deg, var(--wash-green), var(--green)); border-color: transparent; }
 
 /* ---------- Today's workout card ---------------------------------------- */
 
@@ -371,7 +383,7 @@ button:disabled { cursor: not-allowed; }
 }
 .exercise-preview strong { display: block; font-size: 15px; }
 .exercise-preview small { display: block; color: var(--text-2); font-size: 12px; margin-top: 2px; }
-.exercise-preview em { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: #b06a8a; margin-top: 4px; }
+.exercise-preview em { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: #8f6b4f; margin-top: 4px; }
 .ep-empty { display: block; color: var(--text-2); font-size: 13px; }
 
 /* ---------- Coach card --------------------------------------------------- */
@@ -391,7 +403,7 @@ button:disabled { cursor: not-allowed; }
 .coach-rec {
   padding: 14px 16px;
   border-radius: var(--r-lg);
-  background: linear-gradient(160deg, #fdf1f5, #fbe7ee);
+  background: linear-gradient(160deg, var(--wash-peach), #e8d5c4);
 }
 .coach-rec strong { display: block; margin: 4px 0 4px; font-size: 15px; }
 .coach-rec p { font-size: 13px; }
@@ -404,9 +416,9 @@ button:disabled { cursor: not-allowed; }
 }
 .reminder strong { display: block; font-size: 13px; margin-bottom: 2px; }
 .reminder small { color: var(--text-2); font-size: 12px; line-height: 1.45; }
-.reminder.accent-blue { background: linear-gradient(160deg, #f2f9fd, var(--blue)); border-color: transparent; }
-.reminder.accent-mocha { background: linear-gradient(160deg, #f5efe9, var(--mocha)); border-color: transparent; }
-.reminder.accent-sage { background: linear-gradient(160deg, #f1f5ee, var(--sage)); border-color: transparent; }
+.reminder.accent-blue { background: linear-gradient(160deg, var(--wash-blue), var(--blue)); border-color: transparent; }
+.reminder.accent-mocha { background: linear-gradient(160deg, var(--wash-earth), var(--mocha)); border-color: transparent; }
+.reminder.accent-sage { background: linear-gradient(160deg, var(--wash-sage), var(--sage)); border-color: transparent; }
 
 /* ---------- Image cards -------------------------------------------------- */
 
@@ -453,7 +465,7 @@ button:disabled { cursor: not-allowed; }
   border: 1px solid var(--line);
   transition: background 0.25s ease, transform 0.25s ease;
 }
-.drop.filled { background: linear-gradient(160deg, #cfe6f7, var(--blue)); border-color: transparent; transform: translateY(-1px); }
+.drop.filled { background: linear-gradient(160deg, #c5d6e6, var(--blue)); border-color: transparent; transform: translateY(-1px); }
 
 /* ---------- Dual grid / progress preview / phase ------------------------ */
 
@@ -491,7 +503,7 @@ button:disabled { cursor: not-allowed; }
   flex-shrink: 0;
   z-index: 1;
 }
-.phase-step.active .phase-dot { background: var(--cta); border-color: var(--cta); box-shadow: 0 0 0 4px rgba(239, 175, 196, 0.25); }
+.phase-step.active .phase-dot { background: var(--cta); border-color: var(--cta); box-shadow: 0 0 0 4px rgba(196, 164, 132, 0.28); }
 .phase-step strong { display: block; font-size: 15px; }
 .phase-step.locked strong { color: var(--text-2); }
 .phase-step small { font-size: 11px; color: var(--text-2); }
@@ -532,14 +544,14 @@ button:disabled { cursor: not-allowed; }
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .schedule-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-.schedule-card.today { border-color: var(--cta); box-shadow: 0 10px 24px rgba(239, 175, 196, 0.28); }
+.schedule-card.today { border-color: var(--cta); box-shadow: 0 10px 24px rgba(196, 164, 132, 0.28); }
 .schedule-thumb {
   width: 56px; height: 56px; border-radius: 16px;
   background-size: cover; background-position: center; flex-shrink: 0;
 }
 .schedule-rest {
   width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0;
-  background: linear-gradient(160deg, #f3f0ec, var(--sage));
+  background: linear-gradient(160deg, var(--wash-sage), var(--sage));
 }
 .schedule-copy { flex: 1; }
 .schedule-day { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-2); }
@@ -688,7 +700,7 @@ input, textarea {
   line-height: 1.5;
 }
 
-.rest-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(160deg, #fdf1f5, var(--pink)); border-color: transparent; }
+.rest-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(160deg, var(--wash-blue), var(--blue)); border-color: transparent; }
 .rest-card strong { display: block; margin-top: 2px; font-family: var(--font-heading); font-size: 30px; font-weight: 400; }
 .rest-actions { display: flex; gap: 8px; }
 .rest-card .rest-actions button, .session-nav button {
@@ -714,8 +726,8 @@ input, textarea {
 .strength-row strong { display: block; font-size: 15px; }
 .strength-row small { color: var(--text-2); font-size: 12px; }
 .delta { font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: var(--r-pill); background: var(--bg); }
-.delta.up { color: #4c8a5f; background: linear-gradient(160deg, #edf6ef, var(--green)); }
-.delta.down { color: #b06a8a; background: linear-gradient(160deg, #fdf0f4, var(--pink)); }
+.delta.up { color: #5f7a58; background: linear-gradient(160deg, var(--wash-green), var(--green)); }
+.delta.down { color: #8f6b4f; background: linear-gradient(160deg, var(--wash-peach), var(--pink)); }
 .delta.flat { color: var(--text-2); }
 
 .measurements-card, .photos-card { display: flex; flex-direction: column; gap: 12px; }
@@ -854,7 +866,7 @@ button.avatar { padding: 0; }
 }
 .choice:hover { transform: translateY(-1px); }
 .choice:active { transform: scale(0.99); }
-.choice.selected { border-color: var(--cta); background: linear-gradient(160deg, #fdf0f4, var(--pink)); }
+.choice.selected { border-color: var(--cta); background: linear-gradient(160deg, var(--wash-peach), var(--pink)); }
 .choice small { display: block; font-weight: 400; color: var(--text-2); margin-top: 3px; font-size: 12px; }
 .choice.mini { padding: 9px 14px; font-size: 13px; text-align: center; }
 
@@ -948,9 +960,9 @@ button.avatar { padding: 0; }
   font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
   padding: 7px 14px; border-radius: var(--r-pill); color: var(--text);
 }
-.score-badge.band-excellent { background: linear-gradient(160deg, #edf6ef, var(--green)); }
-.score-badge.band-good { background: linear-gradient(160deg, #fdf0f4, var(--pink)); }
-.score-badge.band-needsattention { background: linear-gradient(160deg, #f5efe9, var(--mocha)); }
+.score-badge.band-excellent { background: linear-gradient(160deg, var(--wash-green), var(--green)); }
+.score-badge.band-good { background: linear-gradient(160deg, var(--wash-blue), var(--blue)); }
+.score-badge.band-needsattention { background: linear-gradient(160deg, var(--wash-earth), var(--mocha)); }
 
 /* Readiness check-in */
 .readiness-list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
@@ -964,7 +976,7 @@ button.avatar { padding: 0; }
   transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 .readiness-dot:active { transform: scale(0.92); }
-.readiness-dot.selected { background: linear-gradient(160deg, #fdf0f4, var(--pink)); border-color: var(--cta); color: var(--text); }
+.readiness-dot.selected { background: linear-gradient(160deg, var(--wash-peach), var(--pink)); border-color: var(--cta); color: var(--text); }
 .readiness-preview {
   margin-top: 20px; padding: 16px 18px;
   border-radius: var(--r-lg); background: var(--card); border: 1px solid var(--line);
@@ -972,9 +984,9 @@ button.avatar { padding: 0; }
 }
 .readiness-preview > div { display: flex; align-items: center; gap: 12px; }
 .readiness-score { font-family: var(--font-heading); font-size: 34px; font-weight: 400; }
-.readiness-score.band-high { color: #4c8a5f; }
+.readiness-score.band-high { color: #5f7a58; }
 .readiness-score.band-moderate { color: var(--text); }
-.readiness-score.band-low { color: #b06a8a; }
+.readiness-score.band-low { color: #8f6b4f; }
 
 /* ==========================================================================
    Progress & body transformation (Sprint 2.5) — new surfaces, existing tokens.
