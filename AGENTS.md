@@ -18,3 +18,7 @@
 - Signed-in users sync profile, workouts, history, progress, photos, water, journal, and session drafts
 - Local `localStorage` remains an offline cache
 - Profile → Account shows sync status + Sign out
+
+## Dev tip: email confirmation
+Supabase Free often rate-limits confirmation emails. For local testing, turn off
+**Authentication → Providers → Email → Confirm email**, then sign up with your real address.
