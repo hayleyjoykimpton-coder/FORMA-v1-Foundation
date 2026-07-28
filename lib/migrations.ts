@@ -152,7 +152,7 @@ export function loadForma(): LoadedState {
     alignActive: false,
     water: 0,
     journal: {},
-    wellness: { gratitude: {}, breathwork: [] },
+    wellness: { gratitude: {}, breathwork: [], daily: {}, readinessLogs: [] },
     migrated: false,
     needsProgramRefresh: false,
     sessionDraft: null,

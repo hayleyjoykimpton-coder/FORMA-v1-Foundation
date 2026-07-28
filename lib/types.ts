@@ -17,6 +17,11 @@ export type Exercise = {
   notes: string;
   increment: number;
   restSeconds: number;
+  /**
+   * Optional instruction video (YouTube / Vimeo / https URL).
+   * Overrides the library default when set.
+   */
+  videoUrl?: string;
 };
 
 export type Workout = {

@@ -5,7 +5,6 @@ import {
   COACH_REMINDERS,
   HYDRATION_GOAL,
   IMAGES,
-  NUTRITION_TARGETS,
   PHASES,
   imageForExercise,
   imageForWorkout,
@@ -49,7 +48,7 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
-import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
+import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import {
   generateProgram,
@@ -99,21 +98,39 @@ import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progre
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
 import { AuthScreen } from "@/components/AuthScreen";
 import { BreathworkSession } from "@/components/Breathwork";
+import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import {
+  addMeal,
+  dayMacroTotals,
+  loadMeals,
+  mealsForDay,
+  removeMeal,
+  saveMeals,
+  type MealsState,
+} from "@/lib/meals";
+import { suggestionForRemaining, targetsForProfile } from "@/lib/nutritionTargets";
+import {
   GRATITUDE_PROMPTS,
   GRATITUDE_SLOTS,
+  averageReadinessScore,
   breathworkDoneToday,
+  dailyForDay,
   gratitudeFilledCount,
   gratitudeForDay,
   logBreathwork,
+  logReadinessCheckIn,
   protocolById,
+  readinessDoneToday,
+  readinessScoreToday,
   recentGratitudeDays,
   saveWellness,
+  setDailyLog,
   setGratitudeLine,
+  sleepHoursToReadinessScale,
   type WellnessState,
 } from "@/lib/wellness";
 import {
@@ -168,8 +185,16 @@ export default function FormaApp() {
   const [hydrated, setHydrated] = useState(false);
   const [water, setWater] = useState(0);
   const [journal, setJournal] = useState<Record<string, string>>({});
-  const [wellness, setWellness] = useState<WellnessState>({ gratitude: {}, breathwork: [] });
+  const [wellness, setWellness] = useState<WellnessState>({
+    gratitude: {},
+    breathwork: [],
+    daily: {},
+    readinessLogs: [],
+  });
   const [breathworkOpen, setBreathworkOpen] = useState(false);
+  const [standaloneReadiness, setStandaloneReadiness] = useState(false);
+  const [mealLogOpen, setMealLogOpen] = useState(false);
+  const [meals, setMeals] = useState<MealsState>({ entries: [] });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
@@ -207,6 +232,7 @@ export default function FormaApp() {
     setWater(state.water);
     setJournal(state.journal);
     setWellness(state.wellness);
+    setMeals(loadMeals());
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
@@ -253,6 +279,7 @@ export default function FormaApp() {
       setProgressPhotos(cloud.photos);
       setJournal(cloud.journal);
       setWellness(cloud.wellness);
+      setMeals(cloud.meals);
       if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
       else setWater(0);
       const today = pickTodaysWorkout(nextWorkouts);
@@ -262,6 +289,7 @@ export default function FormaApp() {
       }
       saveProfile(cloud.profile);
       saveWellness(cloud.wellness);
+      saveMeals(cloud.meals);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
       window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
       window.localStorage.setItem(
@@ -288,6 +316,7 @@ export default function FormaApp() {
           water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
           journal: cloud.journal,
           wellness: cloud.wellness,
+          meals: cloud.meals,
           sessionDraft: cloud.sessionDraft,
         });
       }
@@ -307,6 +336,7 @@ export default function FormaApp() {
         water: { date: new Date().toDateString(), count: local.water },
         journal: local.journal,
         wellness: local.wellness,
+        meals: loadMeals(),
         sessionDraft: local.sessionDraft,
       });
     }
@@ -412,6 +442,7 @@ export default function FormaApp() {
           water: { date: new Date().toDateString(), count: water },
           journal,
           wellness,
+          meals,
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
@@ -435,6 +466,7 @@ export default function FormaApp() {
     water,
     journal,
     wellness,
+    meals,
     pausedDraft,
     hydrated,
   ]);
@@ -456,6 +488,11 @@ export default function FormaApp() {
     if (!hydrated) return;
     saveWellness(wellness);
   }, [wellness, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveMeals(meals);
+  }, [meals, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -536,15 +573,10 @@ export default function FormaApp() {
   const glute = useMemo(() => gluteScore(history), [history]);
   const review = useMemo(() => (profile ? weeklyReview(profile, history) : null), [profile, history]);
   const wins = useMemo(() => (profile ? weeklyWins(profile, history) : []), [profile, history]);
-  const recoveryScore = useMemo(() => {
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    const values = history
-      .filter((session) => Date.now() - new Date(session.completedAt).getTime() <= 7 * DAY_MS)
-      .map((session) => session.readiness)
-      .filter((value): value is number => typeof value === "number");
-    if (!values.length) return null;
-    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-  }, [history]);
+  const recoveryScore = useMemo(
+    () => averageReadinessScore(history, wellness),
+    [history, wellness],
+  );
   const latestSummary = useMemo(
     () => (history.length ? postWorkoutSummary(history[history.length - 1], history) : []),
     [history],
@@ -1047,11 +1079,28 @@ export default function FormaApp() {
   }
 
   if (readinessWorkout && !session) {
+    const sleepHint = sleepHoursToReadinessScale(dailyForDay(wellness).sleepHours);
     return (
       <ReadinessCheck
         workout={readinessWorkout}
+        initialInput={sleepHint != null ? { sleep: sleepHint } : undefined}
         onSubmit={(readiness) => beginSession(readinessWorkout, readiness)}
         onCancel={() => setReadinessWorkout(null)}
+      />
+    );
+  }
+
+  if (standaloneReadiness && !session) {
+    const sleepHint = sleepHoursToReadinessScale(dailyForDay(wellness).sleepHours);
+    return (
+      <ReadinessCheck
+        initialInput={sleepHint != null ? { sleep: sleepHint } : undefined}
+        onCancel={() => setStandaloneReadiness(false)}
+        onSubmit={(readiness, input) => {
+          setWellness((current) => logReadinessCheckIn(current, readiness.score, input));
+          setStandaloneReadiness(false);
+          setSyncNote(`Readiness saved · ${readiness.score}%`);
+        }}
       />
     );
   }
@@ -1065,6 +1114,24 @@ export default function FormaApp() {
           setWellness((current) => logBreathwork(current, protocolId));
           setBreathworkOpen(false);
           setSyncNote(`Breathwork saved · ${protocolById(protocolId)?.name ?? "session"}`);
+        }}
+      />
+    );
+  }
+
+  if (mealLogOpen && profile) {
+    const nutritionTargets = targetsForProfile(profile);
+    const eaten = dayMacroTotals(meals);
+    return (
+      <MealLogSheet
+        targets={nutritionTargets}
+        nutritionGoal={profile.nutritionGoal}
+        eaten={eaten}
+        onCancel={() => setMealLogOpen(false)}
+        onSave={(draft) => {
+          setMeals((current) => addMeal(current, draft));
+          setMealLogOpen(false);
+          setSyncNote(`Meal saved · ${draft.macros.calories || "—"} kcal`);
         }}
       />
     );
@@ -1198,6 +1265,14 @@ export default function FormaApp() {
                 <span>Tempo {coaching.tempo.split(" · ")[0]}</span>
                 <span>Rest {coaching.restSeconds}s</span>
               </div>
+              <a
+                className="video-link-btn"
+                href={coaching.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Watch form · {coaching.videoLabel}
+              </a>
               {coaching.secondary !== "—" ? <p className="muted coach-guide-sub">Secondary: {coaching.secondary}</p> : null}
               {coaching.cues.length > 0 && (
                 <div className="coach-block">
@@ -1491,21 +1566,121 @@ export default function FormaApp() {
             </article>
 
             <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
-            <div className="stat-grid three">
-              {NUTRITION_TARGETS.map((target) => (
-                <StatTile key={target.label} label={target.label} value={target.value} note={target.unit} accent={target.accent} />
-              ))}
-            </div>
-            <article
-              className="card image-card"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 40%, rgba(74,55,44,.5)), url(${IMAGES.nutrition})` }}
-            >
-              <div className="image-card-copy">
-                <span className="eyebrow light">Meals</span>
-                <h3>Balanced, protein-led plates</h3>
-                <span className="link-cue">Bright greens · lean protein · slow carbs</span>
-              </div>
-            </article>
+            {(() => {
+              const nutritionTargets = targetsForProfile(profile);
+              const eaten = dayMacroTotals(meals, todayISO);
+              const todayMeals = mealsForDay(meals, todayISO);
+              const tip = suggestionForRemaining(nutritionTargets, eaten);
+              return (
+                <>
+                  <p className="muted nutrition-goal-line">
+                    Goal from settings: <strong>{NUTRITION_LABELS[profile.nutritionGoal]}</strong>
+                    {" · "}
+                    {nutritionTargets.note}
+                  </p>
+                  <div className="stat-grid three">
+                    <StatTile
+                      label="Calories"
+                      value={`${eaten.calories}`}
+                      note={`/ ${nutritionTargets.calories} kcal`}
+                      accent="mocha"
+                    />
+                    <StatTile
+                      label="Protein"
+                      value={`${eaten.protein}g`}
+                      note={`/ ${nutritionTargets.protein}g`}
+                      accent="mocha"
+                    />
+                    <StatTile
+                      label="Meals"
+                      value={`${todayMeals.length}`}
+                      note={`/ ${nutritionTargets.mealsPlanned} logged`}
+                      accent="sage"
+                    />
+                  </div>
+                  <article className="card nutrition-progress-card">
+                    <div className="nutrition-bars">
+                      {(
+                        [
+                          ["Calories", eaten.calories, nutritionTargets.calories],
+                          ["Protein", eaten.protein, nutritionTargets.protein],
+                          ["Carbs", eaten.carbs, nutritionTargets.carbs],
+                          ["Fat", eaten.fat, nutritionTargets.fat],
+                        ] as const
+                      ).map(([label, value, target]) => {
+                        const pct = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+                        return (
+                          <div key={label} className="nutrition-bar-row">
+                            <div className="nutrition-bar-meta">
+                              <span>{label}</span>
+                              <small>
+                                {value} / {target}
+                                {label === "Calories" ? " kcal" : "g"}
+                              </small>
+                            </div>
+                            <div className="nutrition-bar-track">
+                              <span style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="meal-suggestion">{tip}</p>
+                    <button type="button" className="cta-btn" onClick={() => setMealLogOpen(true)}>
+                      Log meal · photo or manual
+                    </button>
+                  </article>
+                  {todayMeals.length > 0 ? (
+                    <div className="meal-list">
+                      {todayMeals.map((meal) => (
+                        <article key={meal.id} className="card meal-list-card">
+                          <div className="meal-list-head">
+                            <div>
+                              <strong>{meal.name}</strong>
+                              <small className="muted">
+                                {meal.macros.calories} kcal · {meal.macros.protein}g P · {meal.macros.carbs}g C ·{" "}
+                                {meal.macros.fat}g F
+                                {meal.source !== "manual" ? " · AI assist" : ""}
+                              </small>
+                            </div>
+                            <button
+                              type="button"
+                              className="text-btn"
+                              onClick={() => setMeals((current) => removeMeal(current, meal.id))}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          {meal.ingredients ? <p className="muted meal-ingredients">{meal.ingredients}</p> : null}
+                          {meal.suggestion ? <p className="meal-suggestion tight">{meal.suggestion}</p> : null}
+                          {meal.photo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={meal.photo} alt="" className="meal-thumb" />
+                          ) : null}
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <article
+                      className="card image-card"
+                      style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 40%, rgba(74,55,44,.5)), url(${IMAGES.nutrition})` }}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setMealLogOpen(true)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") setMealLogOpen(true);
+                      }}
+                    >
+                      <div className="image-card-copy">
+                        <span className="eyebrow light">Meals</span>
+                        <h3>Snap a plate or log macros</h3>
+                        <span className="link-cue">AI estimates · edit anytime ›</span>
+                      </div>
+                    </article>
+                  )}
+                </>
+              );
+            })()}
 
             <SectionHeading eyebrow="Hydration" title="Water intake" />
             <article className="card hydration-card">
@@ -1524,6 +1699,100 @@ export default function FormaApp() {
                   <span key={index} className={`drop${index < water ? " filled" : ""}`} />
                 ))}
               </div>
+            </article>
+
+            <SectionHeading eyebrow="Body signals" title="Sleep & steps" />
+            <article className="card daily-log-card">
+              <div className="daily-log-grid">
+                <div className="daily-log-field">
+                  <span className="eyebrow">Sleep last night</span>
+                  <div className="daily-log-controls">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            sleepHours: Math.max(0, (dailyForDay(current, todayISO).sleepHours ?? 0) - 0.5),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="Less sleep"
+                    >
+                      −
+                    </button>
+                    <strong>
+                      {dailyForDay(wellness, todayISO).sleepHours != null
+                        ? `${dailyForDay(wellness, todayISO).sleepHours}h`
+                        : "—"}
+                    </strong>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            sleepHours: Math.min(14, (dailyForDay(current, todayISO).sleepHours ?? (profile.sleepAverage ?? 7)) + 0.5),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="More sleep"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <small className="muted">
+                    {profile.sleepAverage != null ? `Usual average ${profile.sleepAverage}h` : "Tap + to log hours"}
+                  </small>
+                </div>
+                <div className="daily-log-field">
+                  <span className="eyebrow">Steps today</span>
+                  <div className="daily-log-controls">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            steps: Math.max(0, (dailyForDay(current, todayISO).steps ?? 0) - 500),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="Fewer steps"
+                    >
+                      −
+                    </button>
+                    <strong>
+                      {dailyForDay(wellness, todayISO).steps != null
+                        ? dailyForDay(wellness, todayISO).steps!.toLocaleString()
+                        : "—"}
+                    </strong>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            steps: Math.min(
+                              100_000,
+                              (dailyForDay(current, todayISO).steps ?? 0) + 500,
+                            ),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="More steps"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <small className="muted">
+                    {profile.dailySteps != null
+                      ? `Goal ${profile.dailySteps.toLocaleString()} · ±500`
+                      : "±500 steps · set a goal in Profile"}
+                  </small>
+                </div>
+              </div>
+              <button type="button" className="secondary-btn" onClick={() => setStandaloneReadiness(true)}>
+                {readinessDoneToday(wellness, todayISO)
+                  ? `Readiness logged · ${readinessScoreToday(wellness, todayISO)}% · update`
+                  : "Log readiness (no workout needed)"}
+              </button>
             </article>
 
             <SectionHeading eyebrow="Wellbeing" title="Recovery & progress" />
@@ -1725,6 +1994,23 @@ export default function FormaApp() {
                                   <Field label="Load increase" value={exercise.increment} onChange={(value) => updateExercise(workout.id, exercise.id, { increment: value })} step="0.5" />
                                   <Field label="Rest seconds" value={exercise.restSeconds} onChange={(value) => updateExercise(workout.id, exercise.id, { restSeconds: value })} />
                                 </div>
+                                <label className="video-url-field">
+                                  <span className="eyebrow">Instruction video URL</span>
+                                  <input
+                                    className="full"
+                                    type="url"
+                                    placeholder="Paste YouTube / Vimeo link (optional)"
+                                    value={exercise.videoUrl ?? ""}
+                                    onChange={(event) =>
+                                      updateExercise(workout.id, exercise.id, {
+                                        videoUrl: event.target.value || undefined,
+                                      })
+                                    }
+                                  />
+                                  <small className="muted">
+                                    Overrides the library demo. File uploads need cloud storage later — paste a link for now.
+                                  </small>
+                                </label>
                                 <textarea placeholder="Exercise notes" value={exercise.notes} onChange={(event) => updateExercise(workout.id, exercise.id, { notes: event.target.value })} />
                                 <div className="editor-actions">
                                   <button className="pill-btn small" onClick={() => setEditingExerciseId(null)}>Done</button>
@@ -2056,24 +2342,47 @@ export default function FormaApp() {
 
             <div className="stat-grid three">
               <StatTile
-                label="Gratitude"
-                value={`${gratitudeFilledCount(wellness, todayISO)}/${GRATITUDE_SLOTS}`}
-                note={gratitudeFilledCount(wellness, todayISO) >= GRATITUDE_SLOTS ? "Complete" : "Today"}
+                label="Sleep"
+                value={
+                  dailyForDay(wellness, todayISO).sleepHours != null
+                    ? `${dailyForDay(wellness, todayISO).sleepHours}h`
+                    : "—"
+                }
+                note="Last night"
                 accent="sage"
               />
               <StatTile
-                label="Breath"
-                value={breathworkDoneToday(wellness, todayISO) ? "Done" : "Open"}
-                note={breathworkDoneToday(wellness, todayISO) ? "Logged" : "Start a session"}
-                accent="green"
-              />
-              <StatTile
-                label="Water"
-                value={`${water}/${HYDRATION_GOAL}`}
-                note={water >= HYDRATION_GOAL ? "Goal met" : "Glasses"}
+                label="Steps"
+                value={
+                  dailyForDay(wellness, todayISO).steps != null
+                    ? `${Math.round((dailyForDay(wellness, todayISO).steps ?? 0) / 1000)}k`
+                    : "—"
+                }
+                note={profile.dailySteps != null ? `Goal ${profile.dailySteps.toLocaleString()}` : "Today"}
                 accent="blue"
               />
+              <StatTile
+                label="Ready"
+                value={
+                  readinessScoreToday(wellness, todayISO) != null
+                    ? `${readinessScoreToday(wellness, todayISO)}%`
+                    : recoveryScore != null
+                      ? `${recoveryScore}%`
+                      : "—"
+                }
+                note={readinessDoneToday(wellness, todayISO) ? "Logged today" : "Check in"}
+                accent="green"
+              />
             </div>
+
+            <article className="card breath-cta-card">
+              <p className="coach-message">
+                Log how you slept and moved on Today. A readiness check-in here updates Recovery without starting a workout.
+              </p>
+              <button type="button" className="cta-btn" onClick={() => setStandaloneReadiness(true)}>
+                {readinessDoneToday(wellness, todayISO) ? "Update readiness" : "Log readiness"}
+              </button>
+            </article>
 
             <SectionHeading eyebrow="Breathwork" title="Guided calm" />
             <article className="card breath-cta-card">
@@ -2108,6 +2417,27 @@ export default function FormaApp() {
                 Add three good things on Today — they'll gather here as a quiet archive.
               </article>
             )}
+
+            <div className="stat-grid three wellness-mini">
+              <StatTile
+                label="Gratitude"
+                value={`${gratitudeFilledCount(wellness, todayISO)}/${GRATITUDE_SLOTS}`}
+                note={gratitudeFilledCount(wellness, todayISO) >= GRATITUDE_SLOTS ? "Complete" : "Today"}
+                accent="sage"
+              />
+              <StatTile
+                label="Breath"
+                value={breathworkDoneToday(wellness, todayISO) ? "Done" : "Open"}
+                note={breathworkDoneToday(wellness, todayISO) ? "Logged" : "Start a session"}
+                accent="green"
+              />
+              <StatTile
+                label="Water"
+                value={`${water}/${HYDRATION_GOAL}`}
+                note={water >= HYDRATION_GOAL ? "Goal met" : "Glasses"}
+                accent="blue"
+              />
+            </div>
 
             <SectionHeading eyebrow="Tonight" title="Wind-down ritual" />
             <article className="card coach-card">

@@ -7,39 +7,60 @@ import type { Workout } from "@/lib/types";
 
 const SCALE = [1, 2, 3, 4, 5];
 
+const DEFAULT_INPUT: ReadinessInput = {
+  sleep: 3,
+  energy: 3,
+  stress: 3,
+  soreness: 3,
+  motivation: 3,
+  pain: 1,
+};
+
 export function ReadinessCheck({
   workout,
   onSubmit,
   onCancel,
+  initialInput,
+  submitLabel,
 }: {
-  workout: Workout;
-  onSubmit: (readiness: Readiness) => void;
+  /** When set, this check-in starts that workout. Otherwise it is a standalone save. */
+  workout?: Workout | null;
+  onSubmit: (readiness: Readiness, input: ReadinessInput) => void;
   onCancel: () => void;
+  /** Prefill (e.g. sleep scale derived from last night's logged hours). */
+  initialInput?: Partial<ReadinessInput>;
+  submitLabel?: string;
 }) {
   const [input, setInput] = useState<ReadinessInput>({
-    sleep: 3,
-    energy: 3,
-    stress: 3,
-    soreness: 3,
-    motivation: 3,
-    pain: 1,
+    ...DEFAULT_INPUT,
+    ...initialInput,
   });
 
   const preview = computeReadiness(input);
   const set = (key: keyof ReadinessInput, value: number) => setInput((current) => ({ ...current, [key]: value }));
+  const forWorkout = Boolean(workout);
+  const cta = submitLabel ?? (forWorkout ? "Start workout" : "Save check-in");
 
   return (
     <div className="app">
       <div className="shell">
         <div className="onboard-screen">
           <div className="onboard-top">
-            <button className="ghost-btn" onClick={onCancel}>‹ Back</button>
+            <button type="button" className="ghost-btn" onClick={onCancel}>‹ Back</button>
             <span className="eyebrow">Readiness check-in</span>
           </div>
 
           <div className="onboard-body">
             <h1>How are you today?</h1>
-            <p className="onboard-lead">A quick check before <strong>{workout.title}</strong>. FORMA adapts your session to how you feel.</p>
+            <p className="onboard-lead">
+              {forWorkout ? (
+                <>
+                  A quick check before <strong>{workout!.title}</strong>. FORMA adapts your session to how you feel.
+                </>
+              ) : (
+                <>A quick check-in for Recovery — no workout needed. Your score feeds readiness this week.</>
+              )}
+            </p>
 
             <div className="readiness-list">
               {READINESS_METRICS.map((metric) => (
@@ -49,6 +70,7 @@ export function ReadinessCheck({
                     {SCALE.map((value) => (
                       <button
                         key={value}
+                        type="button"
                         className={`readiness-dot${input[metric.key] === value ? " selected" : ""}`}
                         onClick={() => set(metric.key, value)}
                         aria-label={`${metric.label} ${value}`}
@@ -70,7 +92,9 @@ export function ReadinessCheck({
             </div>
 
             <div className="onboard-nav">
-              <button className="cta-btn" onClick={() => onSubmit(preview)}>Start workout</button>
+              <button type="button" className="cta-btn" onClick={() => onSubmit(preview, input)}>
+                {cta}
+              </button>
             </div>
           </div>
         </div>
