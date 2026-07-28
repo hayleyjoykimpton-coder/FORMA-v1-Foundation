@@ -2,9 +2,9 @@
  * FORMA programme engine.
  *
  * A Program is organised as: Program → Phase → (Week) → Training days.
- * Phases are periodised by week number and drive intensity (RPE) and volume.
- * Align is an optional recovery block that can be entered without leaving the
- * main week counter.
+ * Phases run as a repeating **12-week block**:
+ *   Foundation (1–4) → Build (5–8) → Peak (9–11) → Align (12) → back to Foundation.
+ * An optional mid-cycle Align override still exists for an early deload.
  */
 
 import { EXERCISES, defaultIncrement } from "./exercises";
@@ -16,8 +16,7 @@ export type PhaseDefinition = {
   id: PhaseId;
   name: string;
   weekStart: number;
-  /** null = open-ended (Peak) or not on the linear timeline (Align). */
-  weekEnd: number | null;
+  weekEnd: number;
   goal: string;
   rpeMin: number;
   rpeMax: number;
@@ -27,12 +26,15 @@ export type PhaseDefinition = {
   setBonus: number;
 };
 
+/** Length of one Foundation → Align training block before the cycle restarts. */
+export const CYCLE_WEEKS = 12;
+
 export const PHASE_DEFINITIONS: Record<PhaseId, PhaseDefinition> = {
   Foundation: {
     id: "Foundation",
     name: "Foundation",
     weekStart: 1,
-    weekEnd: 6,
+    weekEnd: 4,
     goal: "Technique, consistency, movement quality, building training tolerance",
     rpeMin: 6,
     rpeMax: 7,
@@ -43,8 +45,8 @@ export const PHASE_DEFINITIONS: Record<PhaseId, PhaseDefinition> = {
   Build: {
     id: "Build",
     name: "Build",
-    weekStart: 7,
-    weekEnd: 16,
+    weekStart: 5,
+    weekEnd: 8,
     goal: "Hypertrophy — increase sets, load and training density",
     rpeMin: 7,
     rpeMax: 9,
@@ -55,8 +57,8 @@ export const PHASE_DEFINITIONS: Record<PhaseId, PhaseDefinition> = {
   Peak: {
     id: "Peak",
     name: "Peak",
-    weekStart: 17,
-    weekEnd: null,
+    weekStart: 9,
+    weekEnd: 11,
     goal: "Maximum physique development at higher intensity",
     rpeMin: 8,
     rpeMax: 9.5,
@@ -67,9 +69,9 @@ export const PHASE_DEFINITIONS: Record<PhaseId, PhaseDefinition> = {
   Align: {
     id: "Align",
     name: "Align",
-    weekStart: 0,
-    weekEnd: null,
-    goal: "Recovery, mobility and readiness",
+    weekStart: 12,
+    weekEnd: 12,
+    goal: "Recovery, mobility and readiness before the next cycle",
     rpeMin: 5,
     rpeMax: 6,
     repsInReserve: "4–5 reps in reserve",
@@ -80,50 +82,72 @@ export const PHASE_DEFINITIONS: Record<PhaseId, PhaseDefinition> = {
 
 export const PHASE_ORDER: PhaseId[] = ["Foundation", "Build", "Peak", "Align"];
 
-/** Which phase a given (1-indexed) programme week belongs to (linear path). */
-export function getPhaseForWeek(week: number): PhaseDefinition {
-  if (week <= 6) return PHASE_DEFINITIONS.Foundation;
-  if (week <= 16) return PHASE_DEFINITIONS.Build;
-  return PHASE_DEFINITIONS.Peak;
+/** Map any stored week onto the 1–12 cycle position. */
+export function cycleWeek(week: number): number {
+  const n = Math.max(1, Math.floor(week) || 1);
+  return ((n - 1) % CYCLE_WEEKS) + 1;
 }
 
-/** Active phase for UI / programming — Align can override the linear week. */
+/** Which phase a given programme week belongs to inside the 12-week block. */
+export function getPhaseForWeek(week: number): PhaseDefinition {
+  const w = cycleWeek(week);
+  if (w <= 4) return PHASE_DEFINITIONS.Foundation;
+  if (w <= 8) return PHASE_DEFINITIONS.Build;
+  if (w <= 11) return PHASE_DEFINITIONS.Peak;
+  return PHASE_DEFINITIONS.Align;
+}
+
+/**
+ * Active phase for UI / programming.
+ * Mid-cycle Align override can force recovery before week 12.
+ */
 export function resolveActivePhase(week: number, alignActive = false): PhaseDefinition {
   if (alignActive) return PHASE_DEFINITIONS.Align;
   return getPhaseForWeek(week);
 }
 
-/** First week number for a linear phase (Align has no week on the timeline). */
+/** First week number for a phase inside the 12-week block. */
 export function startWeekForPhase(phaseId: PhaseId): number {
-  if (phaseId === "Align") return 0;
   return PHASE_DEFINITIONS[phaseId].weekStart;
 }
 
-/** Next linear phase after the current one (Foundation → Build → Peak). */
+/** Next phase in the block (Align → null; cycle restart is handled by week wrap). */
 export function nextLinearPhase(phaseId: PhaseId): PhaseId | null {
   if (phaseId === "Foundation") return "Build";
   if (phaseId === "Build") return "Peak";
+  if (phaseId === "Peak") return "Align";
   return null;
+}
+
+/** Advance one week inside the block; week 12 rolls back to Foundation (week 1). */
+export function nextProgrammeWeek(week: number): { week: number; rolled: boolean } {
+  const current = cycleWeek(week);
+  if (current >= CYCLE_WEEKS) return { week: 1, rolled: true };
+  return { week: current + 1, rolled: false };
 }
 
 export type PhaseJourneyStatus = "done" | "active" | "locked";
 
-/** Journey status for each phase given week + optional Align override. */
+/** Journey status for each phase given week + optional early Align override. */
 export function phaseJourneyStatuses(
   week: number,
   alignActive = false,
 ): Record<PhaseId, PhaseJourneyStatus> {
-  const linear = getPhaseForWeek(week).id;
-  const order: PhaseId[] = ["Foundation", "Build", "Peak"];
+  const w = cycleWeek(week);
+  const linearId = getPhaseForWeek(w).id;
+  const activeId = alignActive ? "Align" : linearId;
   const statuses = {} as Record<PhaseId, PhaseJourneyStatus>;
 
-  for (const id of order) {
-    if (id === linear) statuses[id] = alignActive ? "done" : "active";
-    else if (startWeekForPhase(id) < startWeekForPhase(linear)) statuses[id] = "done";
-    else statuses[id] = "locked";
+  for (const id of PHASE_ORDER) {
+    if (id === activeId) {
+      statuses[id] = "active";
+      continue;
+    }
+    const pastLinear = startWeekForPhase(id) < startWeekForPhase(linearId);
+    const pausedForAlign = alignActive && id === linearId;
+    statuses[id] = pastLinear || pausedForAlign ? "done" : "locked";
   }
 
-  statuses.Align = alignActive ? "active" : "locked";
   return statuses;
 }
 

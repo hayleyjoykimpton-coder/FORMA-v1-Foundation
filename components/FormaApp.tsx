@@ -19,9 +19,12 @@ import type {
   WorkoutSession,
 } from "@/lib/types";
 import {
+  CYCLE_WEEKS,
   buildWorkoutsForWeek,
+  cycleWeek,
   getPhaseForWeek,
   nextLinearPhase,
+  nextProgrammeWeek,
   phaseJourneyStatuses,
   pickTodaysWorkout,
   resolveActivePhase,
@@ -159,7 +162,7 @@ export default function FormaApp() {
 
     setWorkouts(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
     setHistory(state.history);
-    setWeek(state.week);
+    setWeek(cycleWeek(state.week));
     setAlignActive(state.alignActive);
     setWater(state.water);
     setJournal(state.journal);
@@ -202,7 +205,7 @@ export default function FormaApp() {
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
       setHistory(cloud.history);
-      setWeek(cloud.week);
+      setWeek(cycleWeek(cloud.week));
       setAlignActive(cloud.alignActive);
       setProgressEntries(cloud.progress);
       setProgressPhotos(cloud.photos);
@@ -450,10 +453,11 @@ export default function FormaApp() {
 
   const phaseDef = resolveActivePhase(week, alignActive);
   const season = phaseDef.id;
-  const linearPhase = getPhaseForWeek(week);
-  const journeyStatuses = phaseJourneyStatuses(week, alignActive);
+  const weekInCycle = cycleWeek(week);
+  const linearPhase = getPhaseForWeek(weekInCycle);
+  const journeyStatuses = phaseJourneyStatuses(weekInCycle, alignActive);
   const upcomingPhase = nextLinearPhase(linearPhase.id);
-  const sessionsThisWeek = history.filter((entry) => (entry.week ?? 1) === week).length;
+  const sessionsThisWeek = history.filter((entry) => cycleWeek(entry.week ?? 1) === weekInCycle).length;
   const weekComplete =
     !!profile && !alignActive && sessionsThisWeek >= profile.trainingDays;
 
@@ -461,7 +465,7 @@ export default function FormaApp() {
     nextProfile: UserProfile,
     options?: { week?: number; alignActive?: boolean; phaseId?: PhaseId },
   ) => {
-    const nextWeek = options?.week ?? week;
+    const nextWeek = cycleWeek(options?.week ?? week);
     const nextAlign = options?.alignActive ?? alignActive;
     const generated = transferExerciseWeights(
       workouts,
@@ -482,32 +486,41 @@ export default function FormaApp() {
 
   const advanceProgrammeWeek = () => {
     if (!profile || alignActive) return;
-    const nextWeek = week + 1;
-    const crossedPhase = getPhaseForWeek(nextWeek).id !== getPhaseForWeek(week).id;
+    const { week: nextWeek, rolled } = nextProgrammeWeek(weekInCycle);
+    const crossedPhase = getPhaseForWeek(nextWeek).id !== getPhaseForWeek(weekInCycle).id;
     setWeek(nextWeek);
+    // Leaving Align week clears any sticky early-deload flag.
+    setAlignActive(false);
     applyGeneratedProgram(profile, { week: nextWeek, alignActive: false });
     setSyncNote(
-      crossedPhase
-        ? `Welcome to ${getPhaseForWeek(nextWeek).id} · week ${nextWeek}`
-        : `Advanced to week ${nextWeek}`,
+      rolled
+        ? "New 12-week cycle · Foundation week 1"
+        : crossedPhase
+          ? `Welcome to ${getPhaseForWeek(nextWeek).id} · week ${nextWeek} of ${CYCLE_WEEKS}`
+          : `Advanced to week ${nextWeek} of ${CYCLE_WEEKS}`,
     );
   };
 
   const enterPhase = (phaseId: PhaseId) => {
-    if (!profile || phaseId === "Align") return;
+    if (!profile) return;
     const nextWeek = startWeekForPhase(phaseId);
     setAlignActive(false);
     setWeek(nextWeek);
     applyGeneratedProgram(profile, { week: nextWeek, alignActive: false, phaseId });
-    setSyncNote(`${phaseId} unlocked · week ${nextWeek}`);
+    setSyncNote(`${phaseId} · week ${nextWeek} of ${CYCLE_WEEKS}`);
   };
 
   const toggleAlignBlock = () => {
     if (!profile) return;
+    // Week 12 is already Align — no need for the early override.
+    if (linearPhase.id === "Align" && !alignActive) {
+      setSyncNote("Week 12 is already your Align recovery week");
+      return;
+    }
     const next = !alignActive;
     setAlignActive(next);
-    applyGeneratedProgram(profile, { week, alignActive: next });
-    setSyncNote(next ? "Align recovery block on" : "Back to your main phase");
+    applyGeneratedProgram(profile, { week: weekInCycle, alignActive: next });
+    setSyncNote(next ? "Early Align recovery on" : "Back to your main phase");
   };
 
   const handleOnboardingComplete = (nextProfile: UserProfile) => {
@@ -639,7 +652,7 @@ export default function FormaApp() {
       workoutTitle: activeWorkout.title,
       completedAt: new Date().toISOString(),
       season,
-      week,
+      week: weekInCycle,
       readiness: session.readiness,
       exercises,
     };
@@ -1188,7 +1201,7 @@ export default function FormaApp() {
                 <span className="eyebrow light">{greeting},</span>
                 <h1 className="hero-name">{profile.firstName}</h1>
                 <div className="hero-tags">
-                  <span className="hero-chip">{season} · Week {week}</span>
+                  <span className="hero-chip">{season} · Week {weekInCycle}/{CYCLE_WEEKS}</span>
                   <span className="hero-chip subtle">
                     Today · {todaysWorkout ? todaysWorkout.title : "Rest"}
                   </span>
@@ -1359,8 +1372,8 @@ export default function FormaApp() {
               </p>
               <p className="muted phase-week-meta">
                 {alignActive
-                  ? "Align recovery block — lower volume, softer RPE."
-                  : `Programme week ${week} · ${linearPhase.name} · RPE ${phaseDef.rpeMin}–${phaseDef.rpeMax}`}
+                  ? "Early Align recovery — lower volume until you exit."
+                  : `Week ${weekInCycle} of ${CYCLE_WEEKS} · ${linearPhase.name} · RPE ${phaseDef.rpeMin}–${phaseDef.rpeMax}`}
                 {!alignActive && profile
                   ? ` · ${sessionsThisWeek}/${profile.trainingDays} sessions this week`
                   : null}
@@ -1369,12 +1382,16 @@ export default function FormaApp() {
               <div className="phase-actions">
                 {weekComplete && (
                   <button type="button" className="cta-btn" onClick={advanceProgrammeWeek}>
-                    Complete week {week} →
+                    {weekInCycle >= CYCLE_WEEKS
+                      ? "Finish Align · start new cycle"
+                      : `Complete week ${weekInCycle} →`}
                   </button>
                 )}
                 {!alignActive && !weekComplete && (
                   <button type="button" className="secondary-btn" onClick={advanceProgrammeWeek}>
-                    Advance to week {week + 1}
+                    {weekInCycle >= CYCLE_WEEKS
+                      ? "Start new cycle · Foundation"
+                      : `Advance to week ${weekInCycle + 1} of ${CYCLE_WEEKS}`}
                   </button>
                 )}
                 {upcomingPhase && !alignActive && (
@@ -1383,12 +1400,14 @@ export default function FormaApp() {
                     className="secondary-btn"
                     onClick={() => enterPhase(upcomingPhase)}
                   >
-                    Unlock {upcomingPhase}
+                    Jump to {upcomingPhase}
                   </button>
                 )}
-                <button type="button" className="text-btn" onClick={toggleAlignBlock}>
-                  {alignActive ? "Exit Align · return to programme" : "Start Align recovery block"}
-                </button>
+                {linearPhase.id !== "Align" && (
+                  <button type="button" className="text-btn" onClick={toggleAlignBlock}>
+                    {alignActive ? "Exit early Align · return to programme" : "Start early Align recovery"}
+                  </button>
+                )}
               </div>
             </article>
 
