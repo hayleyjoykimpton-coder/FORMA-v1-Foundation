@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   EQUIPMENT_LABELS,
   EXPERIENCE_LABELS,
@@ -21,6 +21,7 @@ import type {
   UserProfile,
   WorkoutLocation,
 } from "@/lib/user";
+import { fileToResizedDataUrl } from "@/lib/images";
 
 function numberOrNull(value: string): number | null {
   if (value.trim() === "") return null;
@@ -40,9 +41,20 @@ export function ProfileScreen({
   onViewProgress: () => void;
 }) {
   const [draft, setDraft] = useState<UserProfile>(profile);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
+
+  const handlePhoto = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const profilePhoto = await fileToResizedDataUrl(file, 1400, 0.78);
+      set("profilePhoto", profilePhoto);
+    } catch {
+      // Keep current photo if the file cannot be read.
+    }
+  };
 
   return (
     <div className="app">
@@ -54,11 +66,39 @@ export function ProfileScreen({
           </div>
 
           <div className="profile-identity">
-            <div className="profile-photo">{draft.firstName.charAt(0) || "F"}</div>
+            <button
+              type="button"
+              className={`profile-photo ${draft.profilePhoto ? "has-photo" : ""}`}
+              style={draft.profilePhoto ? { backgroundImage: `url(${draft.profilePhoto})` } : undefined}
+              onClick={() => photoInputRef.current?.click()}
+              aria-label="Change cover photo"
+            >
+              {draft.profilePhoto ? "" : draft.firstName.charAt(0) || "F"}
+            </button>
             <div>
               <span className="eyebrow">Your profile</span>
               <h2>{draft.firstName || "Your name"}</h2>
+              <div className="profile-photo-actions">
+                <button type="button" className="ghost-btn" onClick={() => photoInputRef.current?.click()}>
+                  {draft.profilePhoto ? "Change cover photo" : "Add cover photo"}
+                </button>
+                {draft.profilePhoto ? (
+                  <button type="button" className="ghost-btn" onClick={() => set("profilePhoto", "")}>
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </div>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(event) => {
+                void handlePhoto(event.target.files?.[0] ?? null);
+                event.target.value = "";
+              }}
+            />
           </div>
 
           <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>

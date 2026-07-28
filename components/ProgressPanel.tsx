@@ -23,6 +23,7 @@ import type {
   ProgressPhoto,
   WeightPoint,
 } from "@/lib/progress";
+import { fileToResizedDataUrl } from "@/lib/images";
 import { GOAL_LABELS } from "@/lib/user";
 import type { Goal, UserProfile } from "@/lib/user";
 
@@ -33,34 +34,6 @@ const GOAL_FOCUS: Record<Goal, string> = {
   fitness: "We track consistency, performance and how strong and capable you feel.",
   health: "We track consistency, energy and steady, healthy progress.",
 };
-
-async function fileToResizedDataUrl(file: File, max = 720): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, max / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve(String(reader.result));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.72));
-      };
-      img.onerror = reject;
-      img.src = String(reader.result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 function WeightChart({ points }: { points: WeightPoint[] }) {
   const values = points.map((point) => point.value);

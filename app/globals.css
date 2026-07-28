@@ -232,6 +232,37 @@ button:disabled { cursor: not-allowed; }
   box-shadow: var(--shadow);
 }
 .home-hero-copy { position: relative; z-index: 1; }
+.hero-photo-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+}
+.hero-photo-btn {
+  border: 0;
+  border-radius: var(--r-pill);
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-xs);
+}
+.hero-photo-btn.ghost {
+  background: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+.hero-photo-btn:hover { transform: translateY(-1px); }
+.avatar.has-photo {
+  background-size: cover;
+  background-position: center;
+  color: transparent;
+}
 .hero-name { color: #fff; font-size: 54px; margin: 4px 0 14px; }
 .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .hero-chip {
@@ -851,6 +882,25 @@ button.avatar { padding: 0; }
   color: var(--text);
   background: var(--pink);
   box-shadow: var(--shadow-xs);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.profile-photo.has-photo {
+  background-size: cover;
+  background-position: center;
+  color: transparent;
+}
+.profile-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.profile-photo-actions .ghost-btn {
+  font-size: 12px;
+  padding: 4px 0;
 }
 .profile-section { display: flex; flex-direction: column; gap: 12px; }
 .profile-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }

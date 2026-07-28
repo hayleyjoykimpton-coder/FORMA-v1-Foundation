@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ACTIVE_PHASE,
   COACH_REMINDERS,
@@ -32,6 +32,7 @@ import { GOAL_LABELS, saveProfile } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import { generateProgram, PROGRAM_SCHEMA_VERSION } from "@/lib/programGenerator";
 import { ensureHayleyData, transferExerciseWeights } from "@/lib/hayleySeed";
+import { fileToResizedDataUrl } from "@/lib/images";
 import {
   adjustResultsForReadiness,
   coachDashboard,
@@ -102,6 +103,7 @@ export default function FormaApp() {
   const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
   const [pausedDraft, setPausedDraft] = useState<SessionDraftStored | null>(null);
+  const heroPhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -280,6 +282,25 @@ export default function FormaApp() {
 
   const handleAddPhoto = (photo: ProgressPhoto) => setProgressPhotos((current) => [...current, photo]);
   const handleDeletePhoto = (id: string) => setProgressPhotos((current) => current.filter((photo) => photo.id !== id));
+
+  const handleHeroPhoto = async (file: File | null) => {
+    if (!file || !profile) return;
+    try {
+      const profilePhoto = await fileToResizedDataUrl(file, 1400, 0.78);
+      const updated = { ...profile, profilePhoto };
+      saveProfile(updated);
+      setProfile(updated);
+    } catch {
+      // Ignore unreadable images; keep the current cover.
+    }
+  };
+
+  const clearHeroPhoto = () => {
+    if (!profile) return;
+    const updated = { ...profile, profilePhoto: "" };
+    saveProfile(updated);
+    setProfile(updated);
+  };
 
   const startWorkout = (workout: Workout) => {
     setReadinessWorkout(workout);
@@ -705,13 +726,46 @@ export default function FormaApp() {
           <div className="screen home-screen">
             <header className="topbar">
               <span className="wordmark">FORMA</span>
-              <button className="avatar" onClick={() => setProfileOpen(true)} aria-label="Open profile">{profile.firstName.charAt(0)}</button>
+              <button
+                className={`avatar ${profile.profilePhoto ? "has-photo" : ""}`}
+                onClick={() => setProfileOpen(true)}
+                aria-label="Open profile"
+                style={profile.profilePhoto ? { backgroundImage: `url(${profile.profilePhoto})` } : undefined}
+              >
+                {profile.profilePhoto ? "" : profile.firstName.charAt(0)}
+              </button>
             </header>
 
             <section
               className="home-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.04) 30%, rgba(58,42,32,.58)), url(${IMAGES.hero})` }}
+              style={{
+                backgroundImage: `linear-gradient(180deg, rgba(58,42,32,.04) 30%, rgba(58,42,32,.58)), url(${profile.profilePhoto || IMAGES.hero})`,
+              }}
             >
+              <input
+                ref={heroPhotoInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  void handleHeroPhoto(event.target.files?.[0] ?? null);
+                  event.target.value = "";
+                }}
+              />
+              <div className="hero-photo-actions">
+                <button
+                  type="button"
+                  className="hero-photo-btn"
+                  onClick={() => heroPhotoInputRef.current?.click()}
+                >
+                  {profile.profilePhoto ? "Change photo" : "Add photo"}
+                </button>
+                {profile.profilePhoto ? (
+                  <button type="button" className="hero-photo-btn ghost" onClick={clearHeroPhoto}>
+                    Reset
+                  </button>
+                ) : null}
+              </div>
               <div className="home-hero-copy">
                 <span className="eyebrow light">{greeting},</span>
                 <h1 className="hero-name">{profile.firstName}</h1>
