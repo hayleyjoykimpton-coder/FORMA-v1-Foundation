@@ -116,6 +116,7 @@ export function applyExerciseSwap(exercise: Exercise, candidateId: string): Exer
     increment: defaultIncrement(candidate.equipment),
     weight: preserveWeight ? exercise.weight : 0,
     notes: cue,
+    videoUrl: undefined,
   };
 }
 

@@ -647,6 +647,56 @@ button:disabled { cursor: not-allowed; }
 }
 .breath-done { text-align: center; padding-top: 40px; }
 
+.daily-log-card { display: flex; flex-direction: column; gap: 16px; }
+.daily-log-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.daily-log-field { display: flex; flex-direction: column; gap: 8px; }
+.daily-log-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.daily-log-controls strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  min-width: 4.5ch;
+  text-align: center;
+}
+.daily-log-controls button {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fdfbf8;
+  font-size: 18px;
+}
+.video-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, #f7ebe3, #efe2d6);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.video-link-btn:hover { filter: brightness(0.98); }
+.video-url-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.wellness-mini { margin-top: 4px; }
+
+@media (max-width: 420px) {
+  .daily-log-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- Weekly schedule --------------------------------------------- */
 
 .weekly-schedule { display: grid; gap: 10px; }

@@ -106,14 +106,21 @@ import { ProgressPanel } from "@/components/ProgressPanel";
 import {
   GRATITUDE_PROMPTS,
   GRATITUDE_SLOTS,
+  averageReadinessScore,
   breathworkDoneToday,
+  dailyForDay,
   gratitudeFilledCount,
   gratitudeForDay,
   logBreathwork,
+  logReadinessCheckIn,
   protocolById,
+  readinessDoneToday,
+  readinessScoreToday,
   recentGratitudeDays,
   saveWellness,
+  setDailyLog,
   setGratitudeLine,
+  sleepHoursToReadinessScale,
   type WellnessState,
 } from "@/lib/wellness";
 import {
@@ -168,8 +175,14 @@ export default function FormaApp() {
   const [hydrated, setHydrated] = useState(false);
   const [water, setWater] = useState(0);
   const [journal, setJournal] = useState<Record<string, string>>({});
-  const [wellness, setWellness] = useState<WellnessState>({ gratitude: {}, breathwork: [] });
+  const [wellness, setWellness] = useState<WellnessState>({
+    gratitude: {},
+    breathwork: [],
+    daily: {},
+    readinessLogs: [],
+  });
   const [breathworkOpen, setBreathworkOpen] = useState(false);
+  const [standaloneReadiness, setStandaloneReadiness] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
@@ -536,15 +549,10 @@ export default function FormaApp() {
   const glute = useMemo(() => gluteScore(history), [history]);
   const review = useMemo(() => (profile ? weeklyReview(profile, history) : null), [profile, history]);
   const wins = useMemo(() => (profile ? weeklyWins(profile, history) : []), [profile, history]);
-  const recoveryScore = useMemo(() => {
-    const DAY_MS = 24 * 60 * 60 * 1000;
-    const values = history
-      .filter((session) => Date.now() - new Date(session.completedAt).getTime() <= 7 * DAY_MS)
-      .map((session) => session.readiness)
-      .filter((value): value is number => typeof value === "number");
-    if (!values.length) return null;
-    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-  }, [history]);
+  const recoveryScore = useMemo(
+    () => averageReadinessScore(history, wellness),
+    [history, wellness],
+  );
   const latestSummary = useMemo(
     () => (history.length ? postWorkoutSummary(history[history.length - 1], history) : []),
     [history],
@@ -1047,11 +1055,28 @@ export default function FormaApp() {
   }
 
   if (readinessWorkout && !session) {
+    const sleepHint = sleepHoursToReadinessScale(dailyForDay(wellness).sleepHours);
     return (
       <ReadinessCheck
         workout={readinessWorkout}
+        initialInput={sleepHint != null ? { sleep: sleepHint } : undefined}
         onSubmit={(readiness) => beginSession(readinessWorkout, readiness)}
         onCancel={() => setReadinessWorkout(null)}
+      />
+    );
+  }
+
+  if (standaloneReadiness && !session) {
+    const sleepHint = sleepHoursToReadinessScale(dailyForDay(wellness).sleepHours);
+    return (
+      <ReadinessCheck
+        initialInput={sleepHint != null ? { sleep: sleepHint } : undefined}
+        onCancel={() => setStandaloneReadiness(false)}
+        onSubmit={(readiness, input) => {
+          setWellness((current) => logReadinessCheckIn(current, readiness.score, input));
+          setStandaloneReadiness(false);
+          setSyncNote(`Readiness saved · ${readiness.score}%`);
+        }}
       />
     );
   }
@@ -1198,6 +1223,14 @@ export default function FormaApp() {
                 <span>Tempo {coaching.tempo.split(" · ")[0]}</span>
                 <span>Rest {coaching.restSeconds}s</span>
               </div>
+              <a
+                className="video-link-btn"
+                href={coaching.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Watch form · {coaching.videoLabel}
+              </a>
               {coaching.secondary !== "—" ? <p className="muted coach-guide-sub">Secondary: {coaching.secondary}</p> : null}
               {coaching.cues.length > 0 && (
                 <div className="coach-block">
@@ -1526,6 +1559,100 @@ export default function FormaApp() {
               </div>
             </article>
 
+            <SectionHeading eyebrow="Body signals" title="Sleep & steps" />
+            <article className="card daily-log-card">
+              <div className="daily-log-grid">
+                <div className="daily-log-field">
+                  <span className="eyebrow">Sleep last night</span>
+                  <div className="daily-log-controls">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            sleepHours: Math.max(0, (dailyForDay(current, todayISO).sleepHours ?? 0) - 0.5),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="Less sleep"
+                    >
+                      −
+                    </button>
+                    <strong>
+                      {dailyForDay(wellness, todayISO).sleepHours != null
+                        ? `${dailyForDay(wellness, todayISO).sleepHours}h`
+                        : "—"}
+                    </strong>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            sleepHours: Math.min(14, (dailyForDay(current, todayISO).sleepHours ?? (profile.sleepAverage ?? 7)) + 0.5),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="More sleep"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <small className="muted">
+                    {profile.sleepAverage != null ? `Usual average ${profile.sleepAverage}h` : "Tap + to log hours"}
+                  </small>
+                </div>
+                <div className="daily-log-field">
+                  <span className="eyebrow">Steps today</span>
+                  <div className="daily-log-controls">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            steps: Math.max(0, (dailyForDay(current, todayISO).steps ?? 0) - 500),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="Fewer steps"
+                    >
+                      −
+                    </button>
+                    <strong>
+                      {dailyForDay(wellness, todayISO).steps != null
+                        ? dailyForDay(wellness, todayISO).steps!.toLocaleString()
+                        : "—"}
+                    </strong>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWellness((current) =>
+                          setDailyLog(current, {
+                            steps: Math.min(
+                              100_000,
+                              (dailyForDay(current, todayISO).steps ?? 0) + 500,
+                            ),
+                          }, todayISO),
+                        )
+                      }
+                      aria-label="More steps"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <small className="muted">
+                    {profile.dailySteps != null
+                      ? `Goal ${profile.dailySteps.toLocaleString()} · ±500`
+                      : "±500 steps · set a goal in Profile"}
+                  </small>
+                </div>
+              </div>
+              <button type="button" className="secondary-btn" onClick={() => setStandaloneReadiness(true)}>
+                {readinessDoneToday(wellness, todayISO)
+                  ? `Readiness logged · ${readinessScoreToday(wellness, todayISO)}% · update`
+                  : "Log readiness (no workout needed)"}
+              </button>
+            </article>
+
             <SectionHeading eyebrow="Wellbeing" title="Recovery & progress" />
             <div className="dual-grid">
               <article
@@ -1725,6 +1852,23 @@ export default function FormaApp() {
                                   <Field label="Load increase" value={exercise.increment} onChange={(value) => updateExercise(workout.id, exercise.id, { increment: value })} step="0.5" />
                                   <Field label="Rest seconds" value={exercise.restSeconds} onChange={(value) => updateExercise(workout.id, exercise.id, { restSeconds: value })} />
                                 </div>
+                                <label className="video-url-field">
+                                  <span className="eyebrow">Instruction video URL</span>
+                                  <input
+                                    className="full"
+                                    type="url"
+                                    placeholder="Paste YouTube / Vimeo link (optional)"
+                                    value={exercise.videoUrl ?? ""}
+                                    onChange={(event) =>
+                                      updateExercise(workout.id, exercise.id, {
+                                        videoUrl: event.target.value || undefined,
+                                      })
+                                    }
+                                  />
+                                  <small className="muted">
+                                    Overrides the library demo. File uploads need cloud storage later — paste a link for now.
+                                  </small>
+                                </label>
                                 <textarea placeholder="Exercise notes" value={exercise.notes} onChange={(event) => updateExercise(workout.id, exercise.id, { notes: event.target.value })} />
                                 <div className="editor-actions">
                                   <button className="pill-btn small" onClick={() => setEditingExerciseId(null)}>Done</button>
@@ -2056,24 +2200,47 @@ export default function FormaApp() {
 
             <div className="stat-grid three">
               <StatTile
-                label="Gratitude"
-                value={`${gratitudeFilledCount(wellness, todayISO)}/${GRATITUDE_SLOTS}`}
-                note={gratitudeFilledCount(wellness, todayISO) >= GRATITUDE_SLOTS ? "Complete" : "Today"}
+                label="Sleep"
+                value={
+                  dailyForDay(wellness, todayISO).sleepHours != null
+                    ? `${dailyForDay(wellness, todayISO).sleepHours}h`
+                    : "—"
+                }
+                note="Last night"
                 accent="sage"
               />
               <StatTile
-                label="Breath"
-                value={breathworkDoneToday(wellness, todayISO) ? "Done" : "Open"}
-                note={breathworkDoneToday(wellness, todayISO) ? "Logged" : "Start a session"}
-                accent="green"
-              />
-              <StatTile
-                label="Water"
-                value={`${water}/${HYDRATION_GOAL}`}
-                note={water >= HYDRATION_GOAL ? "Goal met" : "Glasses"}
+                label="Steps"
+                value={
+                  dailyForDay(wellness, todayISO).steps != null
+                    ? `${Math.round((dailyForDay(wellness, todayISO).steps ?? 0) / 1000)}k`
+                    : "—"
+                }
+                note={profile.dailySteps != null ? `Goal ${profile.dailySteps.toLocaleString()}` : "Today"}
                 accent="blue"
               />
+              <StatTile
+                label="Ready"
+                value={
+                  readinessScoreToday(wellness, todayISO) != null
+                    ? `${readinessScoreToday(wellness, todayISO)}%`
+                    : recoveryScore != null
+                      ? `${recoveryScore}%`
+                      : "—"
+                }
+                note={readinessDoneToday(wellness, todayISO) ? "Logged today" : "Check in"}
+                accent="green"
+              />
             </div>
+
+            <article className="card breath-cta-card">
+              <p className="coach-message">
+                Log how you slept and moved on Today. A readiness check-in here updates Recovery without starting a workout.
+              </p>
+              <button type="button" className="cta-btn" onClick={() => setStandaloneReadiness(true)}>
+                {readinessDoneToday(wellness, todayISO) ? "Update readiness" : "Log readiness"}
+              </button>
+            </article>
 
             <SectionHeading eyebrow="Breathwork" title="Guided calm" />
             <article className="card breath-cta-card">
@@ -2108,6 +2275,27 @@ export default function FormaApp() {
                 Add three good things on Today — they'll gather here as a quiet archive.
               </article>
             )}
+
+            <div className="stat-grid three wellness-mini">
+              <StatTile
+                label="Gratitude"
+                value={`${gratitudeFilledCount(wellness, todayISO)}/${GRATITUDE_SLOTS}`}
+                note={gratitudeFilledCount(wellness, todayISO) >= GRATITUDE_SLOTS ? "Complete" : "Today"}
+                accent="sage"
+              />
+              <StatTile
+                label="Breath"
+                value={breathworkDoneToday(wellness, todayISO) ? "Done" : "Open"}
+                note={breathworkDoneToday(wellness, todayISO) ? "Logged" : "Start a session"}
+                accent="green"
+              />
+              <StatTile
+                label="Water"
+                value={`${water}/${HYDRATION_GOAL}`}
+                note={water >= HYDRATION_GOAL ? "Goal met" : "Glasses"}
+                accent="blue"
+              />
+            </div>
 
             <SectionHeading eyebrow="Tonight" title="Wind-down ritual" />
             <article className="card coach-card">

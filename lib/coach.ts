@@ -9,6 +9,7 @@
 
 import { EXERCISES, getExercise } from "./exercises";
 import type { MovementPattern, MuscleGroup } from "./exercises";
+import { resolveExerciseVideoUrl, videoSourceLabel } from "./exerciseVideos";
 import { estimate1RM } from "./progression";
 import { muscleVolume, sessionVolume, weekSessionCount } from "./analytics";
 import type { Exercise, ExerciseResult, WorkoutSession } from "./types";
@@ -127,6 +128,9 @@ export type ExerciseCoaching = {
   substitutions: string[];
   tempo: string;
   restSeconds: number;
+  /** Instruction video (user override, library, or YouTube form search). */
+  videoUrl: string;
+  videoLabel: string;
 };
 
 function tempoFor(pattern: MovementPattern | undefined): string {
@@ -151,6 +155,7 @@ function tempoFor(pattern: MovementPattern | undefined): string {
 export function exerciseCoaching(exercise: Exercise): ExerciseCoaching {
   const definition = getExercise(exercise.exerciseId) ?? getExercise(exercise.name.toLowerCase());
   const equipmentLabel = definition ? definition.equipment.replace(/_/g, " ") : "—";
+  const videoUrl = resolveExerciseVideoUrl(exercise);
   return {
     primary: definition ? muscleList(definition.primaryMuscles) : "—",
     secondary: definition ? muscleList(definition.secondaryMuscles) : "—",
@@ -160,6 +165,8 @@ export function exerciseCoaching(exercise: Exercise): ExerciseCoaching {
     substitutions: (definition?.substitutions ?? []).map((id) => EXERCISES[id]?.name ?? id),
     tempo: tempoFor(definition?.movementPattern),
     restSeconds: exercise.restSeconds,
+    videoUrl,
+    videoLabel: videoSourceLabel(videoUrl),
   };
 }
 
