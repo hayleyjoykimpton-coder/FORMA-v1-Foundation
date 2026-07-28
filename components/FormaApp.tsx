@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ACTIVE_PHASE,
   COACH_REMINDERS,
   HYDRATION_GOAL,
   IMAGES,
@@ -19,7 +18,17 @@ import type {
   Workout,
   WorkoutSession,
 } from "@/lib/types";
-import { buildWorkoutsForWeek, getPhaseForWeek, pickTodaysWorkout, FORMA_PROGRAM } from "@/lib/program";
+import {
+  buildWorkoutsForWeek,
+  getPhaseForWeek,
+  nextLinearPhase,
+  phaseJourneyStatuses,
+  pickTodaysWorkout,
+  resolveActivePhase,
+  startWeekForPhase,
+  FORMA_PROGRAM,
+} from "@/lib/program";
+import type { PhaseId } from "@/lib/program";
 import { createSessionResults, getRecommendation, uid } from "@/lib/progression";
 import {
   buildVolumeSeries,
@@ -110,6 +119,7 @@ function greetingFor(hour: number) {
 export default function FormaApp() {
   const [tab, setTab] = useState<Tab>("today");
   const [week, setWeek] = useState(1);
+  const [alignActive, setAlignActive] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>(INITIAL_WORKOUTS);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [activeWorkoutId, setActiveWorkoutId] = useState(INITIAL_WORKOUTS[0]?.id ?? "");
@@ -141,12 +151,16 @@ export default function FormaApp() {
     // Rebuild when schema is behind OR workouts still use legacy titles (Full Body A/B).
     const storedSchema = state.needsProgramRefresh ? 0 : PROGRAM_SCHEMA_VERSION;
     if (savedProfile && programmeNeedsUpgrade(state.workouts, savedProfile, storedSchema)) {
-      nextWorkouts = transferExerciseWeights(state.workouts, generateProgram(savedProfile));
+      nextWorkouts = transferExerciseWeights(
+        state.workouts,
+        generateProgram(savedProfile, { week: state.week, alignActive: state.alignActive }),
+      );
     }
 
     setWorkouts(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
     setHistory(state.history);
     setWeek(state.week);
+    setAlignActive(state.alignActive);
     setWater(state.water);
     setJournal(state.journal);
     setProfile(savedProfile);
@@ -176,13 +190,20 @@ export default function FormaApp() {
       let nextWorkouts = sourceWorkouts;
       let didUpgrade = false;
       if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
-        nextWorkouts = transferExerciseWeights(sourceWorkouts, generateProgram(cloud.profile));
+        nextWorkouts = transferExerciseWeights(
+          sourceWorkouts,
+          generateProgram(cloud.profile, {
+            week: cloud.week,
+            alignActive: cloud.alignActive,
+          }),
+        );
         didUpgrade = true;
       }
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
       setHistory(cloud.history);
       setWeek(cloud.week);
+      setAlignActive(cloud.alignActive);
       setProgressEntries(cloud.progress);
       setProgressPhotos(cloud.photos);
       setJournal(cloud.journal);
@@ -202,6 +223,7 @@ export default function FormaApp() {
           week: cloud.week,
           programId: FORMA_PROGRAM.id,
           schemaVersion: PROGRAM_SCHEMA_VERSION,
+          alignActive: cloud.alignActive,
         }),
       );
       saveProgress(cloud.progress);
@@ -213,6 +235,7 @@ export default function FormaApp() {
           workouts: nextWorkouts,
           history: cloud.history,
           week: cloud.week,
+          alignActive: cloud.alignActive,
           progress: cloud.progress,
           photos: cloud.photos,
           water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
@@ -230,6 +253,7 @@ export default function FormaApp() {
         workouts: local.workouts,
         history: local.history,
         week: local.week,
+        alignActive: local.alignActive,
         progress: loadProgress(),
         photos: loadPhotos(),
         water: { date: new Date().toDateString(), count: local.water },
@@ -307,9 +331,14 @@ export default function FormaApp() {
     window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
     window.localStorage.setItem(
       STORAGE.program,
-      JSON.stringify({ week, programId: FORMA_PROGRAM.id, schemaVersion: PROGRAM_SCHEMA_VERSION }),
+      JSON.stringify({
+        week,
+        programId: FORMA_PROGRAM.id,
+        schemaVersion: PROGRAM_SCHEMA_VERSION,
+        alignActive,
+      }),
     );
-  }, [workouts, history, week, hydrated]);
+  }, [workouts, history, week, alignActive, hydrated]);
 
   // Autosave live session so a mid-workout crash does not wipe progress.
   useEffect(() => {
@@ -328,6 +357,7 @@ export default function FormaApp() {
           workouts,
           history,
           week,
+          alignActive,
           progress: progressEntries,
           photos: progressPhotos,
           water: { date: new Date().toDateString(), count: water },
@@ -349,6 +379,7 @@ export default function FormaApp() {
     workouts,
     history,
     week,
+    alignActive,
     progressEntries,
     progressPhotos,
     water,
@@ -417,11 +448,29 @@ export default function FormaApp() {
     [workouts],
   );
 
-  const phaseDef = getPhaseForWeek(week);
+  const phaseDef = resolveActivePhase(week, alignActive);
   const season = phaseDef.id;
+  const linearPhase = getPhaseForWeek(week);
+  const journeyStatuses = phaseJourneyStatuses(week, alignActive);
+  const upcomingPhase = nextLinearPhase(linearPhase.id);
+  const sessionsThisWeek = history.filter((entry) => (entry.week ?? 1) === week).length;
+  const weekComplete =
+    !!profile && !alignActive && sessionsThisWeek >= profile.trainingDays;
 
-  const applyGeneratedProgram = (nextProfile: UserProfile) => {
-    const generated = transferExerciseWeights(workouts, generateProgram(nextProfile));
+  const applyGeneratedProgram = (
+    nextProfile: UserProfile,
+    options?: { week?: number; alignActive?: boolean; phaseId?: PhaseId },
+  ) => {
+    const nextWeek = options?.week ?? week;
+    const nextAlign = options?.alignActive ?? alignActive;
+    const generated = transferExerciseWeights(
+      workouts,
+      generateProgram(nextProfile, {
+        week: nextWeek,
+        alignActive: nextAlign,
+        phaseId: options?.phaseId,
+      }),
+    );
     setWorkouts(generated);
     const today = pickTodaysWorkout(generated);
     setActiveWorkoutId(today?.id ?? generated[0]?.id ?? "");
@@ -431,10 +480,40 @@ export default function FormaApp() {
     setSession(null);
   };
 
+  const advanceProgrammeWeek = () => {
+    if (!profile || alignActive) return;
+    const nextWeek = week + 1;
+    const crossedPhase = getPhaseForWeek(nextWeek).id !== getPhaseForWeek(week).id;
+    setWeek(nextWeek);
+    applyGeneratedProgram(profile, { week: nextWeek, alignActive: false });
+    setSyncNote(
+      crossedPhase
+        ? `Welcome to ${getPhaseForWeek(nextWeek).id} · week ${nextWeek}`
+        : `Advanced to week ${nextWeek}`,
+    );
+  };
+
+  const enterPhase = (phaseId: PhaseId) => {
+    if (!profile || phaseId === "Align") return;
+    const nextWeek = startWeekForPhase(phaseId);
+    setAlignActive(false);
+    setWeek(nextWeek);
+    applyGeneratedProgram(profile, { week: nextWeek, alignActive: false, phaseId });
+    setSyncNote(`${phaseId} unlocked · week ${nextWeek}`);
+  };
+
+  const toggleAlignBlock = () => {
+    if (!profile) return;
+    const next = !alignActive;
+    setAlignActive(next);
+    applyGeneratedProgram(profile, { week, alignActive: next });
+    setSyncNote(next ? "Align recovery block on" : "Back to your main phase");
+  };
+
   const handleOnboardingComplete = (nextProfile: UserProfile) => {
     saveProfile(nextProfile);
     setProfile(nextProfile);
-    applyGeneratedProgram(nextProfile);
+    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false });
     setTab("today");
   };
 
@@ -849,7 +928,7 @@ export default function FormaApp() {
               className="session-hero"
               style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(activeWorkout.title)})` }}
             >
-              <span className="eyebrow light">Foundation · Primary target</span>
+              <span className="eyebrow light">{season} · Primary target</span>
               <h1>{exercise.name}</h1>
               <p>{recommendation.title}</p>
               <small>{recommendation.detail}</small>
@@ -1053,7 +1132,7 @@ export default function FormaApp() {
   const goalLower = goalLabel.toLowerCase();
   const encouragement =
     history.length === 0
-      ? `Welcome to Foundation, ${profile.firstName}. Your ${profile.trainingDays}-day plan is built to ${goalLower} — begin gently and let consistency lead.`
+      ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is built to ${goalLower} — begin gently and let consistency lead.`
       : streak >= 3
         ? `A ${streak}-day rhythm, ${profile.firstName} — this is exactly how you ${goalLower}. Keep it flowing.`
         : `Consistency over intensity. Today's session moves you toward "${goalLower}".`;
@@ -1109,7 +1188,7 @@ export default function FormaApp() {
                 <span className="eyebrow light">{greeting},</span>
                 <h1 className="hero-name">{profile.firstName}</h1>
                 <div className="hero-tags">
-                  <span className="hero-chip">Foundation Phase</span>
+                  <span className="hero-chip">{season} · Week {week}</span>
                   <span className="hero-chip subtle">
                     Today · {todaysWorkout ? todaysWorkout.title : "Rest"}
                   </span>
@@ -1148,7 +1227,7 @@ export default function FormaApp() {
                 <button className="media-edit" onClick={() => { setEditingWorkoutId(todaysWorkout.id); setTab("training"); }}>Edit</button>
               </div>
               <div className="workout-today-body">
-                <span className="eyebrow">{todaysWorkout.day} · Foundation</span>
+                <span className="eyebrow">{todaysWorkout.day} · {season}</span>
                 <ul className="exercise-preview">
                   {todaysWorkout.exercises.map((item, index) => {
                     const recommendation = getRecommendation(item, history, phaseDef);
@@ -1188,7 +1267,7 @@ export default function FormaApp() {
                 <div className="coach-avatar">F</div>
                 <div>
                   <strong>Coach FORMA</strong>
-                  <small>{goalLabel} · Foundation</small>
+                  <small>{goalLabel} · {season}</small>
                 </div>
               </div>
               <p className="coach-message">{encouragement}</p>
@@ -1273,10 +1352,44 @@ export default function FormaApp() {
               </article>
             </div>
 
-            <SectionHeading eyebrow="Your phase" title="Foundation" />
+            <SectionHeading eyebrow="Your phase" title={season} />
             <article className="card phase-card">
-              <p className="muted">{phaseCopy.Foundation.line} {phaseCopy.Foundation.focus}</p>
-              <PhaseJourney phases={PHASES} active={ACTIVE_PHASE} />
+              <p className="muted">
+                {phaseCopy[season].line} {phaseCopy[season].focus}
+              </p>
+              <p className="muted phase-week-meta">
+                {alignActive
+                  ? "Align recovery block — lower volume, softer RPE."
+                  : `Programme week ${week} · ${linearPhase.name} · RPE ${phaseDef.rpeMin}–${phaseDef.rpeMax}`}
+                {!alignActive && profile
+                  ? ` · ${sessionsThisWeek}/${profile.trainingDays} sessions this week`
+                  : null}
+              </p>
+              <PhaseJourney phases={PHASES} statuses={journeyStatuses} />
+              <div className="phase-actions">
+                {weekComplete && (
+                  <button type="button" className="cta-btn" onClick={advanceProgrammeWeek}>
+                    Complete week {week} →
+                  </button>
+                )}
+                {!alignActive && !weekComplete && (
+                  <button type="button" className="secondary-btn" onClick={advanceProgrammeWeek}>
+                    Advance to week {week + 1}
+                  </button>
+                )}
+                {upcomingPhase && !alignActive && (
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => enterPhase(upcomingPhase)}
+                  >
+                    Unlock {upcomingPhase}
+                  </button>
+                )}
+                <button type="button" className="text-btn" onClick={toggleAlignBlock}>
+                  {alignActive ? "Exit Align · return to programme" : "Start Align recovery block"}
+                </button>
+              </div>
             </article>
 
             <SectionHeading eyebrow="Journal" title="Today's reflection" />
@@ -1638,7 +1751,7 @@ export default function FormaApp() {
 
             <SectionHeading eyebrow="Tonight" title="Wind-down ritual" />
             <article className="card coach-card">
-              <p className="coach-message">Dim the lights an hour before bed, stretch gently, and let your nervous system settle. Rest is where your Foundation work takes hold.</p>
+              <p className="coach-message">Dim the lights an hour before bed, stretch gently, and let your nervous system settle. Rest is where your {season} work takes hold.</p>
               <div className="coach-reminders">
                 <div className="reminder accent-blue"><strong>Hydrate</strong><small>A final glass of water to close the day.</small></div>
                 <div className="reminder accent-mocha"><strong>Nourish</strong><small>A little protein supports overnight recovery.</small></div>

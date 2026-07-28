@@ -533,9 +533,18 @@ button:disabled { cursor: not-allowed; }
   z-index: 1;
 }
 .phase-step.active .phase-dot { background: var(--cta); border-color: var(--cta); box-shadow: 0 0 0 4px rgba(91, 67, 55, 0.22); }
+.phase-step.done .phase-dot { background: var(--green); border-color: var(--green); }
+.phase-step.done strong { color: var(--text); }
 .phase-step strong { display: block; font-size: 15px; }
 .phase-step.locked strong { color: var(--text-2); }
 .phase-step small { font-size: 11px; color: var(--text-2); }
+.phase-week-meta { font-size: 12px; margin-top: 4px; }
+.phase-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
 .phase-line {
   position: absolute;
   left: 6px;

@@ -73,18 +73,32 @@ export function Field({
   );
 }
 
-/** Internal phase roadmap — Foundation is active, later phases are locked. */
-export function PhaseJourney({ phases, active }: { phases: string[]; active: string }) {
+/** Phase roadmap — done / in progress / locked / Align recovery. */
+export function PhaseJourney({
+  phases,
+  statuses,
+}: {
+  phases: string[];
+  statuses: Record<string, "done" | "active" | "locked">;
+}) {
   return (
     <div className="phase-journey">
       {phases.map((phase, index) => {
-        const isActive = phase === active;
+        const status = statuses[phase] ?? "locked";
+        const label =
+          status === "active"
+            ? phase === "Align"
+              ? "Recovery block"
+              : "In progress"
+            : status === "done"
+              ? "Complete"
+              : "Unlocks later";
         return (
-          <div className={`phase-step${isActive ? " active" : " locked"}`} key={phase}>
+          <div className={`phase-step ${status}`} key={phase}>
             <span className="phase-dot" />
             <div>
               <strong>{phase}</strong>
-              <small>{isActive ? "In progress" : "Unlocks later"}</small>
+              <small>{label}</small>
             </div>
             {index < phases.length - 1 ? <span className="phase-line" /> : null}
           </div>

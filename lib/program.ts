@@ -3,8 +3,8 @@
  *
  * A Program is organised as: Program → Phase → (Week) → Training days.
  * Phases are periodised by week number and drive intensity (RPE) and volume.
- * Only Foundation is surfaced to the user today; Build / Peak / Align exist
- * in the model for future unlocking and progression.
+ * Align is an optional recovery block that can be entered without leaving the
+ * main week counter.
  */
 
 import { EXERCISES, defaultIncrement } from "./exercises";
@@ -80,11 +80,51 @@ export const PHASE_DEFINITIONS: Record<PhaseId, PhaseDefinition> = {
 
 export const PHASE_ORDER: PhaseId[] = ["Foundation", "Build", "Peak", "Align"];
 
-/** Which phase a given (1-indexed) programme week belongs to. */
+/** Which phase a given (1-indexed) programme week belongs to (linear path). */
 export function getPhaseForWeek(week: number): PhaseDefinition {
   if (week <= 6) return PHASE_DEFINITIONS.Foundation;
   if (week <= 16) return PHASE_DEFINITIONS.Build;
   return PHASE_DEFINITIONS.Peak;
+}
+
+/** Active phase for UI / programming — Align can override the linear week. */
+export function resolveActivePhase(week: number, alignActive = false): PhaseDefinition {
+  if (alignActive) return PHASE_DEFINITIONS.Align;
+  return getPhaseForWeek(week);
+}
+
+/** First week number for a linear phase (Align has no week on the timeline). */
+export function startWeekForPhase(phaseId: PhaseId): number {
+  if (phaseId === "Align") return 0;
+  return PHASE_DEFINITIONS[phaseId].weekStart;
+}
+
+/** Next linear phase after the current one (Foundation → Build → Peak). */
+export function nextLinearPhase(phaseId: PhaseId): PhaseId | null {
+  if (phaseId === "Foundation") return "Build";
+  if (phaseId === "Build") return "Peak";
+  return null;
+}
+
+export type PhaseJourneyStatus = "done" | "active" | "locked";
+
+/** Journey status for each phase given week + optional Align override. */
+export function phaseJourneyStatuses(
+  week: number,
+  alignActive = false,
+): Record<PhaseId, PhaseJourneyStatus> {
+  const linear = getPhaseForWeek(week).id;
+  const order: PhaseId[] = ["Foundation", "Build", "Peak"];
+  const statuses = {} as Record<PhaseId, PhaseJourneyStatus>;
+
+  for (const id of order) {
+    if (id === linear) statuses[id] = alignActive ? "done" : "active";
+    else if (startWeekForPhase(id) < startWeekForPhase(linear)) statuses[id] = "done";
+    else statuses[id] = "locked";
+  }
+
+  statuses.Align = alignActive ? "active" : "locked";
+  return statuses;
 }
 
 export type DayType = "strength" | "mobility" | "recovery" | "rest";

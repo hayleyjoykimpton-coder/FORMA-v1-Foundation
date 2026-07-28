@@ -53,11 +53,10 @@ export function imageForExercise(name: string): string {
 }
 
 /**
- * The training phases progress in order. Only Foundation is surfaced to the
- * user today — Build, Peak and Align exist internally for future unlocking.
+ * The training phases progress in order. Build / Peak unlock by advancing
+ * programme weeks; Align is an optional recovery block.
  */
 export const PHASES: Season[] = ["Foundation", "Build", "Peak", "Align"];
-export const ACTIVE_PHASE: Season = "Foundation";
 
 export const phaseCopy: Record<Season, { line: string; focus: string }> = {
   Foundation: { line: "Build the base.", focus: "Movement · Capacity · Consistency" },
