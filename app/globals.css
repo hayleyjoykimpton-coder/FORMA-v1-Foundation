@@ -969,6 +969,58 @@ button.avatar { padding: 0; }
   padding: 6px 10px; border-radius: var(--r-pill);
 }
 .coach-guide-sub { font-size: 12px; }
+
+.swap-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(74, 55, 44, 0.08);
+}
+.swap-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.swap-panel-head strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.swap-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.swap-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(74, 55, 44, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 252, 247, 0.9);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.swap-option:hover {
+  border-color: rgba(91, 67, 55, 0.35);
+  transform: translateY(-1px);
+}
+.swap-option span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.swap-option small {
+  font-size: 11px;
+  color: var(--text-2);
+}
 .coach-block { display: flex; flex-direction: column; gap: 6px; }
 .coach-block > strong { font-size: 13px; }
 .coach-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; }

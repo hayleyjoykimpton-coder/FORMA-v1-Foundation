@@ -48,6 +48,11 @@ import {
   signOut,
 } from "@/lib/sync";
 import {
+  applyExerciseSwap,
+  swapCandidates,
+  swapReasonLabel,
+} from "@/lib/exerciseSwap";
+import {
   adjustResultsForReadiness,
   coachDashboard,
   exerciseCoaching,
@@ -110,6 +115,8 @@ export default function FormaApp() {
   const [activeWorkoutId, setActiveWorkoutId] = useState(INITIAL_WORKOUTS[0]?.id ?? "");
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
+  const [swappingExerciseId, setSwappingExerciseId] = useState<string | null>(null);
+  const [sessionSwapOpen, setSessionSwapOpen] = useState(false);
   const [session, setSession] = useState<SessionDraft | null>(null);
   const [restRemaining, setRestRemaining] = useState(0);
   const [hydrated, setHydrated] = useState(false);
@@ -645,6 +652,67 @@ export default function FormaApp() {
     ));
   };
 
+  const swapExerciseInWorkout = (workoutId: string, exerciseId: string, candidateId: string) => {
+    setWorkouts((current) =>
+      current.map((workout) => {
+        if (workout.id !== workoutId) return workout;
+        return {
+          ...workout,
+          exercises: workout.exercises.map((exercise) =>
+            exercise.id === exerciseId ? applyExerciseSwap(exercise, candidateId) : exercise,
+          ),
+        };
+      }),
+    );
+    setSwappingExerciseId(null);
+  };
+
+  /** Mid-session swap: update programme row + live set log together. */
+  const swapExerciseInSession = (candidateId: string) => {
+    if (!session || !activeWorkout) return;
+    const current = activeWorkout.exercises[session.exerciseIndex];
+    if (!current) return;
+    const swapped = applyExerciseSwap(current, candidateId);
+
+    setWorkouts((workoutsCurrent) =>
+      workoutsCurrent.map((workout) =>
+        workout.id === activeWorkout.id
+          ? {
+              ...workout,
+              exercises: workout.exercises.map((exercise) =>
+                exercise.id === current.id ? swapped : exercise,
+              ),
+            }
+          : workout,
+      ),
+    );
+
+    setSession((currentSession) => {
+      if (!currentSession) return currentSession;
+      return {
+        ...currentSession,
+        results: currentSession.results.map((result, index) => {
+          if (index !== currentSession.exerciseIndex) return result;
+          return {
+            ...result,
+            libraryId: swapped.exerciseId,
+            name: swapped.name,
+            repMin: swapped.repMin,
+            repMax: swapped.repMax,
+            increment: swapped.increment,
+            note: swapped.notes,
+            sets: result.sets.map((set) => ({
+              ...set,
+              weight: swapped.weight,
+            })),
+          };
+        }),
+      };
+    });
+    setSessionSwapOpen(false);
+    setRestRemaining(0);
+  };
+
   const deleteExercise = (workoutId: string, exerciseId: string) => {
     setWorkouts((current) => current.map((workout) =>
       workout.id === workoutId
@@ -898,9 +966,45 @@ export default function FormaApp() {
                   </ul>
                 </div>
               )}
-              {coaching.substitutions.length > 0 && (
-                <p className="muted coach-guide-sub">Swaps: {coaching.substitutions.join(" · ")}</p>
-              )}
+              {(() => {
+                const candidates = swapCandidates(
+                  exercise.exerciseId,
+                  profile?.equipmentAccess ?? "full_gym",
+                );
+                if (candidates.length === 0) return null;
+                return (
+                  <div className="swap-panel">
+                    <div className="swap-panel-head">
+                      <strong>Swap exercise</strong>
+                      <button
+                        type="button"
+                        className="text-btn"
+                        onClick={() => setSessionSwapOpen((open) => !open)}
+                      >
+                        {sessionSwapOpen ? "Hide" : "Show options"}
+                      </button>
+                    </div>
+                    {sessionSwapOpen && (
+                      <div className="swap-options">
+                        {candidates.map((candidate) => (
+                          <button
+                            key={candidate.id}
+                            type="button"
+                            className="swap-option"
+                            onClick={() => swapExerciseInSession(candidate.id)}
+                          >
+                            <span>{candidate.name}</span>
+                            <small>
+                              {swapReasonLabel(candidate.reason)}
+                              {candidate.preserveWeight ? " · keeps load" : " · reset load"}
+                            </small>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </article>
 
             <article className="card rest-card">
@@ -915,10 +1019,21 @@ export default function FormaApp() {
             </article>
 
             <div className="session-nav">
-              <button disabled={session.exerciseIndex === 0} onClick={() => setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 })}>Previous</button>
+              <button
+                disabled={session.exerciseIndex === 0}
+                onClick={() => {
+                  setSessionSwapOpen(false);
+                  setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 });
+                }}
+              >
+                Previous
+              </button>
               <button
                 disabled={session.exerciseIndex === activeWorkout.exercises.length - 1}
-                onClick={() => setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 })}
+                onClick={() => {
+                  setSessionSwapOpen(false);
+                  setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 });
+                }}
               >
                 Next exercise
               </button>
@@ -1233,6 +1348,10 @@ export default function FormaApp() {
                     <div className="exercise-editor-list">
                       {workout.exercises.map((exercise) => {
                         const isExerciseEditing = editingExerciseId === exercise.id;
+                        const isSwapping = swappingExerciseId === exercise.id;
+                        const candidates = isSwapping
+                          ? swapCandidates(exercise.exerciseId, profile.equipmentAccess)
+                          : [];
                         return (
                           <div className="exercise-editor" key={exercise.id}>
                             {isExerciseEditing ? (
@@ -1266,7 +1385,42 @@ export default function FormaApp() {
                                     <small>{exercise.sets} × {exercise.repMin}–{exercise.repMax} · {exercise.weight} kg · RPE {exercise.rpe}</small>
                                   </div>
                                 </div>
-                                <button className="text-btn" onClick={() => setEditingExerciseId(exercise.id)}>Edit</button>
+                                <div className="editor-actions compact">
+                                  <button className="text-btn" onClick={() => setEditingExerciseId(exercise.id)}>Edit</button>
+                                  <button
+                                    className="text-btn"
+                                    onClick={() =>
+                                      setSwappingExerciseId((current) =>
+                                        current === exercise.id ? null : exercise.id,
+                                      )
+                                    }
+                                  >
+                                    {isSwapping ? "Close swaps" : "Swap"}
+                                  </button>
+                                </div>
+                                {isSwapping && (
+                                  <div className="swap-options">
+                                    {candidates.map((candidate) => (
+                                      <button
+                                        key={candidate.id}
+                                        type="button"
+                                        className="swap-option"
+                                        onClick={() =>
+                                          swapExerciseInWorkout(workout.id, exercise.id, candidate.id)
+                                        }
+                                      >
+                                        <span>{candidate.name}</span>
+                                        <small>
+                                          {swapReasonLabel(candidate.reason)}
+                                          {candidate.preserveWeight ? " · keeps load" : " · reset load"}
+                                        </small>
+                                      </button>
+                                    ))}
+                                    {candidates.length === 0 && (
+                                      <p className="muted">No swaps available for this exercise.</p>
+                                    )}
+                                  </div>
+                                )}
                               </>
                             )}
                           </div>
