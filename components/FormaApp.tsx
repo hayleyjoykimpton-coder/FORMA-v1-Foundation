@@ -217,7 +217,7 @@ export default function FormaApp() {
         day: workout.day,
         short: workout.day.slice(0, 3),
         focus: workout.title,
-        image: /pilates|movement|mobility|recovery/i.test(workout.title) ? IMAGES.pilates : IMAGES.strength,
+        image: /rest|recover|mobility|stretch/i.test(workout.title) ? IMAGES.recovery : IMAGES.strength,
       })),
     [workouts],
   );

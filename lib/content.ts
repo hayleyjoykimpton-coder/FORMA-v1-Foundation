@@ -60,7 +60,7 @@ export type NutritionTarget = {
 
 export const NUTRITION_TARGETS: NutritionTarget[] = [
   { label: "Protein", value: "120", unit: "g goal", accent: "mocha" },
-  { label: "Calories", value: "1,850", unit: "kcal", accent: "pink" },
+  { label: "Calories", value: "1,850", unit: "kcal", accent: "mocha" },
   { label: "Meals", value: "4", unit: "planned", accent: "sage" },
 ];
 
