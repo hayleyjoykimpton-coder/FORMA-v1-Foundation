@@ -35,6 +35,8 @@ export function ProfileScreen({
   onClose,
   onViewProgress,
   onRebuildProgramme,
+  reminderPrefs,
+  onReminderPrefsChange,
   accountMode = "local",
   syncNote = null,
   onSignOut,
@@ -45,6 +47,8 @@ export function ProfileScreen({
   onClose: () => void;
   onViewProgress: () => void;
   onRebuildProgramme?: () => void;
+  reminderPrefs?: { enabled: boolean; browserNotify: boolean };
+  onReminderPrefsChange?: (prefs: { enabled: boolean; browserNotify: boolean }) => void;
   accountMode?: "local" | "cloud" | "gate" | "booting";
   syncNote?: string | null;
   onSignOut?: () => void | Promise<void>;
@@ -226,6 +230,34 @@ export function ProfileScreen({
               selected={draft.nutritionGoal}
               onSelect={(v) => set("nutritionGoal", v)}
             />
+            {reminderPrefs && onReminderPrefsChange ? (
+              <>
+                <label className="mini-label">Reminders</label>
+                <ChoiceRow
+                  options={[
+                    { value: "on", label: "Training day reminders on" },
+                    { value: "off", label: "Reminders off" },
+                  ]}
+                  selected={reminderPrefs.enabled ? "on" : "off"}
+                  onSelect={(v) =>
+                    onReminderPrefsChange({ ...reminderPrefs, enabled: v === "on" })
+                  }
+                />
+                <ChoiceRow
+                  options={[
+                    { value: "on", label: "Browser notify while open" },
+                    { value: "off", label: "No browser notify" },
+                  ]}
+                  selected={reminderPrefs.browserNotify ? "on" : "off"}
+                  onSelect={(v) =>
+                    onReminderPrefsChange({ ...reminderPrefs, browserNotify: v === "on" })
+                  }
+                />
+                <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+                  In-app nudges on gym days. Browser notify only works while FORMA is open — no account spam.
+                </p>
+              </>
+            ) : null}
             <div className="profile-fields">
               <label className="field">
                 <span>Sleep (hrs)</span>
