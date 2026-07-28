@@ -14,6 +14,7 @@ export const IMAGES = {
   glutes: "/img/glutes.jpg",
   glutesStrength: "/img/glutes-strength.jpg",
   upper: "/img/upper.jpg",
+  upperSculpt: "/img/upper-sculpt.jpg",
   abs: "/img/abs.jpg",
   fullbody: "/img/fullbody.jpg",
   pilates: "/img/pilates.jpg",
@@ -30,6 +31,8 @@ export function imageForWorkout(title: string): string {
   // First glute day (strength / hinge focus) vs second (shape)
   if (/glute strength|lower body|lower strength/.test(t)) return IMAGES.glutesStrength;
   if (/glute|lower|hip|leg|squat|hinge|shape/.test(t)) return IMAGES.glutes;
+  // First upper day (sculpt) vs second (strength)
+  if (/upper sculpt|upper body a|pull day/.test(t)) return IMAGES.upperSculpt;
   if (/upper|sculpt|pull|push|shoulder|press|row|chest|back|arm/.test(t)) return IMAGES.upper;
   if (/full\s*body|fullbody/.test(t)) return IMAGES.fullbody;
   return IMAGES.strength;
@@ -72,7 +75,7 @@ export type ScheduleDay = {
 
 export const WEEKLY_SCHEDULE: ScheduleDay[] = [
   { day: "Monday", short: "Mon", focus: "Glute Strength", image: IMAGES.glutesStrength },
-  { day: "Tuesday", short: "Tue", focus: "Upper Sculpt", image: IMAGES.upper },
+  { day: "Tuesday", short: "Tue", focus: "Upper Sculpt", image: IMAGES.upperSculpt },
   { day: "Wednesday", short: "Wed", focus: "Glute Shape", image: IMAGES.glutes },
   { day: "Thursday", short: "Thu", focus: "Upper Strength", image: IMAGES.upper },
   { day: "Friday", short: "Fri", focus: "Weighted Abs", image: IMAGES.abs },
