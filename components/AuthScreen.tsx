@@ -67,7 +67,9 @@ export function AuthScreen({
             <article className="card">
               <span className="eyebrow">Setup needed</span>
               <p className="muted">
-                Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to enable accounts.
+                Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+                <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> (or{" "}
+                <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>) to enable accounts.
                 You can keep using FORMA on this device meanwhile.
               </p>
             </article>

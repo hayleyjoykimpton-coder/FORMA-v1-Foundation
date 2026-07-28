@@ -8,9 +8,9 @@
 ## Setup
 1. Create a project at https://supabase.com
 2. Run `supabase/schema.sql` in the Supabase SQL editor
-3. Add secrets:
+3. Add secrets / `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (preferred) or `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Restart `pnpm dev`
 
 ## Behaviour
