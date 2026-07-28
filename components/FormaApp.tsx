@@ -81,6 +81,7 @@ import {
   previousPerformance,
   strengthTrends,
   weeklyReview,
+  weeklyWins,
 } from "@/lib/coach";
 import type { Readiness } from "@/lib/coach";
 import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
@@ -443,6 +444,7 @@ export default function FormaApp() {
   const trends = useMemo(() => strengthTrends(history), [history]);
   const glute = useMemo(() => gluteScore(history), [history]);
   const review = useMemo(() => (profile ? weeklyReview(profile, history) : null), [profile, history]);
+  const wins = useMemo(() => (profile ? weeklyWins(profile, history) : []), [profile, history]);
   const latestSummary = useMemo(
     () => (history.length ? postWorkoutSummary(history[history.length - 1], history) : []),
     [history],
@@ -1389,8 +1391,17 @@ export default function FormaApp() {
               </article>
               <article className="card progress-preview" role="button" tabIndex={0} onClick={() => setTab("progress")} onKeyDown={(event) => { if (event.key === "Enter") setTab("progress"); }}>
                 <Eyebrow>Progress</Eyebrow>
-                <strong className="progress-preview-value">{history.length}</strong>
-                <small className="muted">sessions logged</small>
+                {wins[0] && wins[0].kind !== "encourage" ? (
+                  <>
+                    <strong className="progress-preview-value win-preview">{wins[0].title}</strong>
+                    <small className="muted">{wins[0].detail}</small>
+                  </>
+                ) : (
+                  <>
+                    <strong className="progress-preview-value">{history.length}</strong>
+                    <small className="muted">sessions logged</small>
+                  </>
+                )}
                 <div className="progress-preview-meta">
                   <span>{streak} day streak</span>
                   <span>{completedSets} sets</span>
@@ -1614,8 +1625,35 @@ export default function FormaApp() {
               <StatTile label="Sessions" value={String(history.length)} accent="pink" />
               <StatTile label="Sets" value={String(completedSets)} accent="mocha" />
               <StatTile label="Streak" value={`${streak}d`} accent="green" />
-              <StatTile label="This week" value={`${weekSessions}/5`} accent="sage" />
+              <StatTile label="This week" value={`${weekSessions}/${profile.trainingDays}`} accent="sage" />
             </div>
+
+            {wins.length > 0 && (
+              <>
+                <SectionHeading eyebrow="This week" title="Your wins" />
+                <article className="card wins-card">
+                  {wins[0] && (
+                    <div className={`win-hero kind-${wins[0].kind}`}>
+                      <span className="eyebrow">Highlight</span>
+                      <strong>{wins[0].title}</strong>
+                      <p className="muted">{wins[0].detail}</p>
+                    </div>
+                  )}
+                  {wins.length > 1 && (
+                    <div className="win-list">
+                      {wins.slice(1).map((win) => (
+                        <div className={`win-row kind-${win.kind}`} key={win.id}>
+                          <div>
+                            <strong>{win.title}</strong>
+                            <small>{win.detail}</small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              </>
+            )}
 
             {dashboard && (
               <>
