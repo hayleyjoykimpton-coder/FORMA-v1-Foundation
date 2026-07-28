@@ -84,4 +84,4 @@ export const MEASUREMENTS: { label: string; value: string }[] = [
   { label: "Hips", value: "96 cm" },
 ];
 
-export const PROGRESS_GALLERY: string[] = [IMAGES.hero, IMAGES.pilates, IMAGES.running];
+export const PROGRESS_GALLERY: string[] = [IMAGES.hero, IMAGES.strength, IMAGES.running];
