@@ -2,7 +2,10 @@
  * FORMA programme generator.
  *
  * Builds a personalised training week from the user's profile:
- *   - training days  → split structure (3 = full body, 4 = upper/lower, 5 = glute + upper + abs)
+ *   - training days  → split structure
+ *       3 = full-figure A/B + weighted abs (≈2× weekly stimulus per major group)
+ *       4 = lower / upper / glute / abs (glute priority, upper once, core dedicated)
+ *       5 = glute + upper + abs (existing emphasis week — left as the premium template)
  *   - experience     → training volume (sets per exercise)
  *   - equipment      → exercise selection (substitutes when equipment is missing)
  *   - goal           → accent (extra glute work for glute/sculpt goals)
@@ -80,20 +83,113 @@ function day(dayName: string, title: string, ids: string[], experience: Experien
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
+/**
+ * 3-day — Full-figure density.
+ * Two compound full-body sessions hit squat/hinge/push/pull ~2×/week, then a
+ * dedicated weighted-core day. Volume per session is higher than 5-day so
+ * weekly sets stay in a hypertrophy-effective range.
+ */
 function fullBodyWeek(experience: ExperienceLevel): DayTemplate[] {
   return [
-    day(DAY_NAMES[0], "Full Body A", ["squat", "hip_thrust", "chest_supported_row", "shoulder_press"], experience),
-    day(DAY_NAMES[1], "Full Body B", ["romanian_deadlift", "bulgarian_split_squat", "lat_pulldown", "push_up"], experience),
-    day(DAY_NAMES[2], "Weighted Abs", ["cable_crunch", "russian_twist", "cable_woodchop", "weighted_crunch", "pallof_press"], experience),
+    day(
+      DAY_NAMES[0],
+      "Figure Strength",
+      [
+        "squat",
+        "hip_thrust",
+        "chest_supported_row",
+        "shoulder_press",
+        "leg_curl",
+        "lateral_raise",
+      ],
+      experience,
+    ),
+    day(
+      DAY_NAMES[1],
+      "Contour Drive",
+      [
+        "romanian_deadlift",
+        "bulgarian_split_squat",
+        "lat_pulldown",
+        "push_up",
+        "cable_kickback",
+        "hip_abduction",
+      ],
+      experience,
+    ),
+    day(
+      DAY_NAMES[2],
+      "Weighted Abs",
+      [
+        "cable_crunch",
+        "hanging_knee_raise",
+        "cable_woodchop",
+        "russian_twist",
+        "weighted_crunch",
+        "pallof_press",
+      ],
+      experience,
+    ),
   ];
 }
 
+/**
+ * 4-day — Lower / Upper / Glute / Abs.
+ * Prioritises glute + lower frequency (2×) while keeping a full upper sculpt
+ * day and the same dedicated weighted-abs session as the 5-day template.
+ */
 function upperLowerWeek(experience: ExperienceLevel): DayTemplate[] {
   return [
-    day(DAY_NAMES[0], "Lower Body", ["squat", "romanian_deadlift", "bulgarian_split_squat", "leg_curl"], experience),
-    day(DAY_NAMES[1], "Upper Body", ["lat_pulldown", "shoulder_press", "seated_row", "lateral_raise"], experience),
-    day(DAY_NAMES[2], "Glute Focus", ["hip_thrust", "step_up", "hip_abduction", "cable_kickback"], experience),
-    day(DAY_NAMES[3], "Weighted Abs", ["cable_crunch", "hanging_knee_raise", "russian_twist", "cable_woodchop", "weighted_crunch"], experience),
+    day(
+      DAY_NAMES[0],
+      "Lower Strength",
+      [
+        "squat",
+        "romanian_deadlift",
+        "bulgarian_split_squat",
+        "leg_curl",
+        "hip_abduction",
+      ],
+      experience,
+    ),
+    day(
+      DAY_NAMES[1],
+      "Upper Sculpt",
+      [
+        "lat_pulldown",
+        "seated_row",
+        "shoulder_press",
+        "lateral_raise",
+        "rear_delt_fly",
+        "bicep_curl",
+      ],
+      experience,
+    ),
+    day(
+      DAY_NAMES[2],
+      "Glute Shape",
+      [
+        "hip_thrust",
+        "step_up",
+        "walking_lunge",
+        "cable_kickback",
+        "hip_abduction",
+      ],
+      experience,
+    ),
+    day(
+      DAY_NAMES[3],
+      "Weighted Abs",
+      [
+        "cable_crunch",
+        "hanging_knee_raise",
+        "cable_woodchop",
+        "russian_twist",
+        "weighted_crunch",
+        "pallof_press",
+      ],
+      experience,
+    ),
   ];
 }
 
@@ -118,7 +214,8 @@ function applyGoalBias(days: DayTemplate[], goal: Goal, experience: ExperienceLe
   if (goal !== "glutes" && goal !== "sculpt") return days;
   return days.map((template) => {
     if (template.title === "Weighted Abs" || template.type !== "strength") return template;
-    if (!/glute|lower/i.test(template.title)) return template;
+    // Lower / glute / full-figure sessions — not pure upper days.
+    if (!/glute|lower|figure|contour/i.test(template.title)) return template;
     const hasAbduction = template.slots.some((s) => s.exerciseId === "hip_abduction");
     if (hasAbduction) return template;
     return { ...template, slots: [...template.slots, slot("hip_abduction", experience)] };
@@ -141,4 +238,4 @@ export function generateProgram(profile: UserProfile): Workout[] {
 }
 
 /** Current programme schema version — bump when the weekly structure changes. */
-export const PROGRAM_SCHEMA_VERSION = 2;
+export const PROGRAM_SCHEMA_VERSION = 3;

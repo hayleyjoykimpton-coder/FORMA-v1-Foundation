@@ -28,9 +28,10 @@ export function imageForWorkout(title: string): string {
   const t = title.toLowerCase();
   if (/rest|recover|mobility|stretch|align/.test(t)) return IMAGES.recovery;
   if (/abs|core|woodchop|crunch/.test(t)) return IMAGES.abs;
-  // First glute day (strength / hinge focus) vs second (shape)
-  if (/glute strength|lower body|lower strength/.test(t)) return IMAGES.glutesStrength;
-  if (/glute|lower|hip|leg|squat|hinge|shape/.test(t)) return IMAGES.glutes;
+  // First glute / lower / figure day (strength focus) vs shape / contour
+  if (/glute strength|lower body|lower strength|figure strength/.test(t)) return IMAGES.glutesStrength;
+  if (/contour drive/.test(t)) return IMAGES.fullbody;
+  if (/glute|lower|hip|leg|squat|hinge|shape|figure|contour/.test(t)) return IMAGES.glutes;
   // First upper day (sculpt) vs second (strength)
   if (/upper sculpt|upper body a|pull day/.test(t)) return IMAGES.upperSculpt;
   if (/upper|sculpt|pull|push|shoulder|press|row|chest|back|arm/.test(t)) return IMAGES.upper;
