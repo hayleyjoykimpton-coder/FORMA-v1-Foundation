@@ -11,11 +11,39 @@ export const USER_NAME = "Hayley";
 export const IMAGES = {
   hero: "/img/hero.jpg",
   strength: "/img/strength.jpg",
+  glutes: "/img/glutes.jpg",
+  upper: "/img/upper.jpg",
+  abs: "/img/abs.jpg",
+  fullbody: "/img/fullbody.jpg",
   pilates: "/img/pilates.jpg",
   running: "/img/running.jpg",
   nutrition: "/img/nutrition.jpg",
   recovery: "/img/recovery.jpg",
 } as const;
+
+/** Pick a workout card image from the session title / focus. */
+export function imageForWorkout(title: string): string {
+  const t = title.toLowerCase();
+  if (/rest|recover|mobility|stretch|align/.test(t)) return IMAGES.recovery;
+  if (/abs|core|woodchop|crunch/.test(t)) return IMAGES.abs;
+  if (/glute|lower|hip|leg|squat|hinge|shape/.test(t)) return IMAGES.glutes;
+  if (/upper|sculpt|pull|push|shoulder|press|row|chest|back|arm/.test(t)) return IMAGES.upper;
+  if (/full\s*body|fullbody/.test(t)) return IMAGES.fullbody;
+  return IMAGES.strength;
+}
+
+/** Soft fallback for exercise thumbnails from the exercise name. */
+export function imageForExercise(name: string): string {
+  const n = name.toLowerCase();
+  if (/crunch|plank|pallof|woodchop|twist|knee raise|core|abs/.test(n)) return IMAGES.abs;
+  if (/hip|glute|thrust|deadlift|rdl|squat|lunge|split|leg curl|abduction|kickback|step/.test(n)) {
+    return IMAGES.glutes;
+  }
+  if (/row|pulldown|press|raise|curl|push|tricep|bicep|delt|lat|chest|shoulder/.test(n)) {
+    return IMAGES.upper;
+  }
+  return IMAGES.strength;
+}
 
 /**
  * The training phases progress in order. Only Foundation is surfaced to the
@@ -40,11 +68,11 @@ export type ScheduleDay = {
 };
 
 export const WEEKLY_SCHEDULE: ScheduleDay[] = [
-  { day: "Monday", short: "Mon", focus: "Glute Strength", image: IMAGES.strength },
-  { day: "Tuesday", short: "Tue", focus: "Upper Sculpt", image: IMAGES.strength },
-  { day: "Wednesday", short: "Wed", focus: "Glute Shape", image: IMAGES.strength },
-  { day: "Thursday", short: "Thu", focus: "Upper Strength", image: IMAGES.strength },
-  { day: "Friday", short: "Fri", focus: "Weighted Abs", image: IMAGES.strength },
+  { day: "Monday", short: "Mon", focus: "Glute Strength", image: IMAGES.glutes },
+  { day: "Tuesday", short: "Tue", focus: "Upper Sculpt", image: IMAGES.upper },
+  { day: "Wednesday", short: "Wed", focus: "Glute Shape", image: IMAGES.glutes },
+  { day: "Thursday", short: "Thu", focus: "Upper Strength", image: IMAGES.upper },
+  { day: "Friday", short: "Fri", focus: "Weighted Abs", image: IMAGES.abs },
   { day: "Saturday", short: "Sat", focus: "Rest", image: IMAGES.recovery, rest: true },
   { day: "Sunday", short: "Sun", focus: "Rest", image: IMAGES.recovery, rest: true },
 ];

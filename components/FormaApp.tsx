@@ -8,6 +8,8 @@ import {
   IMAGES,
   NUTRITION_TARGETS,
   PHASES,
+  imageForExercise,
+  imageForWorkout,
   phaseCopy,
 } from "@/lib/content";
 import type {
@@ -217,7 +219,7 @@ export default function FormaApp() {
         day: workout.day,
         short: workout.day.slice(0, 3),
         focus: workout.title,
-        image: /rest|recover|mobility|stretch/i.test(workout.title) ? IMAGES.recovery : IMAGES.strength,
+        image: imageForWorkout(workout.title),
       })),
     [workouts],
   );
@@ -555,7 +557,7 @@ export default function FormaApp() {
 
             <section
               className="session-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${IMAGES.strength})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(activeWorkout.title)})` }}
             >
               <span className="eyebrow light">Foundation · Primary target</span>
               <h1>{exercise.name}</h1>
@@ -804,7 +806,7 @@ export default function FormaApp() {
               <>
             <SectionHeading eyebrow="Today's workout" title={todaysWorkout.title} />
             <article className="card workout-today">
-              <div className="workout-today-media" style={{ backgroundImage: `url(${IMAGES.strength})` }}>
+              <div className="workout-today-media" style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title)})` }}>
                 <span className="media-chip">{todaysWorkout.duration} min</span>
                 <button className="media-edit" onClick={() => { setEditingWorkoutId(todaysWorkout.id); setTab("training"); }}>Edit</button>
               </div>
@@ -1032,7 +1034,7 @@ export default function FormaApp() {
                             ) : (
                               <>
                                 <div className="exercise-summary">
-                                  <div className="exercise-thumb" style={{ backgroundImage: `url(${IMAGES.strength})` }} aria-hidden />
+                                  <div className="exercise-thumb" style={{ backgroundImage: `url(${imageForExercise(exercise.name)})` }} aria-hidden />
                                   <div className="reorder-buttons">
                                     <button onClick={() => moveExercise(workout.id, exercise.id, -1)} aria-label="Move exercise up">↑</button>
                                     <button onClick={() => moveExercise(workout.id, exercise.id, 1)} aria-label="Move exercise down">↓</button>
