@@ -98,10 +98,24 @@ import type { Readiness } from "@/lib/coach";
 import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
 import { AuthScreen } from "@/components/AuthScreen";
+import { BreathworkSession } from "@/components/Breathwork";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
+import {
+  GRATITUDE_PROMPTS,
+  GRATITUDE_SLOTS,
+  breathworkDoneToday,
+  gratitudeFilledCount,
+  gratitudeForDay,
+  logBreathwork,
+  protocolById,
+  recentGratitudeDays,
+  saveWellness,
+  setGratitudeLine,
+  type WellnessState,
+} from "@/lib/wellness";
 import {
   Eyebrow,
   Field,
@@ -154,6 +168,8 @@ export default function FormaApp() {
   const [hydrated, setHydrated] = useState(false);
   const [water, setWater] = useState(0);
   const [journal, setJournal] = useState<Record<string, string>>({});
+  const [wellness, setWellness] = useState<WellnessState>({ gratitude: {}, breathwork: [] });
+  const [breathworkOpen, setBreathworkOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
@@ -190,6 +206,7 @@ export default function FormaApp() {
     setAlignActive(state.alignActive);
     setWater(state.water);
     setJournal(state.journal);
+    setWellness(state.wellness);
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
@@ -235,6 +252,7 @@ export default function FormaApp() {
       setProgressEntries(cloud.progress);
       setProgressPhotos(cloud.photos);
       setJournal(cloud.journal);
+      setWellness(cloud.wellness);
       if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
       else setWater(0);
       const today = pickTodaysWorkout(nextWorkouts);
@@ -243,6 +261,7 @@ export default function FormaApp() {
         setPausedDraft(cloud.sessionDraft);
       }
       saveProfile(cloud.profile);
+      saveWellness(cloud.wellness);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
       window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
       window.localStorage.setItem(
@@ -268,6 +287,7 @@ export default function FormaApp() {
           photos: cloud.photos,
           water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
           journal: cloud.journal,
+          wellness: cloud.wellness,
           sessionDraft: cloud.sessionDraft,
         });
       }
@@ -286,6 +306,7 @@ export default function FormaApp() {
         photos: loadPhotos(),
         water: { date: new Date().toDateString(), count: local.water },
         journal: local.journal,
+        wellness: local.wellness,
         sessionDraft: local.sessionDraft,
       });
     }
@@ -390,6 +411,7 @@ export default function FormaApp() {
           photos: progressPhotos,
           water: { date: new Date().toDateString(), count: water },
           journal,
+          wellness,
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
@@ -412,6 +434,7 @@ export default function FormaApp() {
     progressPhotos,
     water,
     journal,
+    wellness,
     pausedDraft,
     hydrated,
   ]);
@@ -428,6 +451,11 @@ export default function FormaApp() {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.journal, JSON.stringify(journal));
   }, [journal, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveWellness(wellness);
+  }, [wellness, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -508,6 +536,15 @@ export default function FormaApp() {
   const glute = useMemo(() => gluteScore(history), [history]);
   const review = useMemo(() => (profile ? weeklyReview(profile, history) : null), [profile, history]);
   const wins = useMemo(() => (profile ? weeklyWins(profile, history) : []), [profile, history]);
+  const recoveryScore = useMemo(() => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const values = history
+      .filter((session) => Date.now() - new Date(session.completedAt).getTime() <= 7 * DAY_MS)
+      .map((session) => session.readiness)
+      .filter((value): value is number => typeof value === "number");
+    if (!values.length) return null;
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  }, [history]);
   const latestSummary = useMemo(
     () => (history.length ? postWorkoutSummary(history[history.length - 1], history) : []),
     [history],
@@ -1019,6 +1056,20 @@ export default function FormaApp() {
     );
   }
 
+  if (breathworkOpen) {
+    return (
+      <BreathworkSession
+        preferCalm={season === "Align" || alignActive || new Date().getHours() >= 18}
+        onCancel={() => setBreathworkOpen(false)}
+        onComplete={(protocolId) => {
+          setWellness((current) => logBreathwork(current, protocolId));
+          setBreathworkOpen(false);
+          setSyncNote(`Breathwork saved · ${protocolById(protocolId)?.name ?? "session"}`);
+        }}
+      />
+    );
+  }
+
   if (session && activeWorkout) {
     const exercise = activeWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
@@ -1487,8 +1538,12 @@ export default function FormaApp() {
               >
                 <div className="image-card-copy">
                   <span className="eyebrow light">Recovery</span>
-                  <h3>82% recovered</h3>
-                  <span className="link-cue">Return to balance ›</span>
+                  <h3>
+                    {recoveryScore != null
+                      ? `${recoveryScore}% recovered`
+                      : dashboard?.recoveryStatus ?? "Check in to recover"}
+                  </h3>
+                  <span className="link-cue">Breathwork · gratitude · rest ›</span>
                 </div>
               </article>
               <article className="card progress-preview" role="button" tabIndex={0} onClick={() => setTab("progress")} onKeyDown={(event) => { if (event.key === "Enter") setTab("progress"); }}>
@@ -1555,6 +1610,31 @@ export default function FormaApp() {
                     {alignActive ? "Exit early Align · return to programme" : "Start early Align recovery"}
                   </button>
                 )}
+              </div>
+            </article>
+
+            <SectionHeading eyebrow="Gratitude" title="Three good things" />
+            <article className="card gratitude-card">
+              <p className="muted gratitude-lead">
+                {gratitudeFilledCount(wellness, todayISO) >= GRATITUDE_SLOTS
+                  ? "Today's gratitude is complete — a quiet strength practice."
+                  : "Name what you're thankful for. Three short lines is enough."}
+              </p>
+              <div className="gratitude-list">
+                {gratitudeForDay(wellness, todayISO).map((line, index) => (
+                  <label key={GRATITUDE_PROMPTS[index]} className="gratitude-row">
+                    <span className="eyebrow">{GRATITUDE_PROMPTS[index]}</span>
+                    <input
+                      type="text"
+                      value={line}
+                      maxLength={120}
+                      placeholder="Write a few words…"
+                      onChange={(event) =>
+                        setWellness((current) => setGratitudeLine(current, index, event.target.value, todayISO))
+                      }
+                    />
+                  </label>
+                ))}
               </div>
             </article>
 
@@ -1965,16 +2045,69 @@ export default function FormaApp() {
             >
               <div className="image-card-copy">
                 <span className="eyebrow light">Readiness</span>
-                <h3 className="recovery-score">82%</h3>
-                <span className="link-cue">Well recovered — train as planned</span>
+                <h3 className="recovery-score">
+                  {recoveryScore != null ? `${recoveryScore}%` : "—"}
+                </h3>
+                <span className="link-cue">
+                  {dashboard?.recoveryStatus ?? "Log a readiness check-in before training"}
+                </span>
               </div>
             </article>
 
             <div className="stat-grid three">
-              <StatTile label="Stress" value="Low" note="Settled" accent="sage" />
-              <StatTile label="Readiness" value="High" note="Go" accent="green" />
-              <StatTile label="Soreness" value="Mild" note="Normal" accent="pink" />
+              <StatTile
+                label="Gratitude"
+                value={`${gratitudeFilledCount(wellness, todayISO)}/${GRATITUDE_SLOTS}`}
+                note={gratitudeFilledCount(wellness, todayISO) >= GRATITUDE_SLOTS ? "Complete" : "Today"}
+                accent="sage"
+              />
+              <StatTile
+                label="Breath"
+                value={breathworkDoneToday(wellness, todayISO) ? "Done" : "Open"}
+                note={breathworkDoneToday(wellness, todayISO) ? "Logged" : "Start a session"}
+                accent="green"
+              />
+              <StatTile
+                label="Water"
+                value={`${water}/${HYDRATION_GOAL}`}
+                note={water >= HYDRATION_GOAL ? "Goal met" : "Glasses"}
+                accent="blue"
+              />
             </div>
+
+            <SectionHeading eyebrow="Breathwork" title="Guided calm" />
+            <article className="card breath-cta-card">
+              <p className="coach-message">
+                {breathworkDoneToday(wellness, todayISO)
+                  ? "You've already breathed with FORMA today. Come back anytime you need another reset."
+                  : season === "Align" || alignActive
+                    ? "Align week loves a longer exhale — try 4–7–8 or a physiological sigh before rest."
+                    : "A two-minute sigh or box breath settles stress before sleep — or after a hard session."}
+              </p>
+              <button type="button" className="cta-btn" onClick={() => setBreathworkOpen(true)}>
+                {breathworkDoneToday(wellness, todayISO) ? "Practice again" : "Start breathwork"}
+              </button>
+            </article>
+
+            <SectionHeading eyebrow="Gratitude" title="Recent thanks" />
+            {recentGratitudeDays(wellness, 5).length ? (
+              <div className="gratitude-history">
+                {recentGratitudeDays(wellness, 5).map((entry) => (
+                  <article key={entry.date} className="card gratitude-history-card">
+                    <span className="eyebrow">{entry.date === todayISO ? "Today" : entry.date}</span>
+                    <ul>
+                      {entry.lines.map((line) => (
+                        <li key={`${entry.date}-${line}`}>{line}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <article className="card empty-state">
+                Add three good things on Today — they'll gather here as a quiet archive.
+              </article>
+            )}
 
             <SectionHeading eyebrow="Tonight" title="Wind-down ritual" />
             <article className="card coach-card">

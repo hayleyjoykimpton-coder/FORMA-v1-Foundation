@@ -11,6 +11,7 @@ import { EXERCISES, defaultIncrement, findExerciseIdByName } from "./exercises";
 import { FORMA_PROGRAM, buildWorkoutsForWeek } from "./program";
 import { PROGRAM_SCHEMA_VERSION } from "./programGenerator";
 import type { Exercise, ExerciseResult, Workout, WorkoutSession } from "./types";
+import { loadWellness, type WellnessState } from "./wellness";
 
 export const STORAGE = {
   workouts: "forma-workouts-v12",
@@ -21,6 +22,7 @@ export const STORAGE = {
   // Ancillary trackers are unchanged across versions.
   water: "forma-water-v1",
   journal: "forma-journal-v1",
+  wellness: "forma-wellness-v1",
 };
 
 const LEGACY = {
@@ -44,6 +46,7 @@ export type LoadedState = {
   alignActive: boolean;
   water: number;
   journal: Record<string, string>;
+  wellness: WellnessState;
   migrated: boolean;
   /** True when the weekly programme structure should be regenerated from the profile. */
   needsProgramRefresh: boolean;
@@ -149,6 +152,7 @@ export function loadForma(): LoadedState {
     alignActive: false,
     water: 0,
     journal: {},
+    wellness: { gratitude: {}, breathwork: [] },
     migrated: false,
     needsProgramRefresh: false,
     sessionDraft: null,
@@ -159,6 +163,7 @@ export function loadForma(): LoadedState {
   try {
     const water = readWater();
     const journal = readJournal();
+    const wellness = loadWellness();
     const sessionDraft = readSessionDraft();
 
     // 1. Current-version data.
@@ -180,6 +185,7 @@ export function loadForma(): LoadedState {
         alignActive: Boolean(program.alignActive),
         water,
         journal,
+        wellness,
         migrated: false,
         needsProgramRefresh,
         sessionDraft,
@@ -202,6 +208,7 @@ export function loadForma(): LoadedState {
         alignActive: false,
         water,
         journal,
+        wellness,
         migrated: true,
         needsProgramRefresh: true,
         sessionDraft,
