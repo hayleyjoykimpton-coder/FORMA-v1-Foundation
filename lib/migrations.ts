@@ -40,6 +40,8 @@ export type LoadedState = {
   workouts: Workout[];
   history: WorkoutSession[];
   week: number;
+  /** Optional Align recovery block without leaving the week counter. */
+  alignActive: boolean;
   water: number;
   journal: Record<string, string>;
   migrated: boolean;
@@ -116,12 +118,22 @@ export function persistSessionDraft(draft: SessionDraftStored | null): void {
   window.localStorage.setItem(STORAGE.session, JSON.stringify(draft));
 }
 
-function persistCore(workouts: Workout[], history: WorkoutSession[], week: number) {
+function persistCore(
+  workouts: Workout[],
+  history: WorkoutSession[],
+  week: number,
+  alignActive = false,
+) {
   window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
   window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
   window.localStorage.setItem(
     STORAGE.program,
-    JSON.stringify({ week, programId: FORMA_PROGRAM.id, schemaVersion: PROGRAM_SCHEMA_VERSION }),
+    JSON.stringify({
+      week,
+      programId: FORMA_PROGRAM.id,
+      schemaVersion: PROGRAM_SCHEMA_VERSION,
+      alignActive,
+    }),
   );
 }
 
@@ -134,6 +146,7 @@ export function loadForma(): LoadedState {
     workouts: buildWorkoutsForWeek(1),
     history: [],
     week: 1,
+    alignActive: false,
     water: 0,
     journal: {},
     migrated: false,
@@ -156,6 +169,7 @@ export function loadForma(): LoadedState {
       const program = JSON.parse(window.localStorage.getItem(STORAGE.program) ?? "{}") as {
         week?: number;
         schemaVersion?: number;
+        alignActive?: boolean;
       };
       const schemaVersion = program.schemaVersion ?? 1;
       const needsProgramRefresh = schemaVersion < PROGRAM_SCHEMA_VERSION;
@@ -163,6 +177,7 @@ export function loadForma(): LoadedState {
         workouts: workouts.length ? workouts : buildWorkoutsForWeek(1),
         history,
         week: program.week ?? 1,
+        alignActive: Boolean(program.alignActive),
         water,
         journal,
         migrated: false,
@@ -184,6 +199,7 @@ export function loadForma(): LoadedState {
         workouts: resolved,
         history,
         week: 1,
+        alignActive: false,
         water,
         journal,
         migrated: true,

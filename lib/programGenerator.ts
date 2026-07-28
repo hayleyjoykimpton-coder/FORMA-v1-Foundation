@@ -16,8 +16,8 @@
 
 import { ALL_EXERCISE_IDS, EXERCISES } from "./exercises";
 import type { Equipment } from "./exercises";
-import { buildWorkout, getPhaseForWeek } from "./program";
-import type { DayTemplate, ExerciseSlot } from "./program";
+import { PHASE_DEFINITIONS, buildWorkout, resolveActivePhase } from "./program";
+import type { DayTemplate, ExerciseSlot, PhaseId } from "./program";
 import type { Workout } from "./types";
 import type { EquipmentAccess, ExperienceLevel, Goal, TrainingDays, UserProfile } from "./user";
 
@@ -222,11 +222,29 @@ function applyGoalBias(days: DayTemplate[], goal: Goal, experience: ExperienceLe
   });
 }
 
+export type GenerateProgramOptions = {
+  week?: number;
+  /** When true, programme uses Align (deload) intensity instead of the linear phase. */
+  alignActive?: boolean;
+  /** Force a specific phase (used when jumping phases). */
+  phaseId?: PhaseId;
+};
+
 /** Generate the personalised, startable workout list for a profile. */
-export function generateProgram(profile: UserProfile): Workout[] {
-  const phase = getPhaseForWeek(1);
+export function generateProgram(
+  profile: UserProfile,
+  options: GenerateProgramOptions = {},
+): Workout[] {
+  const week = Math.max(1, options.week ?? 1);
+  const phase = options.phaseId
+    ? PHASE_DEFINITIONS[options.phaseId]
+    : resolveActivePhase(week, options.alignActive ?? false);
   const allowed = allowedEquipment(profile.equipmentAccess);
-  const days = applyGoalBias(baseWeek(profile.trainingDays, profile.experienceLevel), profile.goal, profile.experienceLevel);
+  const days = applyGoalBias(
+    baseWeek(profile.trainingDays, profile.experienceLevel),
+    profile.goal,
+    profile.experienceLevel,
+  );
 
   return days.map((template) => {
     const resolved: DayTemplate = {

@@ -18,6 +18,7 @@ export type CloudState = {
   workouts: Workout[];
   history: WorkoutSession[];
   week: number;
+  alignActive: boolean;
   /** Programme template version stored with cloud state (for refresh). */
   schemaVersion: number;
   progress: ProgressEntry[];
@@ -54,7 +55,12 @@ type ProfileRow = {
 type StateRow = {
   workouts: Workout[];
   history: WorkoutSession[];
-  programme: { week?: number; programId?: string; schemaVersion?: number };
+  programme: {
+    week?: number;
+    programId?: string;
+    schemaVersion?: number;
+    alignActive?: boolean;
+  };
   progress: ProgressEntry[];
   photos: ProgressPhoto[];
   water: { date?: string; count?: number };
@@ -139,6 +145,7 @@ export async function pullCloudState(userId: string): Promise<CloudState | null>
     workouts: state?.workouts ?? [],
     history: state?.history ?? [],
     week: state?.programme?.week ?? 1,
+    alignActive: Boolean(state?.programme?.alignActive),
     schemaVersion: state?.programme?.schemaVersion ?? 1,
     progress: state?.progress ?? [],
     photos: state?.photos ?? [],
@@ -165,6 +172,7 @@ export async function pushUserState(input: {
   workouts: Workout[];
   history: WorkoutSession[];
   week: number;
+  alignActive?: boolean;
   progress: ProgressEntry[];
   photos: ProgressPhoto[];
   water: { date: string; count: number };
@@ -184,6 +192,7 @@ export async function pushUserState(input: {
       week: input.week,
       programId: FORMA_PROGRAM.id,
       schemaVersion: PROGRAM_SCHEMA_VERSION,
+      alignActive: Boolean(input.alignActive),
     },
     progress: input.progress,
     photos: input.photos,

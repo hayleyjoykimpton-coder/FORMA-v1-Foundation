@@ -53,17 +53,16 @@ export function imageForExercise(name: string): string {
 }
 
 /**
- * The training phases progress in order. Only Foundation is surfaced to the
- * user today — Build, Peak and Align exist internally for future unlocking.
+ * The training phases run as a repeating 12-week block:
+ * Foundation → Build → Peak → Align, then back to Foundation.
  */
 export const PHASES: Season[] = ["Foundation", "Build", "Peak", "Align"];
-export const ACTIVE_PHASE: Season = "Foundation";
 
 export const phaseCopy: Record<Season, { line: string; focus: string }> = {
-  Foundation: { line: "Build the base.", focus: "Movement · Capacity · Consistency" },
-  Build: { line: "Stronger every session.", focus: "Strength · Hypertrophy · Progression" },
-  Peak: { line: "Express your strength.", focus: "Performance · Power · Precision" },
-  Align: { line: "Recover to grow.", focus: "Recovery · Mobility · Readiness" },
+  Foundation: { line: "Build the base.", focus: "Weeks 1–4 · Movement · Capacity · Consistency" },
+  Build: { line: "Stronger every session.", focus: "Weeks 5–8 · Strength · Hypertrophy · Progression" },
+  Peak: { line: "Express your strength.", focus: "Weeks 9–11 · Performance · Power · Precision" },
+  Align: { line: "Recover to grow.", focus: "Week 12 · Recovery · then a fresh Foundation cycle" },
 };
 
 export type ScheduleDay = {
