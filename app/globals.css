@@ -1,32 +1,33 @@
 /* ==========================================================================
    FORMA — Neutral Elegance × Blue Serenity × Warm Earth
-   Cream foundations, chocolate brand, soft serenity blues, terracotta accents.
+   Rich chocolate brand, grounded earth accents, muted (not pastel) blues.
    ========================================================================== */
 
 :root {
-  /* Foundation — Neutral Elegance + Warm Earth */
-  --bg: #f3efe8;          /* warm ivory */
-  --card: #faf8f5;        /* soft off-white */
-  --text: #4a372c;        /* chocolate brown — brand & logo */
-  --text-2: #7a7268;      /* warm mid-grey */
-  --line: #e3ddd4;        /* light greige */
+  /* Foundation — warmer, less washed-out */
+  --bg: #e9e1d6;          /* warm stone */
+  --card: #f3ebe2;        /* soft parchment */
+  --text: #3a2820;        /* deep chocolate — brand & logo */
+  --text-2: #6b574a;      /* warm brown-grey */
+  --line: #d2c4b6;        /* greige border */
+  --on-cta: #f4efe8;      /* ivory on dark chocolate buttons */
 
-  /* Accents */
-  --pink: #ead9cc;        /* warm sand / soft peach (legacy token name) */
-  --cta: #c4a484;         /* terracotta earth — primary CTA */
-  --blue: #d2dfea;        /* Blue Serenity soft */
-  --mocha: #d6c4b2;       /* warm camel earth */
-  --sage: #d5dde6;        /* serenity blue-grey (recovery) */
-  --green: #b7c7b0;       /* muted earth success */
-  --serenity: #a9bcd0;    /* Blue Serenity mid */
-  --earth-deep: #5b4337;  /* deep chocolate */
+  /* Accents — deeper, less pastel */
+  --pink: #c4a992;        /* warm mocha sand (legacy token name) */
+  --cta: #5b4337;         /* chocolate brown — primary CTA */
+  --blue: #8fa3b5;        /* Blue Serenity mid (muted, not pastel) */
+  --mocha: #a8876c;       /* camel earth */
+  --sage: #8e9eae;        /* cooler serenity blue-grey */
+  --green: #7d8f72;       /* muted olive success */
+  --serenity: #6f8498;    /* deeper Blue Serenity */
+  --earth-deep: #3a2820;  /* deepest chocolate */
 
-  /* Soft gradient stops */
-  --wash-peach: #f6efe8;
-  --wash-blue: #eef3f8;
-  --wash-earth: #f3ebe3;
-  --wash-sage: #eef2f5;
-  --wash-green: #eef3eb;
+  /* Gradient washes — tinted, not chalky */
+  --wash-peach: #e5d5c5;
+  --wash-blue: #d5dee7;
+  --wash-earth: #e0d0c0;
+  --wash-sage: #d6dee6;
+  --wash-green: #d8e0d4;
 
   /* Radius */
   --r-card: 28px;
@@ -34,11 +35,11 @@
   --r-btn: 20px;
   --r-pill: 999px;
 
-  /* Shadows — soft chocolate */
-  --shadow-xs: 0 2px 8px rgba(74, 55, 44, 0.05);
-  --shadow-sm: 0 8px 22px rgba(74, 55, 44, 0.06);
-  --shadow: 0 18px 44px rgba(74, 55, 44, 0.1);
-  --shadow-lg: 0 40px 90px rgba(74, 55, 44, 0.16);
+  /* Shadows — deeper chocolate */
+  --shadow-xs: 0 2px 8px rgba(58, 40, 32, 0.07);
+  --shadow-sm: 0 8px 22px rgba(58, 40, 32, 0.09);
+  --shadow: 0 18px 44px rgba(58, 40, 32, 0.14);
+  --shadow-lg: 0 40px 90px rgba(58, 40, 32, 0.2);
 
   --font-heading: var(--font-serif), Georgia, "Times New Roman", serif;
   --font-body: var(--font-sans), Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -58,7 +59,7 @@ html, body {
 
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
-input, textarea { outline-color: rgba(169, 188, 208, 0.65); }
+input, textarea { outline-color: rgba(91, 67, 55, 0.35); }
 
 /* ---------- App shell ---------------------------------------------------- */
 
@@ -67,9 +68,9 @@ input, textarea { outline-color: rgba(169, 188, 208, 0.65); }
   display: grid;
   place-items: start center;
   background:
-    radial-gradient(circle at 15% -5%, #fffcf8 0%, transparent 42%),
-    radial-gradient(circle at 100% 0%, rgba(169, 188, 208, 0.28) 0%, transparent 36%),
-    radial-gradient(circle at 0% 80%, rgba(196, 164, 132, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 12% -5%, rgba(243, 235, 226, 0.9) 0%, transparent 40%),
+    radial-gradient(circle at 100% 0%, rgba(91, 67, 55, 0.1) 0%, transparent 38%),
+    radial-gradient(circle at 0% 85%, rgba(111, 132, 152, 0.1) 0%, transparent 42%),
     var(--bg);
 }
 
@@ -171,20 +172,20 @@ p { margin: 0; color: var(--text-2); line-height: 1.55; }
   padding: 16px 20px;
   border-radius: var(--r-btn);
   background: var(--cta);
-  color: var(--text);
+  color: var(--on-cta);
   font-weight: 600;
   letter-spacing: 0.01em;
-  box-shadow: 0 12px 26px rgba(196, 164, 132, 0.35);
+  box-shadow: 0 12px 26px rgba(58, 40, 32, 0.28);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
-.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(196, 164, 132, 0.45); }
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(58, 40, 32, 0.36); }
 .cta-btn:active { transform: scale(0.98); }
 
 .pill-btn {
   padding: 11px 18px;
   border-radius: var(--r-pill);
   background: var(--cta);
-  color: var(--text);
+  color: var(--on-cta);
   font-weight: 600;
   font-size: 13px;
   box-shadow: var(--shadow-xs);
@@ -394,7 +395,7 @@ button:disabled { cursor: not-allowed; }
   width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center;
   font-family: var(--font-heading); font-size: 20px;
-  color: var(--text); background: linear-gradient(160deg, var(--pink), var(--cta));
+  color: var(--on-cta); background: linear-gradient(160deg, var(--mocha), var(--cta));
 }
 .coach-top strong { display: block; font-size: 15px; }
 .coach-top small { color: var(--text-2); font-size: 12px; }
@@ -403,7 +404,7 @@ button:disabled { cursor: not-allowed; }
 .coach-rec {
   padding: 14px 16px;
   border-radius: var(--r-lg);
-  background: linear-gradient(160deg, var(--wash-peach), #e8d5c4);
+  background: linear-gradient(160deg, var(--wash-peach), var(--pink));
 }
 .coach-rec strong { display: block; margin: 4px 0 4px; font-size: 15px; }
 .coach-rec p { font-size: 13px; }
@@ -503,7 +504,7 @@ button:disabled { cursor: not-allowed; }
   flex-shrink: 0;
   z-index: 1;
 }
-.phase-step.active .phase-dot { background: var(--cta); border-color: var(--cta); box-shadow: 0 0 0 4px rgba(196, 164, 132, 0.28); }
+.phase-step.active .phase-dot { background: var(--cta); border-color: var(--cta); box-shadow: 0 0 0 4px rgba(91, 67, 55, 0.22); }
 .phase-step strong { display: block; font-size: 15px; }
 .phase-step.locked strong { color: var(--text-2); }
 .phase-step small { font-size: 11px; color: var(--text-2); }
@@ -544,7 +545,7 @@ button:disabled { cursor: not-allowed; }
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .schedule-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-.schedule-card.today { border-color: var(--cta); box-shadow: 0 10px 24px rgba(196, 164, 132, 0.28); }
+.schedule-card.today { border-color: var(--cta); box-shadow: 0 10px 24px rgba(58, 40, 32, 0.18); }
 .schedule-thumb {
   width: 56px; height: 56px; border-radius: 16px;
   background-size: cover; background-position: center; flex-shrink: 0;
@@ -558,7 +559,7 @@ button:disabled { cursor: not-allowed; }
 .schedule-copy strong { display: block; font-size: 16px; margin-top: 2px; }
 .schedule-today-pill {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--text); background: var(--cta);
+  color: var(--on-cta); background: var(--cta);
   padding: 5px 10px; border-radius: var(--r-pill);
 }
 
@@ -676,19 +677,19 @@ input, textarea {
   border: 1px solid var(--line);
   transition: background 0.25s ease;
 }
-.set-row.complete { background: linear-gradient(160deg, #eef7f0, var(--sage)); border-color: transparent; }
+.set-row.complete { background: linear-gradient(160deg, var(--wash-green), var(--green)); border-color: transparent; }
 .set-row > strong { align-self: center; font-size: 12px; }
 .set-row label { display: grid; gap: 4px; }
 .set-row label span { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-2); }
 .set-row input { text-align: center; padding: 9px 4px; border-radius: 12px; }
 .set-complete {
   height: 40px; border-radius: 14px;
-  background: var(--cta); color: var(--text);
+  background: var(--cta); color: var(--on-cta);
   font-size: 12px; font-weight: 700;
   transition: transform 0.15s ease;
 }
 .set-complete:active { transform: scale(0.94); }
-.set-row.complete .set-complete { background: var(--green); }
+.set-row.complete .set-complete { background: var(--green); color: var(--on-cta); }
 
 .exercise-note {
   margin: 0;
@@ -709,7 +710,7 @@ input, textarea {
 }
 .session-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .session-nav button { background: var(--card); border: 1px solid var(--line); }
-.session-nav button:last-child { background: var(--cta); border-color: transparent; }
+.session-nav button:last-child { background: var(--cta); border-color: transparent; color: var(--on-cta); }
 .session-nav button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ---------- Progress ----------------------------------------------------- */
