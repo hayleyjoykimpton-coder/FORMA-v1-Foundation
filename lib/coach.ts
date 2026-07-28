@@ -532,3 +532,229 @@ export function weeklyReview(profile: UserProfile, history: WorkoutSession[]): W
 
   return { workouts, consistency, volume, strengthGained, summary, nextGoal };
 }
+
+// --------------------------------------------------------------------------
+// 12. This week's wins — rewarding progress moments
+// --------------------------------------------------------------------------
+
+export type WeeklyWin = {
+  id: string;
+  kind:
+    | "journey"
+    | "strength_up"
+    | "pr_weight"
+    | "volume"
+    | "glute"
+    | "streak"
+    | "consistency"
+    | "encourage";
+  title: string;
+  detail: string;
+};
+
+function sessionsInLastDays(history: WorkoutSession[], days: number): WorkoutSession[] {
+  const cutoff = Date.now() - days * DAY_MS;
+  return history.filter((session) => new Date(session.completedAt).getTime() >= cutoff);
+}
+
+function firstWorkingWeight(
+  history: WorkoutSession[],
+  key: string,
+  preferFoundation: boolean,
+): number | null {
+  for (const session of history) {
+    if (preferFoundation && session.season && session.season !== "Foundation") continue;
+    for (const result of session.exercises) {
+      const resultKey = result.libraryId ?? result.name;
+      if (resultKey !== key) continue;
+      const done = result.sets.filter((set) => set.complete);
+      if (!done.length) continue;
+      return Math.max(...done.map((set) => set.weight));
+    }
+  }
+  return null;
+}
+
+function latestWorkingWeight(history: WorkoutSession[], key: string): number | null {
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const session = history[i];
+    for (const result of session.exercises) {
+      const resultKey = result.libraryId ?? result.name;
+      if (resultKey !== key) continue;
+      const done = result.sets.filter((set) => set.complete);
+      if (!done.length) continue;
+      return Math.max(...done.map((set) => set.weight));
+    }
+  }
+  return null;
+}
+
+/**
+ * Ranked celebratory moments for the Progress tab.
+ * Prefers concrete strength/journey wins over soft encouragement.
+ */
+export function weeklyWins(profile: UserProfile, history: WorkoutSession[]): WeeklyWin[] {
+  const wins: WeeklyWin[] = [];
+  const thisWeek = sessionsInLastDays(history, 7);
+  const priorWeek = history.filter((session) => {
+    const age = Date.now() - new Date(session.completedAt).getTime();
+    return age > 7 * DAY_MS && age <= 14 * DAY_MS;
+  });
+
+  // Journey: up since Foundation (or first logged weight).
+  const keys = new Map<string, string>();
+  for (const session of history) {
+    for (const result of session.exercises) {
+      const key = result.libraryId ?? result.name;
+      if (!keys.has(key)) keys.set(key, result.name);
+    }
+  }
+  let bestJourney: { name: string; delta: number } | null = null;
+  for (const [key, name] of keys) {
+    const foundation = firstWorkingWeight(history, key, true);
+    const first = foundation ?? firstWorkingWeight(history, key, false);
+    const latest = latestWorkingWeight(history, key);
+    if (first == null || latest == null) continue;
+    const delta = Math.round((latest - first) * 10) / 10;
+    if (delta < 2.5) continue;
+    if (!bestJourney || delta > bestJourney.delta) bestJourney = { name, delta };
+  }
+  if (bestJourney) {
+    wins.push({
+      id: "journey",
+      kind: "journey",
+      title: `${bestJourney.name} +${bestJourney.delta} kg`,
+      detail: "Since your Foundation baseline — the long game is working.",
+    });
+  }
+
+  // Session-to-session strength jumps.
+  const trends = strengthTrends(history)
+    .filter((trend) => trend.trend === "improving" && trend.current > trend.previous)
+    .map((trend) => ({
+      name: trend.name,
+      delta: Math.round((trend.current - trend.previous) * 10) / 10,
+    }))
+    .sort((a, b) => b.delta - a.delta);
+  for (const trend of trends.slice(0, 2)) {
+    if (trend.delta <= 0) continue;
+    wins.push({
+      id: `strength-${trend.name}`,
+      kind: "strength_up",
+      title: `${trend.name} +${trend.delta} kg`,
+      detail: "Up since your last session on this lift.",
+    });
+  }
+
+  // Heaviest set logged this week (if it matches all-time heaviest).
+  const records = personalRecords(history);
+  if (records.heaviestWeight && thisWeek.length) {
+    const name = records.heaviestWeight.name;
+    const value = records.heaviestWeight.value;
+    const hitThisWeek = thisWeek.some((session) =>
+      session.exercises.some((result) =>
+        result.name === name &&
+        result.sets.some((set) => set.complete && set.weight >= value),
+      ),
+    );
+    if (hitThisWeek) {
+      wins.push({
+        id: "pr-weight",
+        kind: "pr_weight",
+        title: `${value} kg on ${name}`,
+        detail: "Heaviest set in your log — and it happened this week.",
+      });
+    }
+  }
+
+  // Volume wow vs prior week.
+  const weekVolume = Math.round(thisWeek.reduce((sum, session) => sum + sessionVolume(session), 0));
+  const priorVolume = Math.round(priorWeek.reduce((sum, session) => sum + sessionVolume(session), 0));
+  if (weekVolume > 0 && priorVolume > 0 && weekVolume > priorVolume) {
+    const pct = Math.round(((weekVolume - priorVolume) / priorVolume) * 100);
+    if (pct >= 10) {
+      wins.push({
+        id: "volume",
+        kind: "volume",
+        title: `Training volume +${pct}%`,
+        detail: "More quality work than last week.",
+      });
+    }
+  } else if (weekVolume > 0 && priorVolume === 0 && thisWeek.length >= 2) {
+    wins.push({
+      id: "volume",
+      kind: "volume",
+      title: `${weekVolume.toLocaleString()} kg moved`,
+      detail: "A full week of training volume on the board.",
+    });
+  }
+
+  // Glute focus for FORMA's physique goal.
+  const glute = gluteScore(history, profile.trainingDays);
+  if (glute.gluteSets >= 8) {
+    wins.push({
+      id: "glute",
+      kind: "glute",
+      title: `${glute.gluteSets} glute sets this week`,
+      detail: `Glute score ${glute.score} · ${glute.band}.`,
+    });
+  }
+
+  const streak = currentStreak(history);
+  if (streak >= 3) {
+    wins.push({
+      id: "streak",
+      kind: "streak",
+      title: `${streak}-day training streak`,
+      detail: "Consistency is the quiet flex.",
+    });
+  }
+
+  const review = weeklyReview(profile, history);
+  if (review.consistency >= 100 && review.workouts > 0) {
+    wins.push({
+      id: "consistency",
+      kind: "consistency",
+      title: "Full training week complete",
+      detail: `All ${profile.trainingDays} planned sessions logged.`,
+    });
+  }
+
+  // Deduplicate by kind preference order and cap.
+  const priority: WeeklyWin["kind"][] = [
+    "journey",
+    "pr_weight",
+    "strength_up",
+    "consistency",
+    "glute",
+    "volume",
+    "streak",
+    "encourage",
+  ];
+  const picked: WeeklyWin[] = [];
+  const seenKinds = new Set<string>();
+  for (const kind of priority) {
+    for (const win of wins) {
+      if (win.kind !== kind) continue;
+      if (kind !== "strength_up" && seenKinds.has(kind)) continue;
+      if (picked.some((item) => item.id === win.id)) continue;
+      picked.push(win);
+      seenKinds.add(kind);
+      if (picked.length >= 5) break;
+    }
+    if (picked.length >= 5) break;
+  }
+
+  if (!picked.length) {
+    picked.push({
+      id: "encourage",
+      kind: "encourage",
+      title: thisWeek.length ? "Session logged — well done" : "A quiet week so far",
+      detail: thisWeek.length
+        ? "Show up again and the wins will stack."
+        : "One session is enough to restart the story.",
+    });
+  }
+
+  return picked;
+}
