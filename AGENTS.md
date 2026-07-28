@@ -22,3 +22,9 @@
 ## Dev tip: email confirmation
 Supabase Free often rate-limits confirmation emails. For local testing, turn off
 **Authentication → Providers → Email → Confirm email**, then sign up with your real address.
+
+## Cursor Cloud specific instructions
+
+- Dev: `pnpm install` then `pnpm dev` (port 3000). Lint/test via `pnpm lint` / `pnpm test` when present.
+- Auth is **client-side** (`lib/supabase.ts`, `lib/sync.ts`). `middleware.ts` is a pass-through — do **not** re-wire Supabase Edge session refresh without verifying Vercel preview; it previously caused `MIDDLEWARE_INVOCATION_FAILED` (500) on `/`.
+- For cloud auth on Vercel preview/prod, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or anon key) in the Vercel project env, then redeploy. Without keys the site still loads in local-only mode.
