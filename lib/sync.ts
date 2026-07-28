@@ -18,6 +18,8 @@ export type CloudState = {
   workouts: Workout[];
   history: WorkoutSession[];
   week: number;
+  /** Programme template version stored with cloud state (for refresh). */
+  schemaVersion: number;
   progress: ProgressEntry[];
   photos: ProgressPhoto[];
   water: { date: string; count: number } | null;
@@ -137,6 +139,7 @@ export async function pullCloudState(userId: string): Promise<CloudState | null>
     workouts: state?.workouts ?? [],
     history: state?.history ?? [],
     week: state?.programme?.week ?? 1,
+    schemaVersion: state?.programme?.schemaVersion ?? 1,
     progress: state?.progress ?? [],
     photos: state?.photos ?? [],
     water: state?.water?.date

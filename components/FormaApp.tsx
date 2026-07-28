@@ -161,8 +161,13 @@ export default function FormaApp() {
     // Prefer cloud when it has a profile; otherwise keep local and upload.
     if (cloud?.profile) {
       let nextWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
-      if (cloud.workouts.length === 0) {
-        nextWorkouts = generateProgram(cloud.profile);
+      const needsRefresh =
+        cloud.workouts.length === 0 || cloud.schemaVersion < PROGRAM_SCHEMA_VERSION;
+      if (needsRefresh) {
+        nextWorkouts = transferExerciseWeights(
+          cloud.workouts.length ? cloud.workouts : local.workouts,
+          generateProgram(cloud.profile),
+        );
       }
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
@@ -181,6 +186,14 @@ export default function FormaApp() {
       saveProfile(cloud.profile);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
       window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
+      window.localStorage.setItem(
+        STORAGE.program,
+        JSON.stringify({
+          week: cloud.week,
+          programId: FORMA_PROGRAM.id,
+          schemaVersion: PROGRAM_SCHEMA_VERSION,
+        }),
+      );
       saveProgress(cloud.progress);
       savePhotos(cloud.photos);
     } else {
