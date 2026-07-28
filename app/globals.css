@@ -567,6 +567,86 @@ button:disabled { cursor: not-allowed; }
   line-height: 1.5;
 }
 
+/* ---------- Gratitude & breathwork -------------------------------------- */
+
+.gratitude-card { display: flex; flex-direction: column; gap: 14px; }
+.gratitude-lead { margin: 0; }
+.gratitude-list { display: flex; flex-direction: column; gap: 12px; }
+.gratitude-row { display: flex; flex-direction: column; gap: 6px; }
+.gratitude-row input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: #fdfbf8;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+.gratitude-history { display: grid; gap: 10px; }
+.gratitude-history-card ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.breath-cta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.breath-protocol-list { display: grid; gap: 10px; margin-top: 8px; }
+.breath-protocol-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  padding: 16px;
+}
+.breath-protocol-card strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.breath-protocol-card small { display: block; line-height: 1.4; }
+.breath-protocol-meta {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.breath-run {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding-top: 24px;
+}
+.breath-orb {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, #f7ebe3, #d8c4b4 55%, #b89a86);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 42px;
+  box-shadow: 0 18px 40px rgba(74, 55, 44, 0.18);
+  transition: transform 1s ease-in-out, opacity 1s ease-in-out;
+}
+.breath-orb.expand { transform: scale(1.12); opacity: 1; }
+.breath-orb.contract { transform: scale(0.82); opacity: 0.88; }
+.breath-orb.hold { transform: scale(1); opacity: 0.95; }
+.breath-phase-label {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 400;
+  margin: 0;
+}
+.breath-done { text-align: center; padding-top: 40px; }
+
 /* ---------- Weekly schedule --------------------------------------------- */
 
 .weekly-schedule { display: grid; gap: 10px; }
