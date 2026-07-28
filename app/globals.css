@@ -1042,6 +1042,73 @@ button.avatar { padding: 0; }
 .dash-row span { color: var(--text-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
 .dash-row strong { font-size: 14px; text-align: right; }
 
+/* Post-session progression cues */
+.progression-cues-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.progression-cue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.progression-cue {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(74, 55, 44, 0.1);
+  background: rgba(255, 252, 247, 0.85);
+}
+.progression-cue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.progression-cue-head strong {
+  font-size: 15px;
+}
+.cue-pill {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  background: var(--wash-earth);
+  color: var(--text);
+}
+.cue-pill.action-add {
+  background: linear-gradient(160deg, var(--wash-green), var(--green));
+  color: #24301f;
+}
+.cue-pill.action-deload {
+  background: linear-gradient(160deg, var(--wash-earth), var(--mocha));
+  color: var(--text);
+}
+.cue-pill.action-hold,
+.cue-pill.action-repeat,
+.cue-pill.action-baseline {
+  background: linear-gradient(160deg, var(--wash-blue), var(--blue));
+  color: #243040;
+}
+.progression-cue-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.progression-cue-meta strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
 /* Glute score */
 .glute-card { display: flex; flex-direction: column; gap: 14px; }
 .glute-score { display: flex; align-items: center; gap: 14px; }

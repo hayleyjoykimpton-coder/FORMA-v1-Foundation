@@ -10,13 +10,19 @@
 
 import type { Exercise, ExerciseResult, SetResult, Workout, WorkoutSession } from "./types";
 import type { PhaseDefinition } from "./program";
+import { getExercise } from "./exercises";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+export type ProgressionAction = "add" | "hold" | "deload" | "baseline" | "repeat";
+
 export type Recommendation = {
+  /** Machine-readable cue for UI pills / post-session cards. */
+  action: ProgressionAction;
   title: string;
   detail: string;
   targetWeight: number;
+  previousWeight?: number;
 };
 
 /** Estimated 1RM (Epley). Returns 0 for empty/invalid input. */
@@ -80,6 +86,7 @@ export function getRecommendation(
 
   if (!previous) {
     return {
+      action: "baseline",
       title: "Establish your baseline",
       detail: `${exercise.weight} kg for ${exercise.repMin}–${exercise.repMax} reps at about RPE ${exercise.rpe}.`,
       targetWeight: exercise.weight,
@@ -89,9 +96,11 @@ export function getRecommendation(
   const completed = previous.sets.filter((set) => set.complete);
   if (!completed.length) {
     return {
+      action: "repeat",
       title: "Repeat the planned target",
       detail: "The previous session was not completed.",
       targetWeight: exercise.weight,
+      previousWeight: exercise.weight,
     };
   }
 
@@ -102,25 +111,31 @@ export function getRecommendation(
   if (allTopRange && averageRpe <= increaseCeiling) {
     const next = previousWeight + exercise.increment;
     return {
+      action: "add",
       title: `Increase to ${next} kg`,
-      detail: `You reached the top of the rep range with manageable effort.`,
+      detail: `You hit ${exercise.repMax} reps with manageable effort — add load next time.`,
       targetWeight: next,
+      previousWeight,
     };
   }
 
   if (averageRpe >= backoffFloor) {
     const next = Math.max(0, previousWeight - exercise.increment);
     return {
+      action: "deload",
       title: `Reduce to ${next} kg`,
-      detail: "Effort was very high. Reduce the load and rebuild clean reps.",
+      detail: "Effort was very high. Back off and rebuild clean, strong reps.",
       targetWeight: next,
+      previousWeight,
     };
   }
 
   return {
+    action: "hold",
     title: `Stay at ${previousWeight} kg`,
-    detail: `Add reps until every completed set reaches ${exercise.repMax}.`,
+    detail: `Add reps until every completed set reaches ${exercise.repMax}, then increase.`,
     targetWeight: previousWeight,
+    previousWeight,
   };
 }
 
@@ -147,6 +162,89 @@ export function createSessionResults(
       })),
     };
   });
+}
+
+export type ProgressionCue = {
+  exercise: Exercise;
+  recommendation: Recommendation;
+};
+
+function isCompoundLift(exercise: Exercise): boolean {
+  const definition = getExercise(exercise.exerciseId);
+  if (!definition) return true;
+  return (
+    definition.movementPattern === "hinge" ||
+    definition.movementPattern === "squat" ||
+    definition.movementPattern === "lunge" ||
+    definition.movementPattern === "push" ||
+    definition.movementPattern === "pull"
+  );
+}
+
+/**
+ * Post-session cues for the next time this workout runs.
+ * Prefer compound lifts; `history` should include the session just finished.
+ */
+export function sessionProgressionCues(
+  workout: Workout,
+  history: WorkoutSession[],
+  phase?: PhaseDefinition,
+  options?: { compoundsOnly?: boolean; limit?: number },
+): ProgressionCue[] {
+  const compoundsOnly = options?.compoundsOnly ?? true;
+  const limit = options?.limit ?? 4;
+
+  const cues = workout.exercises
+    .filter((exercise) => (compoundsOnly ? isCompoundLift(exercise) : true))
+    .map((exercise) => ({
+      exercise,
+      recommendation: getRecommendation(exercise, history, phase),
+    }));
+
+  // Surface actionable changes first (add/deload), then holds.
+  const priority = (action: ProgressionAction) => {
+    if (action === "add") return 0;
+    if (action === "deload") return 1;
+    if (action === "hold") return 2;
+    return 3;
+  };
+
+  return [...cues]
+    .sort((a, b) => priority(a.recommendation.action) - priority(b.recommendation.action))
+    .slice(0, limit);
+}
+
+/** Write cue target weights back onto the programmed workout. */
+export function applyProgressionCuesToWorkout(
+  workout: Workout,
+  cues: ProgressionCue[],
+): Workout {
+  const targets = new Map(
+    cues.map((cue) => [cue.exercise.id, cue.recommendation.targetWeight] as const),
+  );
+  return {
+    ...workout,
+    exercises: workout.exercises.map((exercise) =>
+      targets.has(exercise.id)
+        ? { ...exercise, weight: targets.get(exercise.id) ?? exercise.weight }
+        : exercise,
+    ),
+  };
+}
+
+export function progressionActionLabel(action: ProgressionAction): string {
+  switch (action) {
+    case "add":
+      return "Add";
+    case "hold":
+      return "Hold";
+    case "deload":
+      return "Deload";
+    case "baseline":
+      return "Baseline";
+    case "repeat":
+      return "Repeat";
+  }
 }
 
 export type PersonalBest = {

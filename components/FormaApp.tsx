@@ -32,7 +32,14 @@ import {
   FORMA_PROGRAM,
 } from "@/lib/program";
 import type { PhaseId } from "@/lib/program";
-import { createSessionResults, getRecommendation, uid } from "@/lib/progression";
+import {
+  applyProgressionCuesToWorkout,
+  createSessionResults,
+  getRecommendation,
+  progressionActionLabel,
+  sessionProgressionCues,
+  uid,
+} from "@/lib/progression";
 import {
   buildVolumeSeries,
   computeStreak,
@@ -144,6 +151,7 @@ export default function FormaApp() {
   const [authMode, setAuthMode] = useState<AuthMode>("booting");
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [syncNote, setSyncNote] = useState<string | null>(null);
+  const [cueSessionId, setCueSessionId] = useState<string | null>(null);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
@@ -439,6 +447,7 @@ export default function FormaApp() {
     () => (history.length ? postWorkoutSummary(history[history.length - 1], history) : []),
     [history],
   );
+  const latestSession = history.length ? history[history.length - 1] : null;
   // The weekly schedule reflects the user's actual (personalised) plan.
   const weeklySchedule = useMemo(
     () =>
@@ -460,6 +469,18 @@ export default function FormaApp() {
   const sessionsThisWeek = history.filter((entry) => cycleWeek(entry.week ?? 1) === weekInCycle).length;
   const weekComplete =
     !!profile && !alignActive && sessionsThisWeek >= profile.trainingDays;
+
+  const progressionCues = useMemo(() => {
+    if (!latestSession) return [];
+    const workout = workouts.find((item) => item.id === latestSession.workoutId);
+    if (!workout) return [];
+    return sessionProgressionCues(workout, history, phaseDef, {
+      compoundsOnly: true,
+      limit: 4,
+    });
+  }, [history, workouts, latestSession, phaseDef]);
+  const showProgressionCues =
+    !!latestSession && (!cueSessionId || cueSessionId === latestSession.id);
 
   const applyGeneratedProgram = (
     nextProfile: UserProfile,
@@ -657,11 +678,24 @@ export default function FormaApp() {
       exercises,
     };
     setHistory((current) => [...current, completed]);
+    setCueSessionId(completed.id);
     persistSessionDraft(null);
     setPausedDraft(null);
     setSession(null);
     setRestRemaining(0);
     setTab("progress");
+  };
+
+  const applyProgressionCues = () => {
+    if (!latestSession || !progressionCues.length) return;
+    setWorkouts((current) =>
+      current.map((workout) =>
+        workout.id === latestSession.workoutId
+          ? applyProgressionCuesToWorkout(workout, progressionCues)
+          : workout,
+      ),
+    );
+    setSyncNote("Next-session loads updated on your programme");
   };
 
   const parseNumberInput = (raw: string): number => {
@@ -1602,6 +1636,40 @@ export default function FormaApp() {
                       <p>{latestSummary.slice(1).join(" ")}</p>
                     </div>
                   )}
+                </article>
+              </>
+            )}
+
+            {showProgressionCues && progressionCues.length > 0 && (
+              <>
+                <SectionHeading eyebrow="Next session" title="Progression cues" />
+                <article className="card progression-cues-card">
+                  <p className="muted">
+                    Based on {latestSession?.workoutTitle ?? "your last session"} — what to do next time.
+                  </p>
+                  <div className="progression-cue-list">
+                    {progressionCues.map(({ exercise, recommendation }) => (
+                      <div className={`progression-cue action-${recommendation.action}`} key={exercise.id}>
+                        <div className="progression-cue-head">
+                          <strong>{exercise.name}</strong>
+                          <span className={`cue-pill action-${recommendation.action}`}>
+                            {progressionActionLabel(recommendation.action)}
+                          </span>
+                        </div>
+                        <p>{recommendation.title}</p>
+                        <small className="muted">{recommendation.detail}</small>
+                        <div className="progression-cue-meta">
+                          {typeof recommendation.previousWeight === "number" ? (
+                            <span>{recommendation.previousWeight} kg →</span>
+                          ) : null}
+                          <strong>{recommendation.targetWeight} kg</strong>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" className="secondary-btn" onClick={applyProgressionCues}>
+                    Apply loads to programme
+                  </button>
                 </article>
               </>
             )}
