@@ -31,6 +31,7 @@ Supabase Free often rate-limits confirmation emails. For local testing, turn off
 - Wellness foundations: daily gratitude on Today (`lib/wellness.ts`); guided breathwork on Recovery (`components/Breathwork.tsx`). Recovery readiness % comes from recent session readiness **and** standalone check-ins — not a hardcoded score.
 - Daily sleep hours + steps live in `wellness.daily` (Today · Body signals). Profile `sleepAverage` / `dailySteps` remain goals/defaults, not the day log.
 - Exercise form videos: curated YouTube links + search fallback (`lib/exerciseVideos.ts`). Users can paste their own YouTube/Vimeo URL on each exercise in Training edit. **Do not** store uploaded video files in localStorage / `user_state` JSON — needs Supabase Storage later (with App Store / Capacitor path).
+- Nutrition: goal-aware targets from `profile.nutritionGoal` (`lib/nutritionTargets.ts`). Meal log + optional AI photo via `POST /api/analyze-meal` (`OPENAI_API_KEY` server-only). Without the key, manual macros still work. Meals sync under `programme.meals`.
 
 ## Product note — App Store (paused)
 Hayley asked to **pause** native App Store work for now. Preferred path later: **Capacitor iOS wrapper** around the existing Next.js app (then HealthKit + real push).

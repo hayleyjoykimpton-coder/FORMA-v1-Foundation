@@ -5,7 +5,6 @@ import {
   COACH_REMINDERS,
   HYDRATION_GOAL,
   IMAGES,
-  NUTRITION_TARGETS,
   PHASES,
   imageForExercise,
   imageForWorkout,
@@ -49,7 +48,7 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
-import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
+import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import {
   generateProgram,
@@ -99,10 +98,21 @@ import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progre
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
 import { AuthScreen } from "@/components/AuthScreen";
 import { BreathworkSession } from "@/components/Breathwork";
+import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
+import {
+  addMeal,
+  dayMacroTotals,
+  loadMeals,
+  mealsForDay,
+  removeMeal,
+  saveMeals,
+  type MealsState,
+} from "@/lib/meals";
+import { suggestionForRemaining, targetsForProfile } from "@/lib/nutritionTargets";
 import {
   GRATITUDE_PROMPTS,
   GRATITUDE_SLOTS,
@@ -183,6 +193,8 @@ export default function FormaApp() {
   });
   const [breathworkOpen, setBreathworkOpen] = useState(false);
   const [standaloneReadiness, setStandaloneReadiness] = useState(false);
+  const [mealLogOpen, setMealLogOpen] = useState(false);
+  const [meals, setMeals] = useState<MealsState>({ entries: [] });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
@@ -220,6 +232,7 @@ export default function FormaApp() {
     setWater(state.water);
     setJournal(state.journal);
     setWellness(state.wellness);
+    setMeals(loadMeals());
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
@@ -266,6 +279,7 @@ export default function FormaApp() {
       setProgressPhotos(cloud.photos);
       setJournal(cloud.journal);
       setWellness(cloud.wellness);
+      setMeals(cloud.meals);
       if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
       else setWater(0);
       const today = pickTodaysWorkout(nextWorkouts);
@@ -275,6 +289,7 @@ export default function FormaApp() {
       }
       saveProfile(cloud.profile);
       saveWellness(cloud.wellness);
+      saveMeals(cloud.meals);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
       window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
       window.localStorage.setItem(
@@ -301,6 +316,7 @@ export default function FormaApp() {
           water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
           journal: cloud.journal,
           wellness: cloud.wellness,
+          meals: cloud.meals,
           sessionDraft: cloud.sessionDraft,
         });
       }
@@ -320,6 +336,7 @@ export default function FormaApp() {
         water: { date: new Date().toDateString(), count: local.water },
         journal: local.journal,
         wellness: local.wellness,
+        meals: loadMeals(),
         sessionDraft: local.sessionDraft,
       });
     }
@@ -425,6 +442,7 @@ export default function FormaApp() {
           water: { date: new Date().toDateString(), count: water },
           journal,
           wellness,
+          meals,
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
@@ -448,6 +466,7 @@ export default function FormaApp() {
     water,
     journal,
     wellness,
+    meals,
     pausedDraft,
     hydrated,
   ]);
@@ -469,6 +488,11 @@ export default function FormaApp() {
     if (!hydrated) return;
     saveWellness(wellness);
   }, [wellness, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveMeals(meals);
+  }, [meals, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -1095,6 +1119,24 @@ export default function FormaApp() {
     );
   }
 
+  if (mealLogOpen && profile) {
+    const nutritionTargets = targetsForProfile(profile);
+    const eaten = dayMacroTotals(meals);
+    return (
+      <MealLogSheet
+        targets={nutritionTargets}
+        nutritionGoal={profile.nutritionGoal}
+        eaten={eaten}
+        onCancel={() => setMealLogOpen(false)}
+        onSave={(draft) => {
+          setMeals((current) => addMeal(current, draft));
+          setMealLogOpen(false);
+          setSyncNote(`Meal saved · ${draft.macros.calories || "—"} kcal`);
+        }}
+      />
+    );
+  }
+
   if (session && activeWorkout) {
     const exercise = activeWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
@@ -1524,21 +1566,121 @@ export default function FormaApp() {
             </article>
 
             <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
-            <div className="stat-grid three">
-              {NUTRITION_TARGETS.map((target) => (
-                <StatTile key={target.label} label={target.label} value={target.value} note={target.unit} accent={target.accent} />
-              ))}
-            </div>
-            <article
-              className="card image-card"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 40%, rgba(74,55,44,.5)), url(${IMAGES.nutrition})` }}
-            >
-              <div className="image-card-copy">
-                <span className="eyebrow light">Meals</span>
-                <h3>Balanced, protein-led plates</h3>
-                <span className="link-cue">Bright greens · lean protein · slow carbs</span>
-              </div>
-            </article>
+            {(() => {
+              const nutritionTargets = targetsForProfile(profile);
+              const eaten = dayMacroTotals(meals, todayISO);
+              const todayMeals = mealsForDay(meals, todayISO);
+              const tip = suggestionForRemaining(nutritionTargets, eaten);
+              return (
+                <>
+                  <p className="muted nutrition-goal-line">
+                    Goal from settings: <strong>{NUTRITION_LABELS[profile.nutritionGoal]}</strong>
+                    {" · "}
+                    {nutritionTargets.note}
+                  </p>
+                  <div className="stat-grid three">
+                    <StatTile
+                      label="Calories"
+                      value={`${eaten.calories}`}
+                      note={`/ ${nutritionTargets.calories} kcal`}
+                      accent="mocha"
+                    />
+                    <StatTile
+                      label="Protein"
+                      value={`${eaten.protein}g`}
+                      note={`/ ${nutritionTargets.protein}g`}
+                      accent="mocha"
+                    />
+                    <StatTile
+                      label="Meals"
+                      value={`${todayMeals.length}`}
+                      note={`/ ${nutritionTargets.mealsPlanned} logged`}
+                      accent="sage"
+                    />
+                  </div>
+                  <article className="card nutrition-progress-card">
+                    <div className="nutrition-bars">
+                      {(
+                        [
+                          ["Calories", eaten.calories, nutritionTargets.calories],
+                          ["Protein", eaten.protein, nutritionTargets.protein],
+                          ["Carbs", eaten.carbs, nutritionTargets.carbs],
+                          ["Fat", eaten.fat, nutritionTargets.fat],
+                        ] as const
+                      ).map(([label, value, target]) => {
+                        const pct = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+                        return (
+                          <div key={label} className="nutrition-bar-row">
+                            <div className="nutrition-bar-meta">
+                              <span>{label}</span>
+                              <small>
+                                {value} / {target}
+                                {label === "Calories" ? " kcal" : "g"}
+                              </small>
+                            </div>
+                            <div className="nutrition-bar-track">
+                              <span style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="meal-suggestion">{tip}</p>
+                    <button type="button" className="cta-btn" onClick={() => setMealLogOpen(true)}>
+                      Log meal · photo or manual
+                    </button>
+                  </article>
+                  {todayMeals.length > 0 ? (
+                    <div className="meal-list">
+                      {todayMeals.map((meal) => (
+                        <article key={meal.id} className="card meal-list-card">
+                          <div className="meal-list-head">
+                            <div>
+                              <strong>{meal.name}</strong>
+                              <small className="muted">
+                                {meal.macros.calories} kcal · {meal.macros.protein}g P · {meal.macros.carbs}g C ·{" "}
+                                {meal.macros.fat}g F
+                                {meal.source !== "manual" ? " · AI assist" : ""}
+                              </small>
+                            </div>
+                            <button
+                              type="button"
+                              className="text-btn"
+                              onClick={() => setMeals((current) => removeMeal(current, meal.id))}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          {meal.ingredients ? <p className="muted meal-ingredients">{meal.ingredients}</p> : null}
+                          {meal.suggestion ? <p className="meal-suggestion tight">{meal.suggestion}</p> : null}
+                          {meal.photo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={meal.photo} alt="" className="meal-thumb" />
+                          ) : null}
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <article
+                      className="card image-card"
+                      style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 40%, rgba(74,55,44,.5)), url(${IMAGES.nutrition})` }}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setMealLogOpen(true)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") setMealLogOpen(true);
+                      }}
+                    >
+                      <div className="image-card-copy">
+                        <span className="eyebrow light">Meals</span>
+                        <h3>Snap a plate or log macros</h3>
+                        <span className="link-cue">AI estimates · edit anytime ›</span>
+                      </div>
+                    </article>
+                  )}
+                </>
+              );
+            })()}
 
             <SectionHeading eyebrow="Hydration" title="Water intake" />
             <article className="card hydration-card">

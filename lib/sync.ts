@@ -13,6 +13,7 @@ import type { SessionDraftStored } from "./migrations";
 import { FORMA_PROGRAM } from "./program";
 import { PROGRAM_SCHEMA_VERSION } from "./programGenerator";
 import { normalizeWellness, type WellnessState } from "./wellness";
+import { normalizeMeals, type MealsState } from "./meals";
 
 export type CloudState = {
   profile: UserProfile | null;
@@ -27,6 +28,7 @@ export type CloudState = {
   water: { date: string; count: number } | null;
   journal: Record<string, string>;
   wellness: WellnessState;
+  meals: MealsState;
   sessionDraft: SessionDraftStored | null;
 };
 
@@ -63,6 +65,7 @@ type StateRow = {
     schemaVersion?: number;
     alignActive?: boolean;
     wellness?: WellnessState;
+    meals?: MealsState;
   };
   progress: ProgressEntry[];
   photos: ProgressPhoto[];
@@ -157,6 +160,7 @@ export async function pullCloudState(userId: string): Promise<CloudState | null>
       : null,
     journal: state?.journal ?? {},
     wellness: normalizeWellness(state?.programme?.wellness),
+    meals: normalizeMeals(state?.programme?.meals),
     sessionDraft: state?.session_draft ?? null,
   };
 }
@@ -182,6 +186,7 @@ export async function pushUserState(input: {
   water: { date: string; count: number };
   journal: Record<string, string>;
   wellness: WellnessState;
+  meals: MealsState;
   sessionDraft: SessionDraftStored | null;
 }): Promise<{ error?: string }> {
   const supabase = getSupabase();
@@ -199,6 +204,7 @@ export async function pushUserState(input: {
       schemaVersion: PROGRAM_SCHEMA_VERSION,
       alignActive: Boolean(input.alignActive),
       wellness: normalizeWellness(input.wellness),
+      meals: normalizeMeals(input.meals),
     },
     progress: input.progress,
     photos: input.photos,
