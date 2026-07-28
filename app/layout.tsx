@@ -15,8 +15,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FORMA — Editorial strength",
+  title: "FORMA",
   description: "A premium personal strength & wellness system.",
+  other: {
+    "theme-color": "#5B4337",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

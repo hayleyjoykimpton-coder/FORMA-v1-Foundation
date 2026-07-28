@@ -6,7 +6,7 @@ import type { Season } from "./types";
  * state/logic while the editorial copy, imagery and schedule live here.
  */
 
-export const USER_NAME = "Emma";
+export const USER_NAME = "Hayley";
 
 export const IMAGES = {
   hero: "/img/hero.jpg",
@@ -40,12 +40,12 @@ export type ScheduleDay = {
 };
 
 export const WEEKLY_SCHEDULE: ScheduleDay[] = [
-  { day: "Monday", short: "Mon", focus: "Lower Body", image: IMAGES.strength },
-  { day: "Tuesday", short: "Tue", focus: "Upper Body", image: IMAGES.strength },
-  { day: "Wednesday", short: "Wed", focus: "Recovery", image: IMAGES.recovery },
-  { day: "Thursday", short: "Thu", focus: "Lower Body", image: IMAGES.strength },
-  { day: "Friday", short: "Fri", focus: "Upper Body", image: IMAGES.strength },
-  { day: "Saturday", short: "Sat", focus: "Pilates", image: IMAGES.pilates },
+  { day: "Monday", short: "Mon", focus: "Glute Strength", image: IMAGES.strength },
+  { day: "Tuesday", short: "Tue", focus: "Upper Sculpt", image: IMAGES.strength },
+  { day: "Wednesday", short: "Wed", focus: "Glute Shape", image: IMAGES.strength },
+  { day: "Thursday", short: "Thu", focus: "Upper Strength", image: IMAGES.strength },
+  { day: "Friday", short: "Fri", focus: "Weighted Abs", image: IMAGES.strength },
+  { day: "Saturday", short: "Sat", focus: "Rest", image: IMAGES.recovery, rest: true },
   { day: "Sunday", short: "Sun", focus: "Rest", image: IMAGES.recovery, rest: true },
 ];
 

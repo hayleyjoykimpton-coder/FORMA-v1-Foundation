@@ -17,7 +17,7 @@ import type {
   Workout,
   WorkoutSession,
 } from "@/lib/types";
-import { buildWorkoutsForWeek, getPhaseForWeek } from "@/lib/program";
+import { buildWorkoutsForWeek, getPhaseForWeek, pickTodaysWorkout, FORMA_PROGRAM } from "@/lib/program";
 import { createSessionResults, getRecommendation, uid } from "@/lib/progression";
 import {
   buildVolumeSeries,
@@ -27,10 +27,11 @@ import {
   totalCompletedSets,
   weekSessionCount,
 } from "@/lib/analytics";
-import { STORAGE, loadForma } from "@/lib/migrations";
-import { GOAL_LABELS, loadProfile, saveProfile } from "@/lib/user";
+import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
+import { GOAL_LABELS, saveProfile } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
-import { generateProgram } from "@/lib/programGenerator";
+import { generateProgram, PROGRAM_SCHEMA_VERSION } from "@/lib/programGenerator";
+import { ensureHayleyData, transferExerciseWeights } from "@/lib/hayleySeed";
 import {
   adjustResultsForReadiness,
   coachDashboard,
@@ -100,19 +101,41 @@ export default function FormaApp() {
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
   const [progressEntries, setProgressEntries] = useState<ProgressEntry[]>([]);
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
+  const [pausedDraft, setPausedDraft] = useState<SessionDraftStored | null>(null);
 
   useEffect(() => {
     try {
       const state = loadForma();
-      setWorkouts(state.workouts);
-      setActiveWorkoutId(state.workouts[0]?.id ?? "");
+      // Seed Hayley only when no profile exists — never overwrite saved data.
+      const savedProfile = ensureHayleyData();
+      let nextWorkouts = state.workouts;
+
+      // Programme schema bump (e.g. Weighted Abs day / no Pilates): rebuild
+      // from profile while keeping history, progress, photos, and exercise weights.
+      if (savedProfile && state.needsProgramRefresh) {
+        const generated = generateProgram(savedProfile);
+        nextWorkouts = transferExerciseWeights(state.workouts, generated);
+      }
+
+      setWorkouts(nextWorkouts);
       setHistory(state.history);
       setWeek(state.week);
       setWater(state.water);
       setJournal(state.journal);
-      setProfile(loadProfile());
+      setProfile(savedProfile);
       setProgressEntries(loadProgress());
       setProgressPhotos(loadPhotos());
+
+      const today = pickTodaysWorkout(nextWorkouts);
+      setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
+
+      // Crash recovery / resume: keep draft available without forcing the session open.
+      const draft = state.sessionDraft;
+      if (draft && nextWorkouts.some((workout) => workout.id === draft.workoutId)) {
+        setPausedDraft(draft);
+      } else if (draft) {
+        persistSessionDraft(null);
+      }
     } catch {
       // Keep safe defaults when stored data cannot be read.
     } finally {
@@ -124,8 +147,18 @@ export default function FormaApp() {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
     window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
-    window.localStorage.setItem(STORAGE.program, JSON.stringify({ week }));
+    window.localStorage.setItem(
+      STORAGE.program,
+      JSON.stringify({ week, programId: FORMA_PROGRAM.id, schemaVersion: PROGRAM_SCHEMA_VERSION }),
+    );
   }, [workouts, history, week, hydrated]);
+
+  // Autosave live session so a mid-workout crash does not wipe progress.
+  useEffect(() => {
+    if (!hydrated || !session) return;
+    persistSessionDraft({ ...session, restRemaining });
+    setPausedDraft({ ...session, restRemaining });
+  }, [session, restRemaining, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -159,6 +192,7 @@ export default function FormaApp() {
   }, [restRemaining]);
 
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
+  const todaysWorkout = useMemo(() => pickTodaysWorkout(workouts), [workouts]);
   const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
   const streak = useMemo(() => computeStreak(history), [history]);
   const completedSets = useMemo(() => totalCompletedSets(history), [history]);
@@ -190,9 +224,14 @@ export default function FormaApp() {
   const season = phaseDef.id;
 
   const applyGeneratedProgram = (nextProfile: UserProfile) => {
-    const generated = generateProgram(nextProfile);
+    const generated = transferExerciseWeights(workouts, generateProgram(nextProfile));
     setWorkouts(generated);
-    setActiveWorkoutId(generated[0]?.id ?? "");
+    const today = pickTodaysWorkout(generated);
+    setActiveWorkoutId(today?.id ?? generated[0]?.id ?? "");
+    // New workout ids invalidate any in-progress draft.
+    persistSessionDraft(null);
+    setPausedDraft(null);
+    setSession(null);
   };
 
   const handleOnboardingComplete = (nextProfile: UserProfile) => {
@@ -251,8 +290,45 @@ export default function FormaApp() {
     const results = adjustResultsForReadiness(base, readiness);
     setActiveWorkoutId(workout.id);
     setSession({ workoutId: workout.id, exerciseIndex: 0, results, readiness: readiness.score });
+    setPausedDraft(null);
     setReadinessWorkout(null);
     setTab("today");
+    setRestRemaining(0);
+  };
+
+  const exitSession = () => {
+    if (session) {
+      const draft = { ...session, restRemaining };
+      persistSessionDraft(draft);
+      setPausedDraft(draft);
+    }
+    setSession(null);
+    setRestRemaining(0);
+  };
+
+  const resumePausedSession = () => {
+    if (!pausedDraft) return;
+    const workout = workouts.find((item) => item.id === pausedDraft.workoutId);
+    if (!workout) {
+      persistSessionDraft(null);
+      setPausedDraft(null);
+      return;
+    }
+    setActiveWorkoutId(workout.id);
+    setSession({
+      workoutId: pausedDraft.workoutId,
+      exerciseIndex: pausedDraft.exerciseIndex,
+      results: pausedDraft.results,
+      readiness: pausedDraft.readiness,
+    });
+    setRestRemaining(pausedDraft.restRemaining ?? 0);
+    setTab("today");
+  };
+
+  const discardPausedSession = () => {
+    persistSessionDraft(null);
+    setPausedDraft(null);
+    setSession(null);
     setRestRemaining(0);
   };
 
@@ -273,9 +349,17 @@ export default function FormaApp() {
       exercises,
     };
     setHistory((current) => [...current, completed]);
+    persistSessionDraft(null);
+    setPausedDraft(null);
     setSession(null);
     setRestRemaining(0);
     setTab("progress");
+  };
+
+  const parseNumberInput = (raw: string): number => {
+    if (raw.trim() === "") return 0;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : 0;
   };
 
   const updateWorkout = (id: string, patch: Partial<Workout>) => {
@@ -440,7 +524,7 @@ export default function FormaApp() {
         <div className="shell">
           <div className="screen session-screen">
             <header className="session-top">
-              <button className="ghost-btn" onClick={() => setSession(null)}>‹ Exit</button>
+              <button className="ghost-btn" onClick={exitSession}>‹ Exit</button>
               <div className="session-count">
                 <span className="eyebrow">{activeWorkout.title}</span>
                 <strong>{session.exerciseIndex + 1} / {activeWorkout.exercises.length}</strong>
@@ -492,15 +576,40 @@ export default function FormaApp() {
                     <strong>Set {setIndex + 1}</strong>
                     <label>
                       <span>kg</span>
-                      <input type="number" step="0.5" value={set.weight} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { weight: Number(event.target.value) })} />
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.5"
+                        value={set.weight === 0 ? "" : set.weight}
+                        placeholder="0"
+                        onFocus={(event) => event.target.select()}
+                        onChange={(event) => updateSet(session.exerciseIndex, setIndex, { weight: parseNumberInput(event.target.value) })}
+                      />
                     </label>
                     <label>
                       <span>reps</span>
-                      <input type="number" value={set.reps} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { reps: Number(event.target.value) })} />
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={set.reps === 0 ? "" : set.reps}
+                        placeholder="0"
+                        onFocus={(event) => event.target.select()}
+                        onChange={(event) => updateSet(session.exerciseIndex, setIndex, { reps: parseNumberInput(event.target.value) })}
+                      />
                     </label>
                     <label>
                       <span>RPE</span>
-                      <input type="number" min="1" max="10" step="0.5" value={set.rpe} onChange={(event) => updateSet(session.exerciseIndex, setIndex, { rpe: Number(event.target.value) })} />
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="1"
+                        max="10"
+                        step="0.5"
+                        value={set.rpe === 0 ? "" : set.rpe}
+                        placeholder="0"
+                        onFocus={(event) => event.target.select()}
+                        onChange={(event) => updateSet(session.exerciseIndex, setIndex, { rpe: parseNumberInput(event.target.value) })}
+                      />
                     </label>
                     <button
                       className="set-complete"
@@ -578,7 +687,7 @@ export default function FormaApp() {
   const greeting = greetingFor(new Date().getHours());
   const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayISO = new Date().toISOString().slice(0, 10);
-  const focusExercise = activeWorkout?.exercises[0];
+  const focusExercise = todaysWorkout?.exercises[0];
   const focusRec = focusExercise ? getRecommendation(focusExercise, history, phaseDef) : null;
   const goalLabel = GOAL_LABELS[profile.goal];
   const goalLower = goalLabel.toLowerCase();
@@ -592,7 +701,7 @@ export default function FormaApp() {
   return (
     <div className="app">
       <div className="shell">
-        {tab === "today" && activeWorkout && (
+        {tab === "today" && (
           <div className="screen home-screen">
             <header className="topbar">
               <span className="wordmark">FORMA</span>
@@ -608,10 +717,28 @@ export default function FormaApp() {
                 <h1 className="hero-name">{profile.firstName}</h1>
                 <div className="hero-tags">
                   <span className="hero-chip">Foundation Phase</span>
-                  <span className="hero-chip subtle">Today · {activeWorkout.title}</span>
+                  <span className="hero-chip subtle">
+                    Today · {todaysWorkout ? todaysWorkout.title : "Rest"}
+                  </span>
                 </div>
               </div>
             </section>
+
+            {pausedDraft && (
+              <article className="card resume-card">
+                <div>
+                  <span className="eyebrow">Unfinished session</span>
+                  <strong>
+                    {workouts.find((workout) => workout.id === pausedDraft.workoutId)?.title ?? "Workout"} saved
+                  </strong>
+                  <p className="muted">Your sets are still here — pick up where you left off.</p>
+                </div>
+                <div className="resume-actions">
+                  <button className="primary-btn" onClick={resumePausedSession}>Resume</button>
+                  <button className="ghost-btn" onClick={discardPausedSession}>Discard</button>
+                </div>
+              </article>
+            )}
 
             <div className="stat-grid three">
               <StatTile label="Day streak" value={String(streak)} note="Keep it going" />
@@ -619,16 +746,18 @@ export default function FormaApp() {
               <StatTile label="Weekly sets" value={String(weeklySets)} note="Planned" />
             </div>
 
-            <SectionHeading eyebrow="Today's workout" title={activeWorkout.title} />
+            {todaysWorkout ? (
+              <>
+            <SectionHeading eyebrow="Today's workout" title={todaysWorkout.title} />
             <article className="card workout-today">
               <div className="workout-today-media" style={{ backgroundImage: `url(${IMAGES.strength})` }}>
-                <span className="media-chip">{activeWorkout.duration} min</span>
-                <button className="media-edit" onClick={() => { setEditingWorkoutId(activeWorkout.id); setTab("training"); }}>Edit</button>
+                <span className="media-chip">{todaysWorkout.duration} min</span>
+                <button className="media-edit" onClick={() => { setEditingWorkoutId(todaysWorkout.id); setTab("training"); }}>Edit</button>
               </div>
               <div className="workout-today-body">
-                <span className="eyebrow">{activeWorkout.day} · Foundation</span>
+                <span className="eyebrow">{todaysWorkout.day} · Foundation</span>
                 <ul className="exercise-preview">
-                  {activeWorkout.exercises.map((item, index) => {
+                  {todaysWorkout.exercises.map((item, index) => {
                     const recommendation = getRecommendation(item, history, phaseDef);
                     return (
                       <li key={item.id}>
@@ -641,13 +770,24 @@ export default function FormaApp() {
                       </li>
                     );
                   })}
-                  {!activeWorkout.exercises.length && <li className="ep-empty">No exercises yet — add some in Training.</li>}
+                  {!todaysWorkout.exercises.length && <li className="ep-empty">No exercises yet — add some in Training.</li>}
                 </ul>
-                <button className="cta-btn" disabled={!activeWorkout.exercises.length} onClick={() => startWorkout(activeWorkout)}>
+                <button className="cta-btn" disabled={!todaysWorkout.exercises.length} onClick={() => startWorkout(todaysWorkout)}>
                   Start workout
                 </button>
               </div>
             </article>
+              </>
+            ) : (
+              <>
+                <SectionHeading eyebrow="Today" title="Rest day" />
+                <article className="card">
+                  <p className="muted">
+                    No recorded session today — recover, walk, or take an optional mobility / Pilates class if you feel like it. It doesn&apos;t need to be logged.
+                  </p>
+                </article>
+              </>
+            )}
 
             <SectionHeading eyebrow="Your coach" title="Daily note" />
             <article className="card coach-card">

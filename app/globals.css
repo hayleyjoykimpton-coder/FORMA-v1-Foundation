@@ -276,6 +276,30 @@ button:disabled { cursor: not-allowed; }
 /* ---------- Today's workout card ---------------------------------------- */
 
 .workout-today { padding: 0; overflow: hidden; }
+.resume-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #fff, #faf6f2);
+}
+.resume-card strong { display: block; color: var(--text); margin: 4px 0 6px; }
+.resume-card .muted { margin: 0; font-size: 0.92rem; }
+.resume-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.resume-actions .primary-btn,
+.resume-actions button.primary-btn {
+  border: 0;
+  border-radius: var(--r-btn);
+  background: var(--text);
+  color: #fff;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
 .workout-today-media {
   position: relative;
   height: 176px;

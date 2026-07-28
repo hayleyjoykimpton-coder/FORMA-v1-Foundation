@@ -118,11 +118,11 @@ export type Program = {
 
 /**
  * The default FORMA women's strength programme (Foundation block).
- * Glute-led lower days, posture-led upper days, dedicated core, and a
- * Pilates/mobility movement day — quads present but not over-emphasised.
+ * Glute-led lower days, posture-led upper days, and a dedicated weighted abs day.
+ * Pilates/mobility is optional and not part of the recorded programme.
  */
 export const FORMA_PROGRAM: Program = {
-  id: "forma-foundation-v1",
+  id: "forma-foundation-v2",
   name: "FORMA Foundation",
   phases: [
     {
@@ -139,7 +139,6 @@ export const FORMA_PROGRAM: Program = {
             { exerciseId: "leg_curl", sets: 3, repMin: 10, repMax: 15, startingWeight: 25 },
             { exerciseId: "cable_kickback", sets: 3, repMin: 12, repMax: 15, startingWeight: 10 },
             { exerciseId: "hip_abduction", sets: 3, repMin: 12, repMax: 20, startingWeight: 30 },
-            { exerciseId: "pallof_press", sets: 3, repMin: 10, repMax: 12, startingWeight: 10 },
           ],
         },
         {
@@ -153,20 +152,10 @@ export const FORMA_PROGRAM: Program = {
             { exerciseId: "lateral_raise", sets: 3, repMin: 12, repMax: 18, startingWeight: 6 },
             { exerciseId: "rear_delt_fly", sets: 3, repMin: 12, repMax: 18, startingWeight: 6 },
             { exerciseId: "bicep_curl", sets: 2, repMin: 10, repMax: 15, startingWeight: 8 },
-            { exerciseId: "cable_crunch", sets: 3, repMin: 12, repMax: 15, startingWeight: 20 },
           ],
         },
         {
           day: "Wednesday",
-          title: "Recovery",
-          type: "recovery",
-          slots: [
-            { exerciseId: "mobility_flow", sets: 2, repMin: 5, repMax: 8 },
-            { exerciseId: "hip_mobility", sets: 2, repMin: 5, repMax: 10 },
-          ],
-        },
-        {
-          day: "Thursday",
           title: "Glute Shape",
           type: "strength",
           slots: [
@@ -175,31 +164,38 @@ export const FORMA_PROGRAM: Program = {
             { exerciseId: "hip_thrust", sets: 3, repMin: 10, repMax: 12, startingWeight: 45 },
             { exerciseId: "cable_kickback", sets: 3, repMin: 12, repMax: 15, startingWeight: 10 },
             { exerciseId: "hip_abduction", sets: 3, repMin: 12, repMax: 20, startingWeight: 30 },
-            { exerciseId: "dead_bug", sets: 3, repMin: 8, repMax: 12, startingWeight: 0 },
           ],
         },
         {
-          day: "Friday",
-          title: "Upper + Core",
+          day: "Thursday",
+          title: "Upper Strength",
           type: "strength",
           slots: [
             { exerciseId: "chest_supported_row", sets: 3, repMin: 10, repMax: 12, startingWeight: 12 },
             { exerciseId: "shoulder_press", sets: 3, repMin: 8, repMax: 12, startingWeight: 12 },
             { exerciseId: "bicep_curl", sets: 2, repMin: 10, repMax: 15, startingWeight: 8 },
             { exerciseId: "triceps_pushdown", sets: 2, repMin: 10, repMax: 15, startingWeight: 15 },
+            { exerciseId: "lateral_raise", sets: 3, repMin: 12, repMax: 18, startingWeight: 6 },
+          ],
+        },
+        {
+          day: "Friday",
+          title: "Weighted Abs",
+          type: "strength",
+          slots: [
+            { exerciseId: "cable_crunch", sets: 3, repMin: 12, repMax: 15, startingWeight: 25 },
             { exerciseId: "hanging_knee_raise", sets: 3, repMin: 8, repMax: 15, startingWeight: 0 },
-            { exerciseId: "side_plank", sets: 3, repMin: 8, repMax: 12, startingWeight: 0 },
+            { exerciseId: "cable_woodchop", sets: 3, repMin: 10, repMax: 12, startingWeight: 15 },
+            { exerciseId: "russian_twist", sets: 3, repMin: 12, repMax: 16, startingWeight: 8 },
+            { exerciseId: "weighted_crunch", sets: 3, repMin: 12, repMax: 15, startingWeight: 10 },
+            { exerciseId: "pallof_press", sets: 3, repMin: 10, repMax: 12, startingWeight: 10 },
           ],
         },
         {
           day: "Saturday",
-          title: "Pilates / Movement",
-          type: "mobility",
-          slots: [
-            { exerciseId: "mobility_flow", sets: 2, repMin: 5, repMax: 8 },
-            { exerciseId: "core_control", sets: 3, repMin: 8, repMax: 12 },
-            { exerciseId: "hip_mobility", sets: 2, repMin: 5, repMax: 10 },
-          ],
+          title: "Rest",
+          type: "rest",
+          slots: [],
         },
         {
           day: "Sunday",
@@ -215,7 +211,7 @@ export const FORMA_PROGRAM: Program = {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 /** Day types that appear in the editable / startable `workouts` list. */
-const TRAINABLE: DayType[] = ["strength", "mobility"];
+const TRAINABLE: DayType[] = ["strength"];
 
 function estimateDuration(exercises: Exercise[]): number {
   const seconds = exercises.reduce(
@@ -262,7 +258,7 @@ function templateForPhase(program: Program, phase: PhaseId): PhaseTemplate {
 
 /**
  * Build the startable/editable workout list for a programme week.
- * Recovery and Rest days are display-only (see WEEKLY_SCHEDULE) and excluded.
+ * Recovery and Rest days are display-only and excluded.
  */
 export function buildWorkoutsForWeek(week: number, program: Program = FORMA_PROGRAM): Workout[] {
   const phase = getPhaseForWeek(week);
@@ -270,4 +266,17 @@ export function buildWorkoutsForWeek(week: number, program: Program = FORMA_PROG
   return template.days
     .filter((day) => TRAINABLE.includes(day.type))
     .map((day) => buildWorkout(day, phase));
+}
+
+/** Pick the workout that matches today's weekday.
+ *  Returns undefined on rest days (no matching startable workout).
+ */
+export function pickTodaysWorkout(workouts: Workout[]): Workout | undefined {
+  if (!workouts.length) return undefined;
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const match = workouts.find((workout) => workout.day === today);
+  if (match) return match;
+  // Don't fall back to Monday on rest days — the home screen shows Rest instead.
+  if (today === "Saturday" || today === "Sunday") return undefined;
+  return workouts[0];
 }

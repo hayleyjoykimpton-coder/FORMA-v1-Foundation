@@ -9,12 +9,15 @@
 
 import { EXERCISES, defaultIncrement, findExerciseIdByName } from "./exercises";
 import { FORMA_PROGRAM, buildWorkoutsForWeek } from "./program";
+import { PROGRAM_SCHEMA_VERSION } from "./programGenerator";
 import type { Exercise, ExerciseResult, Workout, WorkoutSession } from "./types";
 
 export const STORAGE = {
   workouts: "forma-workouts-v12",
   history: "forma-history-v12",
   program: "forma-program-v12",
+  /** In-progress live session draft (crash recovery). */
+  session: "forma-session-v1",
   // Ancillary trackers are unchanged across versions.
   water: "forma-water-v1",
   journal: "forma-journal-v1",
@@ -25,6 +28,14 @@ const LEGACY = {
   history: "forma-history-v11",
 };
 
+export type SessionDraftStored = {
+  workoutId: string;
+  exerciseIndex: number;
+  results: ExerciseResult[];
+  readiness?: number;
+  restRemaining?: number;
+};
+
 export type LoadedState = {
   workouts: Workout[];
   history: WorkoutSession[];
@@ -32,6 +43,9 @@ export type LoadedState = {
   water: number;
   journal: Record<string, string>;
   migrated: boolean;
+  /** True when the weekly programme structure should be regenerated from the profile. */
+  needsProgramRefresh: boolean;
+  sessionDraft: SessionDraftStored | null;
 };
 
 function normalizeExercise(exercise: Exercise): Exercise {
@@ -84,10 +98,31 @@ function readJournal(): Record<string, string> {
   }
 }
 
+function readSessionDraft(): SessionDraftStored | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE.session);
+    return raw ? (JSON.parse(raw) as SessionDraftStored) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function persistSessionDraft(draft: SessionDraftStored | null): void {
+  if (typeof window === "undefined") return;
+  if (!draft) {
+    window.localStorage.removeItem(STORAGE.session);
+    return;
+  }
+  window.localStorage.setItem(STORAGE.session, JSON.stringify(draft));
+}
+
 function persistCore(workouts: Workout[], history: WorkoutSession[], week: number) {
   window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
   window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
-  window.localStorage.setItem(STORAGE.program, JSON.stringify({ week, programId: FORMA_PROGRAM.id }));
+  window.localStorage.setItem(
+    STORAGE.program,
+    JSON.stringify({ week, programId: FORMA_PROGRAM.id, schemaVersion: PROGRAM_SCHEMA_VERSION }),
+  );
 }
 
 /**
@@ -102,6 +137,8 @@ export function loadForma(): LoadedState {
     water: 0,
     journal: {},
     migrated: false,
+    needsProgramRefresh: false,
+    sessionDraft: null,
   });
 
   if (typeof window === "undefined") return seed();
@@ -109,13 +146,19 @@ export function loadForma(): LoadedState {
   try {
     const water = readWater();
     const journal = readJournal();
+    const sessionDraft = readSessionDraft();
 
     // 1. Current-version data.
     const rawWorkouts = window.localStorage.getItem(STORAGE.workouts);
     if (rawWorkouts) {
       const workouts = normalizeWorkouts(JSON.parse(rawWorkouts) as Workout[]);
       const history = JSON.parse(window.localStorage.getItem(STORAGE.history) ?? "[]") as WorkoutSession[];
-      const program = JSON.parse(window.localStorage.getItem(STORAGE.program) ?? "{}") as { week?: number };
+      const program = JSON.parse(window.localStorage.getItem(STORAGE.program) ?? "{}") as {
+        week?: number;
+        schemaVersion?: number;
+      };
+      const schemaVersion = program.schemaVersion ?? 1;
+      const needsProgramRefresh = schemaVersion < PROGRAM_SCHEMA_VERSION;
       return {
         workouts: workouts.length ? workouts : buildWorkoutsForWeek(1),
         history,
@@ -123,6 +166,8 @@ export function loadForma(): LoadedState {
         water,
         journal,
         migrated: false,
+        needsProgramRefresh,
+        sessionDraft,
       };
     }
 
@@ -135,7 +180,16 @@ export function loadForma(): LoadedState {
       );
       const resolved = workouts.length ? workouts : buildWorkoutsForWeek(1);
       persistCore(resolved, history, 1);
-      return { workouts: resolved, history, week: 1, water, journal, migrated: true };
+      return {
+        workouts: resolved,
+        history,
+        week: 1,
+        water,
+        journal,
+        migrated: true,
+        needsProgramRefresh: true,
+        sessionDraft,
+      };
     }
 
     // 3. New user — seed the FORMA Foundation programme.
