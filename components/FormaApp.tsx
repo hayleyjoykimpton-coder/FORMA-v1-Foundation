@@ -722,7 +722,7 @@ export default function FormaApp() {
         onRebuildProgramme={() => {
           applyGeneratedProgram(profile);
           setProfileOpen(false);
-          setTab("programme");
+          setTab("training");
           setSyncNote("Programme rebuilt");
         }}
         accountMode={authMode}
