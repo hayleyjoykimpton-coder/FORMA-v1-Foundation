@@ -1042,6 +1042,32 @@ button.avatar { padding: 0; }
 .dash-row span { color: var(--text-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
 .dash-row strong { font-size: 14px; text-align: right; }
 
+/* Training-day reminder banner */
+.training-reminder-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid rgba(91, 67, 55, 0.14);
+  background: linear-gradient(160deg, var(--wash-earth), var(--card));
+}
+.training-reminder-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.training-reminder-copy strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text);
+}
+.training-reminder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* This week's wins */
 .wins-card {
   display: flex;

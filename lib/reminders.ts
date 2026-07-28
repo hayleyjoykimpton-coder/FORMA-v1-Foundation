@@ -1,0 +1,153 @@
+/**
+ * Training-day reminders — in-app nudges (and optional browser notifications
+ * while FORMA is open). No push / service-worker infra required.
+ */
+
+import { COACH_REMINDERS } from "./content";
+import type { Workout, WorkoutSession } from "./types";
+
+export const REMINDER_PREFS_KEY = "forma-reminders-v1";
+
+export type ReminderPrefs = {
+  /** Master switch — default on. */
+  enabled: boolean;
+  /** User opted into browser Notification API while the app is open. */
+  browserNotify: boolean;
+  /** Local YYYY-MM-DD when the in-app banner was dismissed. */
+  dismissedDate?: string;
+  /** Local YYYY-MM-DD when a browser notification already fired. */
+  lastNotifiedDate?: string;
+};
+
+const DEFAULT_PREFS: ReminderPrefs = {
+  enabled: true,
+  browserNotify: false,
+};
+
+function localDateKey(now = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function loadReminderPrefs(): ReminderPrefs {
+  if (typeof window === "undefined") return { ...DEFAULT_PREFS };
+  try {
+    const raw = window.localStorage.getItem(REMINDER_PREFS_KEY);
+    if (!raw) return { ...DEFAULT_PREFS };
+    const parsed = JSON.parse(raw) as Partial<ReminderPrefs>;
+    return {
+      enabled: parsed.enabled !== false,
+      browserNotify: Boolean(parsed.browserNotify),
+      dismissedDate: parsed.dismissedDate,
+      lastNotifiedDate: parsed.lastNotifiedDate,
+    };
+  } catch {
+    return { ...DEFAULT_PREFS };
+  }
+}
+
+export function saveReminderPrefs(prefs: ReminderPrefs): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(REMINDER_PREFS_KEY, JSON.stringify(prefs));
+}
+
+export function weekdayName(now = new Date()): string {
+  return now.toLocaleDateString("en-US", { weekday: "long" });
+}
+
+/** Exact scheduled training day — ignores pickTodaysWorkout weekday fallback. */
+export function isTrainingDay(workouts: Workout[], now = new Date()): boolean {
+  const today = weekdayName(now);
+  return workouts.some((workout) => workout.day === today);
+}
+
+export function todaysScheduledWorkout(workouts: Workout[], now = new Date()): Workout | undefined {
+  const today = weekdayName(now);
+  return workouts.find((workout) => workout.day === today);
+}
+
+export function hasSessionToday(history: WorkoutSession[], now = new Date()): boolean {
+  const key = now.toDateString();
+  return history.some((session) => new Date(session.completedAt).toDateString() === key);
+}
+
+export function shouldShowTrainingReminder(input: {
+  workouts: Workout[];
+  history: WorkoutSession[];
+  prefs: ReminderPrefs;
+  now?: Date;
+}): boolean {
+  const now = input.now ?? new Date();
+  if (!input.prefs.enabled) return false;
+  if (!isTrainingDay(input.workouts, now)) return false;
+  if (hasSessionToday(input.history, now)) return false;
+  if (input.prefs.dismissedDate === localDateKey(now)) return false;
+  return true;
+}
+
+export function dismissTrainingReminderToday(prefs: ReminderPrefs, now = new Date()): ReminderPrefs {
+  const next = { ...prefs, dismissedDate: localDateKey(now) };
+  saveReminderPrefs(next);
+  return next;
+}
+
+export function trainingReminderCopy(workout: Workout | undefined): {
+  title: string;
+  text: string;
+  tip: { title: string; text: string; accent: string };
+} {
+  const tip = COACH_REMINDERS[new Date().getDay() % COACH_REMINDERS.length] ?? COACH_REMINDERS[0];
+  if (!workout) {
+    return {
+      title: "Training day",
+      text: "Your session is waiting whenever you’re ready.",
+      tip,
+    };
+  }
+  return {
+    title: `${workout.title} is on today`,
+    text: `About ${workout.duration} minutes · ${workout.exercises.length} movements. Show up and the week keeps building.`,
+    tip,
+  };
+}
+
+/** Fire at most one browser notification per day while the app is open. */
+export async function maybeNotifyTrainingDay(input: {
+  prefs: ReminderPrefs;
+  workout: Workout | undefined;
+  history: WorkoutSession[];
+  workouts: Workout[];
+}): Promise<ReminderPrefs> {
+  if (typeof window === "undefined" || typeof Notification === "undefined") return input.prefs;
+  if (!input.prefs.enabled || !input.prefs.browserNotify) return input.prefs;
+  if (Notification.permission !== "granted") return input.prefs;
+  if (!shouldShowTrainingReminder(input)) return input.prefs;
+
+  const today = localDateKey();
+  if (input.prefs.lastNotifiedDate === today) return input.prefs;
+
+  const copy = trainingReminderCopy(input.workout);
+  try {
+    new Notification("FORMA", {
+      body: `${copy.title}. ${copy.text}`,
+      tag: `forma-training-${today}`,
+      silent: false,
+    });
+  } catch {
+    return input.prefs;
+  }
+
+  const next = { ...input.prefs, lastNotifiedDate: today };
+  saveReminderPrefs(next);
+  return next;
+}
+
+export async function requestBrowserNotifyPermission(): Promise<NotificationPermission | "unsupported"> {
+  if (typeof window === "undefined" || typeof Notification === "undefined") return "unsupported";
+  if (Notification.permission === "granted" || Notification.permission === "denied") {
+    return Notification.permission;
+  }
+  return Notification.requestPermission();
+}

@@ -67,6 +67,17 @@ import {
   signOut,
 } from "@/lib/sync";
 import {
+  dismissTrainingReminderToday,
+  loadReminderPrefs,
+  maybeNotifyTrainingDay,
+  requestBrowserNotifyPermission,
+  saveReminderPrefs,
+  shouldShowTrainingReminder,
+  todaysScheduledWorkout,
+  trainingReminderCopy,
+  type ReminderPrefs,
+} from "@/lib/reminders";
+import {
   applyExerciseSwap,
   swapCandidates,
   swapReasonLabel,
@@ -153,6 +164,10 @@ export default function FormaApp() {
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [cueSessionId, setCueSessionId] = useState<string | null>(null);
+  const [reminderPrefs, setReminderPrefs] = useState<ReminderPrefs>({
+    enabled: true,
+    browserNotify: false,
+  });
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
@@ -178,6 +193,7 @@ export default function FormaApp() {
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
+    setReminderPrefs(loadReminderPrefs());
 
     const today = pickTodaysWorkout(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
     setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? INITIAL_WORKOUTS[0]?.id ?? "");
@@ -433,6 +449,53 @@ export default function FormaApp() {
 
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
   const todaysWorkout = useMemo(() => pickTodaysWorkout(workouts), [workouts]);
+  const scheduledToday = useMemo(() => todaysScheduledWorkout(workouts), [workouts]);
+  const showTrainingReminder = useMemo(
+    () =>
+      shouldShowTrainingReminder({
+        workouts,
+        history,
+        prefs: reminderPrefs,
+      }),
+    [workouts, history, reminderPrefs],
+  );
+  const trainingReminder = useMemo(
+    () => trainingReminderCopy(scheduledToday),
+    [scheduledToday],
+  );
+
+  useEffect(() => {
+    if (!hydrated || !showTrainingReminder || !reminderPrefs.browserNotify) return;
+    void maybeNotifyTrainingDay({
+      prefs: reminderPrefs,
+      workout: scheduledToday,
+      history,
+      workouts,
+    }).then((next) => {
+      if (next.lastNotifiedDate !== reminderPrefs.lastNotifiedDate) {
+        setReminderPrefs(next);
+      }
+    });
+  }, [hydrated, showTrainingReminder, reminderPrefs, scheduledToday, history, workouts]);
+
+  const updateReminderPrefs = async (patch: Partial<ReminderPrefs>) => {
+    let next: ReminderPrefs = { ...reminderPrefs, ...patch };
+    if (patch.browserNotify === true) {
+      const permission = await requestBrowserNotifyPermission();
+      if (permission !== "granted") {
+        next = { ...next, browserNotify: false };
+        setSyncNote(
+          permission === "denied"
+            ? "Browser notifications blocked — in-app reminders still work"
+            : "Browser notifications unavailable here",
+        );
+      } else {
+        setSyncNote("Browser notify on while FORMA is open");
+      }
+    }
+    saveReminderPrefs(next);
+    setReminderPrefs(next);
+  };
   const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
   const streak = useMemo(() => computeStreak(history), [history]);
   const completedSets = useMemo(() => totalCompletedSets(history), [history]);
@@ -921,6 +984,13 @@ export default function FormaApp() {
           setTab("training");
           setSyncNote("Programme rebuilt");
         }}
+        reminderPrefs={{
+          enabled: reminderPrefs.enabled,
+          browserNotify: reminderPrefs.browserNotify,
+        }}
+        onReminderPrefsChange={(prefs) => {
+          void updateReminderPrefs(prefs);
+        }}
         accountMode={authMode}
         syncNote={syncNote}
         onSignOut={async () => {
@@ -1266,6 +1336,38 @@ export default function FormaApp() {
               <StatTile label="Sessions" value={String(history.length)} note="All time" />
               <StatTile label="Weekly sets" value={String(weeklySets)} note="Planned" />
             </div>
+
+            {showTrainingReminder && (
+              <article className="card training-reminder-card">
+                <div className="training-reminder-copy">
+                  <span className="eyebrow">Training day</span>
+                  <strong>{trainingReminder.title}</strong>
+                  <p className="muted">{trainingReminder.text}</p>
+                  <div className={`reminder accent-${trainingReminder.tip.accent}`}>
+                    <strong>{trainingReminder.tip.title}</strong>
+                    <small>{trainingReminder.tip.text}</small>
+                  </div>
+                </div>
+                <div className="training-reminder-actions">
+                  {scheduledToday && scheduledToday.exercises.length > 0 ? (
+                    <button
+                      type="button"
+                      className="cta-btn"
+                      onClick={() => startWorkout(scheduledToday)}
+                    >
+                      Start workout
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="text-btn"
+                    onClick={() => setReminderPrefs(dismissTrainingReminderToday(reminderPrefs))}
+                  >
+                    Remind me later
+                  </button>
+                </div>
+              </article>
+            )}
 
             {todaysWorkout ? (
               <>
