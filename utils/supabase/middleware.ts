@@ -1,13 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+/**
+ * Optional Edge session refresh helper.
+ * Not wired from `middleware.ts` (see note there) — kept for future SSR use.
+ */
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Preview / local without keys: never block the app.
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.next({ request });
   }
@@ -30,10 +33,8 @@ export async function updateSession(request: NextRequest) {
       },
     });
 
-    // Refresh the auth session so Server Components get a valid user.
     await supabase.auth.getUser();
   } catch {
-    // Auth refresh must not take down the whole site.
     return NextResponse.next({ request });
   }
 
