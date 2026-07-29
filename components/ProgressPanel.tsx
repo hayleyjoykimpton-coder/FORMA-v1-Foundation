@@ -138,7 +138,7 @@ export function ProgressPanel({
         {points.length >= 2 ? (
           <WeightChart points={points} />
         ) : (
-          <p className="muted centered transform-empty">Log your weight over time to reveal your trend.</p>
+          <p className="guided-empty">Log your weight twice to unlock your first trend line.</p>
         )}
         <button className="secondary-btn" onClick={() => setShowForm((value) => !value)}>
           {showForm ? "Close" : "Log weight & measurements"}
@@ -190,7 +190,7 @@ export function ProgressPanel({
             );
           })}
         </div>
-        {!entries.length && <p className="muted centered transform-empty">Log measurements to track your shape over time.</p>}
+        {!entries.length && <p className="guided-empty">Add your first measurement to begin tracking change.</p>}
       </article>
 
       <SectionHeading eyebrow="Photos" title="Progress photos" />
@@ -214,7 +214,7 @@ export function ProgressPanel({
             ))}
           </div>
         ) : (
-          <p className="muted centered transform-empty">Add front, side and back photos to build your visual timeline.</p>
+          <p className="guided-empty">Add a front, side or back photo to start your visual timeline.</p>
         )}
       </article>
 
@@ -249,7 +249,7 @@ export function ProgressPanel({
             </div>
           </div>
         ) : (
-          <p className="muted centered transform-empty">Upload a {PHOTO_LABELS[compareCategory].toLowerCase()} photo to start your comparison.</p>
+          <p className="guided-empty">Upload a {PHOTO_LABELS[compareCategory].toLowerCase()} photo to start your comparison.</p>
         )}
       </article>
     </>
