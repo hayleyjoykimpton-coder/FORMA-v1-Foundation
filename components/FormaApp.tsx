@@ -98,12 +98,22 @@ import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
 import { AuthScreen } from "@/components/AuthScreen";
 import { BreathworkSession } from "@/components/Breathwork";
 
+import { ActionMenu } from "@/components/ActionMenu";
 import { CollapsibleSection, ScoreExplainer } from "@/components/Collapsible";
 import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
+import {
+  defaultHomePrefs,
+  HOME_MODULE_META,
+  loadHomePrefs,
+  moveHomeModule,
+  saveHomePrefs,
+  toggleHomeModule,
+} from "@/lib/homePrefs";
+import type { HomePrefs } from "@/lib/homePrefs";
 import { resolveNextAction } from "@/lib/nextAction";
 import type { NextAction } from "@/lib/nextAction";
 import {
@@ -146,6 +156,7 @@ import {
 } from "@/components/ui";
 
 type Tab = "today" | "training" | "progress" | "recovery";
+type ProgressSubTab = "overview" | "strength" | "body" | "photos";
 type SessionDraft = {
   workoutId: string;
   exerciseIndex: number;
@@ -155,6 +166,7 @@ type SessionDraft = {
 type AuthMode = "booting" | "gate" | "local" | "cloud";
 
 const LOCAL_ONLY_KEY = "forma-local-only-v1";
+const PROGRESS_SUBTAB_KEY = "forma-progress-subtab-v1";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "today", label: "Home" },
@@ -162,6 +174,24 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "progress", label: "Progress" },
   { key: "recovery", label: "Recovery" },
 ];
+
+const PROGRESS_SUBTABS: { key: ProgressSubTab; label: string }[] = [
+  { key: "overview", label: "Overview" },
+  { key: "strength", label: "Strength" },
+  { key: "body", label: "Body" },
+  { key: "photos", label: "Photos" },
+];
+
+function loadProgressSubTab(): ProgressSubTab {
+  if (typeof window === "undefined") return "overview";
+  try {
+    const raw = window.localStorage.getItem(PROGRESS_SUBTAB_KEY);
+    if (raw === "overview" || raw === "strength" || raw === "body" || raw === "photos") return raw;
+  } catch {
+    /* ignore */
+  }
+  return "overview";
+}
 
 /** Seed workouts for the current programme (used before hydration and as a fallback). */
 const INITIAL_WORKOUTS: Workout[] = buildWorkoutsForWeek(1);
@@ -212,6 +242,9 @@ export default function FormaApp() {
     enabled: true,
     browserNotify: false,
   });
+  const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => defaultHomePrefs());
+  const [homeCustomiseOpen, setHomeCustomiseOpen] = useState(false);
+  const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
@@ -240,6 +273,8 @@ export default function FormaApp() {
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
     setReminderPrefs(loadReminderPrefs());
+    setHomePrefs(loadHomePrefs());
+    setProgressSubTab(loadProgressSubTab());
 
     const today = pickTodaysWorkout(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
     setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? INITIAL_WORKOUTS[0]?.id ?? "");
@@ -506,6 +541,20 @@ export default function FormaApp() {
     if (!hydrated) return;
     savePhotos(progressPhotos);
   }, [progressPhotos, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveHomePrefs(homePrefs);
+  }, [homePrefs, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(PROGRESS_SUBTAB_KEY, progressSubTab);
+    } catch {
+      /* ignore */
+    }
+  }, [progressSubTab, hydrated]);
 
   useEffect(() => {
     if (restRemaining <= 0) return;
@@ -1576,6 +1625,71 @@ export default function FormaApp() {
               </article>
             ) : null}
 
+            <div className="home-customise-bar">
+              <button
+                type="button"
+                className="text-btn"
+                onClick={() => setHomeCustomiseOpen((value) => !value)}
+              >
+                {homeCustomiseOpen ? "Done customising" : "Customise Home"}
+              </button>
+            </div>
+
+            {homeCustomiseOpen ? (
+              <article className="card home-customise-card">
+                <span className="eyebrow">Home modules</span>
+                <p className="muted">Show, hide or reorder secondary sections. Do this next stays on top.</p>
+                <div className="home-customise-list">
+                  {homePrefs.modules.map((module) => {
+                    const meta = HOME_MODULE_META[module.id];
+                    return (
+                      <div className="home-customise-row" key={module.id}>
+                        <div>
+                          <strong>{meta.title}</strong>
+                          <small className="muted">{meta.eyebrow}</small>
+                        </div>
+                        <div className="home-customise-actions">
+                          <button
+                            type="button"
+                            className="pill-btn small"
+                            aria-label={`Move ${meta.title} up`}
+                            onClick={() => setHomePrefs((current) => moveHomeModule(current, module.id, -1))}
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            className="pill-btn small"
+                            aria-label={`Move ${meta.title} down`}
+                            onClick={() => setHomePrefs((current) => moveHomeModule(current, module.id, 1))}
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            className={`choice mini${module.visible ? " selected" : ""}`}
+                            onClick={() => setHomePrefs((current) => toggleHomeModule(current, module.id))}
+                          >
+                            {module.visible ? "On" : "Off"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => setHomePrefs(defaultHomePrefs())}
+                >
+                  Reset to default
+                </button>
+              </article>
+            ) : null}
+
+            <div className="home-modules">
+            {homePrefs.modules.some((m) => m.id === "fuel" && m.visible) ? (
+              <div className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "fuel") }}>
             <CollapsibleSection
               eyebrow="Fuel"
               title="Nutrition & meals"
@@ -1700,7 +1814,11 @@ export default function FormaApp() {
             })()}
 
                         </CollapsibleSection>
+              </div>
+            ) : null}
 
+            {homePrefs.modules.some((m) => m.id === "habits" && m.visible) ? (
+              <div className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "habits") }}>
             <CollapsibleSection
               eyebrow="Habits"
               title="Hydration, sleep & recovery"
@@ -1862,7 +1980,11 @@ export default function FormaApp() {
             </div>
 
                         </CollapsibleSection>
+              </div>
+            ) : null}
 
+            {homePrefs.modules.some((m) => m.id === "programme" && m.visible) ? (
+              <div className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "programme") }}>
             <CollapsibleSection
               eyebrow="Programme"
               title="Your phase"
@@ -1915,8 +2037,11 @@ export default function FormaApp() {
             </article>
 
                         </CollapsibleSection>
+              </div>
+            ) : null}
 
-            <div id="home-habits">
+                        {homePrefs.modules.some((m) => m.id === "reflect" && m.visible) ? (
+              <div id="home-habits" className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "reflect") }}>
             <CollapsibleSection
               eyebrow="Reflect"
               title="Gratitude, journal & schedule"
@@ -1960,6 +2085,9 @@ export default function FormaApp() {
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
             <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
             </CollapsibleSection>
+              </div>
+            ) : null}
+
             </div>
 
           </div>
@@ -2005,9 +2133,24 @@ export default function FormaApp() {
                     </div>
 
                     <div className="editor-actions toolbar">
-                      <button onClick={() => setEditingWorkoutId(isEditing ? null : workout.id)}>{isEditing ? "Done editing" : "Edit workout"}</button>
-                      <button onClick={() => duplicateWorkout(workout)}>Duplicate</button>
-                      <button className="danger" onClick={() => deleteWorkout(workout.id)}>Delete</button>
+                      <ActionMenu
+                        label={`Workout actions for ${workout.title}`}
+                        items={[
+                          {
+                            label: isEditing ? "Done editing" : "Edit workout",
+                            onClick: () => setEditingWorkoutId(isEditing ? null : workout.id),
+                          },
+                          {
+                            label: "Duplicate",
+                            onClick: () => duplicateWorkout(workout),
+                          },
+                          {
+                            label: "Delete",
+                            danger: true,
+                            onClick: () => deleteWorkout(workout.id),
+                          },
+                        ]}
+                      />
                     </div>
 
                     {isEditing && (
@@ -2074,18 +2217,31 @@ export default function FormaApp() {
                                     <small>{exercise.sets} × {exercise.repMin}–{exercise.repMax} · {exercise.weight} kg · RPE {exercise.rpe}</small>
                                   </div>
                                 </div>
-                                <div className="editor-actions compact">
-                                  <button className="text-btn" onClick={() => setEditingExerciseId(exercise.id)}>Edit</button>
-                                  <button
-                                    className="text-btn"
-                                    onClick={() =>
-                                      setSwappingExerciseId((current) =>
-                                        current === exercise.id ? null : exercise.id,
-                                      )
-                                    }
-                                  >
-                                    {isSwapping ? "Close swaps" : "Swap"}
-                                  </button>
+                                <div className="editor-actions compact exercise-overflow">
+                                  <ActionMenu
+                                    label={`Actions for ${exercise.name}`}
+                                    items={[
+                                      {
+                                        label: "Edit",
+                                        onClick: () => {
+                                          setSwappingExerciseId(null);
+                                          setEditingExerciseId(exercise.id);
+                                        },
+                                      },
+                                      {
+                                        label: isSwapping ? "Close swaps" : "Swap",
+                                        onClick: () =>
+                                          setSwappingExerciseId((current) =>
+                                            current === exercise.id ? null : exercise.id,
+                                          ),
+                                      },
+                                      {
+                                        label: "Delete",
+                                        danger: true,
+                                        onClick: () => deleteExercise(workout.id, exercise.id),
+                                      },
+                                    ]}
+                                  />
                                 </div>
                                 {isSwapping && (
                                   <div className="swap-options">
@@ -2133,6 +2289,21 @@ export default function FormaApp() {
               </div>
             </header>
 
+            <nav className="subnav choice-row" aria-label="Progress sections">
+              {PROGRESS_SUBTABS.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`choice mini${progressSubTab === item.key ? " selected" : ""}`}
+                  onClick={() => setProgressSubTab(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+
+            {progressSubTab === "overview" && (
+              <>
             <div className="stat-grid four">
               <StatTile label="Sessions" value={String(history.length)} accent="pink" />
               <StatTile label="Sets" value={String(completedSets)} accent="mocha" />
@@ -2273,6 +2444,58 @@ export default function FormaApp() {
               )}
             </article>
 
+            {review && (
+              <>
+                <SectionHeading eyebrow="Sunday" title="Weekly review" />
+                <article className="card coach-card">
+                  <p className="coach-message">{review.summary}</p>
+                  <div className="stat-grid four">
+                    <StatTile label="Workouts" value={String(review.workouts)} accent="pink" />
+                    <StatTile label="Consistency" value={`${review.consistency}%`} accent="sage" />
+                    <StatTile label="Volume" value={String(review.volume)} accent="mocha" />
+                    <StatTile label="Lifts up" value={String(review.strengthGained)} accent="green" />
+                  </div>
+                  <div className="coach-rec">
+                    <span className="eyebrow">Goal for next week</span>
+                    <p>{review.nextGoal}</p>
+                  </div>
+                </article>
+              </>
+            )}
+
+            <SectionHeading eyebrow="History" title="Recent sessions" />
+            <div className="history-list">
+              {[...history].reverse().map((item) => (
+                <article className="card history-card" key={item.id}>
+                  <div className="workout-card-head">
+                    <div>
+                      <span className="eyebrow">{new Date(item.completedAt).toLocaleDateString()}</span>
+                      <h3>{item.workoutTitle}</h3>
+                    </div>
+                    <span className="season-pill">{item.season}</span>
+                  </div>
+                  {item.exercises.map((exercise) => {
+                    const completed = exercise.sets.filter((set) => set.complete);
+                    return (
+                      <p key={exercise.exerciseId}>
+                        <strong>{exercise.name}</strong>
+                        <span>{completed.map((set) => `${set.weight}kg × ${set.reps}`).join(" · ") || "Not completed"}</span>
+                      </p>
+                    );
+                  })}
+                </article>
+              ))}
+              {!history.length && (
+                <article className="card guided-empty">
+                  Complete your first workout to unlock history, records and trends.
+                </article>
+              )}
+            </div>
+              </>
+            )}
+
+            {progressSubTab === "strength" && (
+              <>
             <SectionHeading eyebrow="Strength" title="Strength progress" />
             <article className="card">
               <div className="strength-list">
@@ -2333,7 +2556,10 @@ export default function FormaApp() {
               <StatTile label="Top volume" value={records.highestVolume ? String(records.highestVolume.value) : "—"} note="single session" accent="sage" />
               <StatTile label="Longest streak" value={`${records.longestStreak}d`} note={records.mostImproved ? `Most improved · ${records.mostImproved.name}` : "—"} accent="green" />
             </div>
+              </>
+            )}
 
+            {(progressSubTab === "body" || progressSubTab === "photos") && (
             <ProgressPanel
               profile={profile}
               entries={progressEntries}
@@ -2341,55 +2567,9 @@ export default function FormaApp() {
               onSaveEntry={handleSaveProgressEntry}
               onAddPhoto={handleAddPhoto}
               onDeletePhoto={handleDeletePhoto}
+              section={progressSubTab}
             />
-
-            {review && (
-              <>
-                <SectionHeading eyebrow="Sunday" title="Weekly review" />
-                <article className="card coach-card">
-                  <p className="coach-message">{review.summary}</p>
-                  <div className="stat-grid four">
-                    <StatTile label="Workouts" value={String(review.workouts)} accent="pink" />
-                    <StatTile label="Consistency" value={`${review.consistency}%`} accent="sage" />
-                    <StatTile label="Volume" value={String(review.volume)} accent="mocha" />
-                    <StatTile label="Lifts up" value={String(review.strengthGained)} accent="green" />
-                  </div>
-                  <div className="coach-rec">
-                    <span className="eyebrow">Goal for next week</span>
-                    <p>{review.nextGoal}</p>
-                  </div>
-                </article>
-              </>
             )}
-
-            <SectionHeading eyebrow="History" title="Recent sessions" />
-            <div className="history-list">
-              {[...history].reverse().map((item) => (
-                <article className="card history-card" key={item.id}>
-                  <div className="workout-card-head">
-                    <div>
-                      <span className="eyebrow">{new Date(item.completedAt).toLocaleDateString()}</span>
-                      <h3>{item.workoutTitle}</h3>
-                    </div>
-                    <span className="season-pill">{item.season}</span>
-                  </div>
-                  {item.exercises.map((exercise) => {
-                    const completed = exercise.sets.filter((set) => set.complete);
-                    return (
-                      <p key={exercise.exerciseId}>
-                        <strong>{exercise.name}</strong>
-                        <span>{completed.map((set) => `${set.weight}kg × ${set.reps}`).join(" · ") || "Not completed"}</span>
-                      </p>
-                    );
-                  })}
-                </article>
-              ))}
-              {!history.length && (
-                <article className="card guided-empty">
-                  Complete your first workout to unlock history, records and trends.
-                </article>
-              )}
-            </div>
           </div>
         )}
 
