@@ -14,31 +14,32 @@
 import { EXERCISES } from "./exercises";
 import type { Exercise } from "./types";
 
-/** Hand-picked public form demos for key FORMA lifts. */
+/**
+ * Hand-picked public form demos for key FORMA lifts.
+ * Verified via YouTube oEmbed — broken IDs are omitted so resolveExerciseVideoUrl
+ * falls back to a YouTube “proper form” search (always available).
+ */
 export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
-  hip_thrust: "https://www.youtube.com/watch?v=SEdqd1n0VjM",
+  hip_thrust: "https://www.youtube.com/watch?v=SEdqd1n0cvg",
   romanian_deadlift: "https://www.youtube.com/watch?v=jEy_czb3RKA",
   bulgarian_split_squat: "https://www.youtube.com/watch?v=2C-uNgKwPLE",
   walking_lunge: "https://www.youtube.com/watch?v=L8fvypPrzzs",
-  step_up: "https://www.youtube.com/watch?v=aajBM3YJh_o",
-  cable_kickback: "https://www.youtube.com/watch?v=duvLGWZX_kw",
-  hip_abduction: "https://www.youtube.com/watch?v=abB6PqA6QhU",
+  cable_kickback: "https://www.youtube.com/watch?v=5jJNfIlKTmg",
   glute_bridge: "https://www.youtube.com/watch?v=OUgsJ8-Vi0E",
   leg_curl: "https://www.youtube.com/watch?v=1Tq3QdYUuHs",
   squat: "https://www.youtube.com/watch?v=ultWZbUMPL8",
   hack_squat: "https://www.youtube.com/watch?v=0tn5K9NlCfo",
-  leg_press: "https://www.youtube.com/watch?v=IZxyjW7MPJY",
+  leg_press: "https://www.youtube.com/watch?v=GvRgijoJ2xY",
   lat_pulldown: "https://www.youtube.com/watch?v=CAwf7n6Luuc",
   seated_row: "https://www.youtube.com/watch?v=GZbfZ033f74",
   shoulder_press: "https://www.youtube.com/watch?v=qEwKCR5JCog",
   lateral_raise: "https://www.youtube.com/watch?v=3VcKaXpzqRo",
   incline_press: "https://www.youtube.com/watch?v=8iPEnn-ltC8",
   push_up: "https://www.youtube.com/watch?v=IODxDxX7oi4",
-  cable_crunch: "https://www.youtube.com/watch?v=ToisFnrtQmA",
-  dead_bug: "https://www.youtube.com/watch?v=4XLEnjTl9FM",
+  dead_bug: "https://www.youtube.com/watch?v=4XLEnwUr1d8",
   pallof_press: "https://www.youtube.com/watch?v=AH_QZLm_0-s",
   side_plank: "https://www.youtube.com/watch?v=K2VljzCC16g",
-  hanging_knee_raise: "https://www.youtube.com/watch?v=RD_Bj5-Vkzc",
+  hanging_knee_raise: "https://www.youtube.com/watch?v=Pr1ieGZ5atk",
   bicep_curl: "https://www.youtube.com/watch?v=ykJmrZ5v0Oo",
   triceps_pushdown: "https://www.youtube.com/watch?v=2-LAMcpzODU",
 };
