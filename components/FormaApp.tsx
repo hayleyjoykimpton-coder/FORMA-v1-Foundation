@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  COACH_REMINDERS,
   HYDRATION_GOAL,
   IMAGES,
   PHASES,
@@ -98,11 +97,14 @@ import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progre
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
 import { AuthScreen } from "@/components/AuthScreen";
 import { BreathworkSession } from "@/components/Breathwork";
+import { CollapsibleSection, ScoreExplainer } from "@/components/Collapsible";
 import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
+import { resolveNextAction } from "@/lib/nextAction";
+import type { NextAction } from "@/lib/nextAction";
 import {
   addMeal,
   dayMacroTotals,
@@ -1371,6 +1373,7 @@ export default function FormaApp() {
   const greeting = greetingFor(new Date().getHours());
   const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayISO = new Date().toISOString().slice(0, 10);
+  const hour = new Date().getHours();
   const focusExercise = todaysWorkout?.exercises[0];
   const focusRec = focusExercise ? getRecommendation(focusExercise, history, phaseDef) : null;
   const goalLabel = GOAL_LABELS[profile.goal];
@@ -1381,6 +1384,53 @@ export default function FormaApp() {
       : streak >= 3
         ? `A ${streak}-day rhythm, ${profile.firstName} — this is exactly how you ${goalLower}. Keep it flowing.`
         : `Consistency over intensity. Today's session moves you toward "${goalLower}".`;
+
+  const pausedTitle = pausedDraft
+    ? workouts.find((workout) => workout.id === pausedDraft.workoutId)?.title ?? "Workout"
+    : null;
+
+  const nextAction = resolveNextAction({
+    hour,
+    todaysWorkout: todaysWorkout ?? null,
+    pausedTitle,
+    history,
+    wellness,
+    meals,
+    water,
+    todayISO,
+  });
+
+  const runNextAction = (action: NextAction) => {
+    switch (action.kind) {
+      case "resume":
+        resumePausedSession();
+        break;
+      case "train":
+        if (todaysWorkout) startWorkout(todaysWorkout);
+        break;
+      case "meal":
+        setMealLogOpen(true);
+        break;
+      case "wind_down":
+        setBreathworkOpen(true);
+        break;
+      case "readiness":
+        setStandaloneReadiness(true);
+        break;
+      case "gratitude":
+        document.getElementById("home-habits")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        break;
+      case "hydrate":
+        setWater((current) => Math.min(HYDRATION_GOAL, current + 1));
+        break;
+      case "rest":
+        setTab("recovery");
+        break;
+      case "caught_up":
+        setTab("progress");
+        break;
+    }
+  };
 
   return (
     <div className="app">
@@ -1441,131 +1491,96 @@ export default function FormaApp() {
               </div>
             </section>
 
-            {pausedDraft && (
-              <article className="card resume-card">
+            <article className={`card next-action-hero accent-${nextAction.accent}`}>
+              <span className="eyebrow">Do this next</span>
+              <h2 className="next-action-title">{nextAction.title}</h2>
+              <p className="next-action-detail">{nextAction.detail}</p>
+              <button type="button" className="cta-btn next-action-cta" onClick={() => runNextAction(nextAction)}>
+                {nextAction.cta}
+              </button>
+              <p className="muted next-action-meta">{nextAction.eyebrow} · {greeting}</p>
+            </article>
+
+            {pausedDraft && nextAction.kind !== "resume" ? (
+              <article className="card resume-card compact">
                 <div>
-                  <span className="eyebrow">Unfinished session</span>
-                  <strong>
-                    {workouts.find((workout) => workout.id === pausedDraft.workoutId)?.title ?? "Workout"} saved
-                  </strong>
-                  <p className="muted">Your sets are still here — pick up where you left off.</p>
+                  <span className="eyebrow">Also unfinished</span>
+                  <strong>{pausedTitle}</strong>
                 </div>
                 <div className="resume-actions">
                   <button className="primary-btn" onClick={resumePausedSession}>Resume</button>
                   <button className="ghost-btn" onClick={discardPausedSession}>Discard</button>
                 </div>
               </article>
-            )}
+            ) : null}
 
-            <div className="stat-grid three">
-              <StatTile label="Day streak" value={String(streak)} note="Keep it going" />
-              <StatTile label="Sessions" value={String(history.length)} note="All time" />
-              <StatTile label="Weekly sets" value={String(weeklySets)} note="Planned" />
-            </div>
-
-            {showTrainingReminder && (
-              <article className="card training-reminder-card">
-                <div className="training-reminder-copy">
-                  <span className="eyebrow">Training day</span>
-                  <strong>{trainingReminder.title}</strong>
-                  <p className="muted">{trainingReminder.text}</p>
-                  <div className={`reminder accent-${trainingReminder.tip.accent}`}>
-                    <strong>{trainingReminder.tip.title}</strong>
-                    <small>{trainingReminder.tip.text}</small>
-                  </div>
-                </div>
-                <div className="training-reminder-actions">
-                  {scheduledToday && scheduledToday.exercises.length > 0 ? (
-                    <button
-                      type="button"
-                      className="cta-btn"
-                      onClick={() => startWorkout(scheduledToday)}
-                    >
-                      Start workout
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="text-btn"
-                    onClick={() => setReminderPrefs(dismissTrainingReminderToday(reminderPrefs))}
-                  >
-                    Remind me later
-                  </button>
-                </div>
-              </article>
-            )}
-
-            {todaysWorkout ? (
-              <>
-            <SectionHeading eyebrow="Today's workout" title={todaysWorkout.title} />
-            <article className="card workout-today">
-              <div className="workout-today-media" style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title)})` }}>
-                <span className="media-chip">{todaysWorkout.duration} min</span>
-                <button className="media-edit" onClick={() => { setEditingWorkoutId(todaysWorkout.id); setTab("training"); }}>Edit</button>
-              </div>
-              <div className="workout-today-body">
-                <span className="eyebrow">{todaysWorkout.day} · {season}</span>
-                <ul className="exercise-preview">
-                  {todaysWorkout.exercises.map((item, index) => {
-                    const recommendation = getRecommendation(item, history, phaseDef);
-                    return (
-                      <li key={item.id}>
-                        <span className="ep-index">{index + 1}</span>
-                        <div>
-                          <strong>{item.name}</strong>
-                          <small>{item.sets} × {item.repMin}–{item.repMax} · RPE {item.rpe}</small>
-                          <em>{recommendation.title}</em>
-                        </div>
-                      </li>
-                    );
-                  })}
-                  {!todaysWorkout.exercises.length && <li className="ep-empty">No exercises yet — add some in Training.</li>}
-                </ul>
-                <button className="cta-btn" disabled={!todaysWorkout.exercises.length} onClick={() => startWorkout(todaysWorkout)}>
-                  Start workout
-                </button>
-              </div>
-            </article>
-              </>
-            ) : (
-              <>
-                <SectionHeading eyebrow="Today" title="Rest day" />
-                <article className="card">
-                  <p className="muted">
-                    No recorded session today — recover, walk, or take an optional mobility / Pilates class if you feel like it. It doesn&apos;t need to be logged.
-                  </p>
-                </article>
-              </>
-            )}
-
-            <SectionHeading eyebrow="Your coach" title="Daily note" />
-            <article className="card coach-card">
+            <article className="card coach-brief">
               <div className="coach-top">
                 <div className="coach-avatar">F</div>
                 <div>
-                  <strong>Coach FORMA</strong>
-                  <small>{goalLabel} · {season}</small>
+                  <strong>Today’s brief</strong>
+                  <small>{goalLabel} · {season} · {streak} day streak</small>
                 </div>
               </div>
               <p className="coach-message">{encouragement}</p>
-              {focusRec && focusExercise && (
-                <div className="coach-rec">
-                  <span className="eyebrow">Progressive overload</span>
-                  <strong>{focusExercise.name}</strong>
-                  <p>{focusRec.title}. {focusRec.detail}</p>
-                </div>
-              )}
-              <div className="coach-reminders">
-                {COACH_REMINDERS.map((reminder) => (
-                  <div className={`reminder accent-${reminder.accent}`} key={reminder.title}>
-                    <strong>{reminder.title}</strong>
-                    <small>{reminder.text}</small>
-                  </div>
-                ))}
-              </div>
+              {focusRec && focusExercise ? (
+                <p className="muted coach-brief-focus">
+                  Focus lift: <strong>{focusExercise.name}</strong> — {focusRec.title}.
+                </p>
+              ) : null}
             </article>
 
-            <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
+            {todaysWorkout && todaysWorkout.exercises.length > 0 && nextAction.kind !== "train" ? (
+              <article className="card workout-today compact-workout">
+                <div className="workout-today-body">
+                  <span className="eyebrow">{todaysWorkout.day} · {todaysWorkout.title}</span>
+                  <p className="muted">{todaysWorkout.exercises.length} exercises · ~{todaysWorkout.duration} min</p>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    disabled={!todaysWorkout.exercises.length}
+                    onClick={() => startWorkout(todaysWorkout)}
+                  >
+                    Start workout
+                  </button>
+                </div>
+              </article>
+            ) : null}
+
+            {todaysWorkout && todaysWorkout.exercises.length > 0 && nextAction.kind === "train" ? (
+              <article className="card workout-today">
+                <div className="workout-today-media" style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title)})` }}>
+                  <span className="media-chip">{todaysWorkout.duration} min</span>
+                  <button className="media-edit" onClick={() => { setEditingWorkoutId(todaysWorkout.id); setTab("training"); }}>Edit</button>
+                </div>
+                <div className="workout-today-body">
+                  <span className="eyebrow">{todaysWorkout.day} · {season}</span>
+                  <ul className="exercise-preview">
+                    {todaysWorkout.exercises.map((item, index) => {
+                      const recommendation = getRecommendation(item, history, phaseDef);
+                      return (
+                        <li key={item.id}>
+                          <span className="ep-index">{index + 1}</span>
+                          <div>
+                            <strong>{item.name}</strong>
+                            <small>{item.sets} × {item.repMin}–{item.repMax} · RPE {item.rpe}</small>
+                            <em>{recommendation.title}</em>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </article>
+            ) : null}
+
+            <CollapsibleSection
+              eyebrow="Fuel"
+              title="Nutrition & meals"
+              summary="Log meals and track macros against your goal"
+              defaultOpen={nextAction.kind === "meal"}
+            >
+<SectionHeading eyebrow="Nutrition" title="Fuel your day" />
             {(() => {
               const nutritionTargets = targetsForProfile(profile);
               const eaten = dayMacroTotals(meals, todayISO);
@@ -1682,7 +1697,15 @@ export default function FormaApp() {
               );
             })()}
 
-            <SectionHeading eyebrow="Hydration" title="Water intake" />
+                        </CollapsibleSection>
+
+            <CollapsibleSection
+              eyebrow="Habits"
+              title="Hydration, sleep & recovery"
+              summary="Water, sleep, steps and a recovery snapshot"
+              defaultOpen={nextAction.kind === "hydrate" || nextAction.kind === "readiness"}
+            >
+<SectionHeading eyebrow="Hydration" title="Water intake" />
             <article className="card hydration-card">
               <div className="hydration-head">
                 <div>
@@ -1836,7 +1859,14 @@ export default function FormaApp() {
               </article>
             </div>
 
-            <SectionHeading eyebrow="Your phase" title={season} />
+                        </CollapsibleSection>
+
+            <CollapsibleSection
+              eyebrow="Programme"
+              title="Your phase"
+              summary={`${season} · Week ${weekInCycle} of ${CYCLE_WEEKS}`}
+            >
+<SectionHeading eyebrow="Your phase" title={season} />
             <article className="card phase-card">
               <p className="muted">
                 {phaseCopy[season].line} {phaseCopy[season].focus}
@@ -1882,7 +1912,16 @@ export default function FormaApp() {
               </div>
             </article>
 
-            <SectionHeading eyebrow="Gratitude" title="Three good things" />
+                        </CollapsibleSection>
+
+            <div id="home-habits">
+            <CollapsibleSection
+              eyebrow="Reflect"
+              title="Gratitude, journal & schedule"
+              summary="Three good things, a short note, and the week ahead"
+              defaultOpen={nextAction.kind === "gratitude"}
+            >
+<SectionHeading eyebrow="Gratitude" title="Three good things" />
             <article className="card gratitude-card">
               <p className="muted gratitude-lead">
                 {gratitudeFilledCount(wellness, todayISO) >= GRATITUDE_SLOTS
@@ -1918,6 +1957,9 @@ export default function FormaApp() {
 
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
             <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
+            </CollapsibleSection>
+            </div>
+
           </div>
         )}
 
@@ -2186,12 +2228,27 @@ export default function FormaApp() {
                 <strong>{glute.score}</strong>
                 <span className={`score-badge band-${glute.band.replace(/\s/g, "").toLowerCase()}`}>{glute.band}</span>
               </div>
+              {history.length < 2 ? (
+                <p className="guided-empty">
+                  A score around 20–40 is normal when you’re just starting. Complete two workouts this week to unlock a meaningful Glute score.
+                </p>
+              ) : null}
               <div className="dash-grid">
                 <div className="dash-row"><span>Glute sets · 7d</span><strong>{glute.gluteSets}</strong></div>
                 <div className="dash-row"><span>Consistency</span><strong>{glute.consistency}%</strong></div>
                 <div className="dash-row"><span>Improving lifts</span><strong>{glute.progression}</strong></div>
                 <div className="dash-row"><span>Recovery</span><strong>{glute.recovery}</strong></div>
               </div>
+              <ScoreExplainer title="Glute score">
+                <p>
+                  Combines recent glute training volume (35%), how consistently you hit your weekly sessions (25%),
+                  lifts that are progressing (20%), and readiness from your check-ins (20%).
+                </p>
+                <p>
+                  <strong>Needs Attention</strong> under 50 · <strong>Good</strong> 50–74 · <strong>Excellent</strong> 75+.
+                  New accounts often start low — it rises as you train and check in. It updates as you log sessions.
+                </p>
+              </ScoreExplainer>
             </article>
 
             <SectionHeading eyebrow="Charts" title="Training volume" />
@@ -2210,7 +2267,7 @@ export default function FormaApp() {
                   })}
                 </div>
               ) : (
-                <p className="muted centered">Complete a workout to see your training volume grow.</p>
+                <p className="guided-empty">Complete a workout to unlock your training volume chart.</p>
               )}
             </article>
 
@@ -2231,7 +2288,9 @@ export default function FormaApp() {
                     </div>
                   );
                 })}
-                {!strengthProgress.length && <p className="muted centered">Add exercises to track strength progress.</p>}
+                {!strengthProgress.length && (
+                  <p className="guided-empty">Log a working set to begin tracking strength progress.</p>
+                )}
               </div>
             </article>
 
@@ -2249,14 +2308,26 @@ export default function FormaApp() {
                     </span>
                   </div>
                 ))}
-                {!trends.length && <p className="muted centered">Log a few sessions to reveal your strength trends.</p>}
+                {!trends.length && (
+                  <p className="guided-empty">Complete two workouts to unlock your first strength trend.</p>
+                )}
               </div>
             </article>
 
             <SectionHeading eyebrow="Records" title="Personal records" />
             <div className="stat-grid four">
-              <StatTile label="Heaviest" value={records.heaviestWeight ? `${records.heaviestWeight.value}kg` : "—"} note={records.heaviestWeight?.name ?? "Log a set"} accent="pink" />
-              <StatTile label="Best e1RM" value={records.bestE1RM ? `${records.bestE1RM.value}kg` : "—"} note={records.bestE1RM?.name ?? "—"} accent="mocha" />
+              <StatTile
+                label="Heaviest"
+                value={records.heaviestWeight ? `${records.heaviestWeight.value}kg` : "—"}
+                note={records.heaviestWeight?.name ?? "Log a set to unlock"}
+                accent="pink"
+              />
+              <StatTile
+                label="Best e1RM"
+                value={records.bestE1RM ? `${records.bestE1RM.value}kg` : "—"}
+                note={records.bestE1RM?.name ?? "Log a working set to calculate e1RM"}
+                accent="mocha"
+              />
               <StatTile label="Top volume" value={records.highestVolume ? String(records.highestVolume.value) : "—"} note="single session" accent="sage" />
               <StatTile label="Longest streak" value={`${records.longestStreak}d`} note={records.mostImproved ? `Most improved · ${records.mostImproved.name}` : "—"} accent="green" />
             </div>
@@ -2311,7 +2382,11 @@ export default function FormaApp() {
                   })}
                 </article>
               ))}
-              {!history.length && <article className="card empty-state">Complete your first workout to build your progress history.</article>}
+              {!history.length && (
+                <article className="card guided-empty">
+                  Complete your first workout to unlock history, records and trends.
+                </article>
+              )}
             </div>
           </div>
         )}
@@ -2338,6 +2413,20 @@ export default function FormaApp() {
                   {dashboard?.recoveryStatus ?? "Log a readiness check-in before training"}
                 </span>
               </div>
+            </article>
+
+            <article className="card score-explainer-card">
+              <ScoreExplainer title="Readiness">
+                <p>
+                  Readiness is <strong>self-reported</strong> — not from a wearable. Before a workout (or anytime here),
+                  you rate sleep, energy, stress, soreness, motivation and pain on a 1–5 scale. FORMA turns that into a
+                  0–100 score and can ease your session when you’re low.
+                </p>
+                <p>
+                  The percentage on this screen is a <strong>7-day average</strong> of those check-ins. A dash means you
+                  haven’t logged one yet — that’s expected for new accounts.
+                </p>
+              </ScoreExplainer>
             </article>
 
             <div className="stat-grid three">
