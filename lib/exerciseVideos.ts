@@ -21,7 +21,7 @@ import type { Exercise } from "./types";
  * falls back to a YouTube “proper form” search (always available).
  */
 export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
-  hip_thrust: "https://www.youtube.com/watch?v=SEdqd1n0cvg",
+  hip_thrust: "https://www.youtube.com/watch?v=42lU8xsumBo",
   romanian_deadlift: "https://www.youtube.com/watch?v=jEy_czb3RKA",
   bulgarian_split_squat: "https://www.youtube.com/watch?v=2C-uNgKwPLE",
   walking_lunge: "https://www.youtube.com/watch?v=L8fvypPrzzs",
