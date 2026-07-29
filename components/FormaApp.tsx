@@ -67,6 +67,7 @@ import {
 import {
   dismissTrainingReminderToday,
   loadReminderPrefs,
+  markTrainingDoneToday,
   maybeNotifyTrainingDay,
   requestBrowserNotifyPermission,
   saveReminderPrefs,
@@ -75,6 +76,11 @@ import {
   trainingReminderCopy,
   type ReminderPrefs,
 } from "@/lib/reminders";
+import { exportProgressBundle } from "@/lib/exportProgress";
+import {
+  dismissWeeklyReviewNudge,
+  shouldShowWeeklyReviewNudge,
+} from "@/lib/weeklyReviewNudge";
 import {
   applyExerciseSwap,
   swapCandidates,
@@ -119,10 +125,14 @@ import {
   HOME_MODULE_META,
   loadHomePrefs,
   moveHomeModule,
+  resolvedModuleOpen,
   saveHomePrefs,
+  setHomeModuleOpen,
   toggleHomeModule,
+  togglePinHomeModule,
+  visibleHomeModules,
 } from "@/lib/homePrefs";
-import type { HomePrefs } from "@/lib/homePrefs";
+import type { HomeModuleId, HomePrefs } from "@/lib/homePrefs";
 import { resolveNextAction } from "@/lib/nextAction";
 import type { NextAction } from "@/lib/nextAction";
 import {
@@ -253,9 +263,11 @@ export default function FormaApp() {
   const [reminderPrefs, setReminderPrefs] = useState<ReminderPrefs>({
     enabled: true,
     browserNotify: false,
+    preferredWindow: "anytime",
   });
   const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => defaultHomePrefs());
   const [homeCustomiseOpen, setHomeCustomiseOpen] = useState(false);
+  const [weeklyReviewDismissed, setWeeklyReviewDismissed] = useState(false);
   const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -1194,6 +1206,7 @@ export default function FormaApp() {
         reminderPrefs={{
           enabled: reminderPrefs.enabled,
           browserNotify: reminderPrefs.browserNotify,
+          preferredWindow: reminderPrefs.preferredWindow,
         }}
         onReminderPrefsChange={(prefs) => {
           void updateReminderPrefs(prefs);
@@ -1536,6 +1549,17 @@ export default function FormaApp() {
     todayISO,
   });
 
+  const homeModuleOrder = visibleHomeModules(homePrefs);
+  const homeModuleOrderIndex = (id: HomeModuleId) => {
+    const index = homeModuleOrder.indexOf(id);
+    return index < 0 ? 99 : index;
+  };
+  const homeModuleOpen = (id: HomeModuleId, hint: boolean) =>
+    resolvedModuleOpen(homePrefs, id, hint);
+  const setModuleOpen = (id: HomeModuleId, open: boolean) =>
+    setHomePrefs((current) => setHomeModuleOpen(current, id, open));
+  const modulePinned = (id: HomeModuleId) => homePrefs.pinned.includes(id);
+
   const runNextAction = (action: NextAction) => {
     switch (action.kind) {
       case "resume":
@@ -1684,6 +1708,78 @@ export default function FormaApp() {
               </article>
             ) : null}
 
+            {showTrainingReminder ? (
+              <article className="card training-reminder-card">
+                <div className="training-reminder-copy">
+                  <span className="eyebrow">Training day</span>
+                  <strong>{trainingReminder.title}</strong>
+                  <p className="muted">{trainingReminder.text}</p>
+                  <div className={`reminder accent-${trainingReminder.tip.accent}`}>
+                    <strong>{trainingReminder.tip.title}</strong>
+                    <small>{trainingReminder.tip.text}</small>
+                  </div>
+                </div>
+                <div className="training-reminder-actions">
+                  {scheduledToday && scheduledToday.exercises.length > 0 ? (
+                    <button
+                      type="button"
+                      className="cta-btn"
+                      onClick={() => startWorkout(scheduledToday)}
+                    >
+                      Start workout
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setReminderPrefs(markTrainingDoneToday(reminderPrefs))}
+                  >
+                    Mark done
+                  </button>
+                  <button
+                    type="button"
+                    className="text-btn"
+                    onClick={() => setReminderPrefs(dismissTrainingReminderToday(reminderPrefs))}
+                  >
+                    Later
+                  </button>
+                </div>
+              </article>
+            ) : null}
+
+            {!weeklyReviewDismissed && shouldShowWeeklyReviewNudge() && review ? (
+              <article className="card weekly-review-nudge">
+                <div className="training-reminder-copy">
+                  <span className="eyebrow">Sunday</span>
+                  <strong>Weekly review</strong>
+                  <p className="muted">{review.summary}</p>
+                  <p className="muted">Next: {review.nextGoal}</p>
+                </div>
+                <div className="training-reminder-actions">
+                  <button
+                    type="button"
+                    className="cta-btn"
+                    onClick={() => {
+                      setProgressSubTab("overview");
+                      setTab("progress");
+                    }}
+                  >
+                    Open Progress
+                  </button>
+                  <button
+                    type="button"
+                    className="text-btn"
+                    onClick={() => {
+                      dismissWeeklyReviewNudge();
+                      setWeeklyReviewDismissed(true);
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </article>
+            ) : null}
+
             {pausedDraft && nextAction.kind !== "resume" ? (
               <article className="card resume-card compact">
                 <div>
@@ -1780,17 +1876,31 @@ export default function FormaApp() {
             {homeCustomiseOpen ? (
               <article className="card home-customise-card">
                 <span className="eyebrow">Home modules</span>
-                <p className="muted">Show, hide or reorder secondary sections. Do this next stays on top.</p>
+                <p className="muted">
+                  Show, hide, reorder or pin favourites. Pinned sections float to the top. Open/closed is remembered.
+                </p>
                 <div className="home-customise-list">
                   {homePrefs.modules.map((module) => {
                     const meta = HOME_MODULE_META[module.id];
+                    const pinned = homePrefs.pinned.includes(module.id);
                     return (
                       <div className="home-customise-row" key={module.id}>
                         <div>
-                          <strong>{meta.title}</strong>
+                          <strong>
+                            {pinned ? "★ " : ""}
+                            {meta.title}
+                          </strong>
                           <small className="muted">{meta.eyebrow}</small>
                         </div>
                         <div className="home-customise-actions">
+                          <button
+                            type="button"
+                            className={`pill-btn small${pinned ? " selected" : ""}`}
+                            aria-label={pinned ? `Unpin ${meta.title}` : `Pin ${meta.title}`}
+                            onClick={() => setHomePrefs((current) => togglePinHomeModule(current, module.id))}
+                          >
+                            {pinned ? "Unpin" : "Pin"}
+                          </button>
                           <button
                             type="button"
                             className="pill-btn small"
@@ -1831,12 +1941,14 @@ export default function FormaApp() {
 
             <div className="home-modules">
             {homePrefs.modules.some((m) => m.id === "fuel" && m.visible) ? (
-              <div className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "fuel") }}>
+              <div className="home-module" style={{ order: homeModuleOrderIndex("fuel") }}>
             <CollapsibleSection
               eyebrow="Fuel"
               title="Nutrition & meals"
               summary="Log meals and track macros against your goal"
-              defaultOpen={nextAction.kind === "meal"}
+              open={homeModuleOpen("fuel", nextAction.kind === "meal")}
+              onOpenChange={(open) => setModuleOpen("fuel", open)}
+              pinned={modulePinned("fuel")}
             >
 <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
             {(() => {
@@ -1960,12 +2072,17 @@ export default function FormaApp() {
             ) : null}
 
             {homePrefs.modules.some((m) => m.id === "habits" && m.visible) ? (
-              <div className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "habits") }}>
+              <div className="home-module" style={{ order: homeModuleOrderIndex("habits") }}>
             <CollapsibleSection
               eyebrow="Habits"
               title="Hydration, sleep & recovery"
               summary="Water, sleep, steps and a recovery snapshot"
-              defaultOpen={nextAction.kind === "hydrate" || nextAction.kind === "readiness"}
+              open={homeModuleOpen(
+                "habits",
+                nextAction.kind === "hydrate" || nextAction.kind === "readiness",
+              )}
+              onOpenChange={(open) => setModuleOpen("habits", open)}
+              pinned={modulePinned("habits")}
             >
 <SectionHeading eyebrow="Hydration" title="Water intake" />
             <article className="card hydration-card">
@@ -2126,11 +2243,14 @@ export default function FormaApp() {
             ) : null}
 
             {homePrefs.modules.some((m) => m.id === "programme" && m.visible) ? (
-              <div className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "programme") }}>
+              <div className="home-module" style={{ order: homeModuleOrderIndex("programme") }}>
             <CollapsibleSection
               eyebrow="Programme"
               title="Your phase"
               summary={`${season} · Week ${weekInCycle} of ${CYCLE_WEEKS}`}
+              open={homeModuleOpen("programme", false)}
+              onOpenChange={(open) => setModuleOpen("programme", open)}
+              pinned={modulePinned("programme")}
             >
 <SectionHeading eyebrow="Your phase" title={season} />
             <article className="card phase-card">
@@ -2183,12 +2303,14 @@ export default function FormaApp() {
             ) : null}
 
                         {homePrefs.modules.some((m) => m.id === "reflect" && m.visible) ? (
-              <div id="home-habits" className="home-module" style={{ order: homePrefs.modules.findIndex((m) => m.id === "reflect") }}>
+              <div id="home-habits" className="home-module" style={{ order: homeModuleOrderIndex("reflect") }}>
             <CollapsibleSection
               eyebrow="Reflect"
               title="Gratitude, journal & schedule"
               summary="Three good things, a short note, and the week ahead"
-              defaultOpen={nextAction.kind === "gratitude"}
+              open={homeModuleOpen("reflect", nextAction.kind === "gratitude")}
+              onOpenChange={(open) => setModuleOpen("reflect", open)}
+              pinned={modulePinned("reflect")}
             >
 <SectionHeading eyebrow="Gratitude" title="Three good things" />
             <article className="card gratitude-card">
@@ -2484,6 +2606,30 @@ export default function FormaApp() {
                 </div>
               </article>
             ) : null}
+
+            <article className="card progress-export-card">
+              <div className="workout-card-head">
+                <div>
+                  <span className="eyebrow">Export</span>
+                  <strong>Download your data</strong>
+                  <p className="muted">CSV files for sessions, weight/measurements, and InBody scans.</p>
+                </div>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => {
+                    exportProgressBundle({
+                      history,
+                      progress: progressEntries,
+                      inbody,
+                    });
+                    setSyncNote("CSV downloads started");
+                  }}
+                >
+                  Export CSV
+                </button>
+              </div>
+            </article>
 
             {wins.length > 0 && (
               <>
