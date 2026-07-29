@@ -423,7 +423,7 @@ export default function FormaApp() {
         }
 
         if (window.localStorage.getItem(LOCAL_ONLY_KEY) === "1") {
-          applyLocalBundle({ seedHayley: true });
+          applyLocalBundle({ seedHayley: false });
           setAuthMode("local");
           return;
         }
@@ -1165,7 +1165,9 @@ export default function FormaApp() {
         }}
         onContinueLocal={() => {
           window.localStorage.setItem(LOCAL_ONLY_KEY, "1");
-          applyLocalBundle({ seedHayley: true });
+          // Fresh local users should see onboarding (nutrition + InBody).
+          // Hayley seed only applies when Supabase is unset (dev convenience).
+          applyLocalBundle({ seedHayley: false });
           setAuthMode("local");
         }}
       />
