@@ -1795,3 +1795,34 @@ button.avatar { padding: 0; }
 .inbody-trend-tabs { margin-bottom: 10px; }
 .inbody-history { display: grid; gap: 12px; }
 .inbody-scan-card .measurement-list { margin-top: 10px; }
+
+/* Day-one / empty-state jump CTAs */
+.getting-started-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.getting-started-card strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+.getting-started-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.getting-started-actions .cta-btn,
+.getting-started-actions .secondary-btn {
+  flex: 1 1 140px;
+}
+.empty-cta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.empty-cta-card p {
+  margin: 0;
+}
