@@ -23,17 +23,6 @@ import type { Exercise } from "./types";
  * where Hayley requested a specific link, e.g. hip_thrust).
  */
 export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
-<<<<<<< Updated upstream
-  hip_thrust: "https://www.youtube.com/watch?v=SEdqd1n0cvg",
-  romanian_deadlift: "https://www.youtube.com/watch?v=jEy_czb3RKA",
-  bulgarian_split_squat: "https://www.youtube.com/watch?v=2C-uNgKwPLE",
-  walking_lunge: "https://www.youtube.com/watch?v=L8fvypPrzzs",
-  cable_kickback: "https://www.youtube.com/watch?v=5jJNfIlKTmg",
-  glute_bridge: "https://www.youtube.com/watch?v=OUgsJ8-Vi0E",
-  leg_curl: "https://www.youtube.com/watch?v=1Tq3QdYUuHs",
-  squat: "https://www.youtube.com/watch?v=ultWZbUMPL8",
-  hack_squat: "https://www.youtube.com/watch?v=0tn5K9NlCfo",
-=======
   // Glutes / posterior
   hip_thrust: "https://www.youtube.com/watch?v=42lU8xsumBo", // Hayley pick · Train with Dave
   romanian_deadlift: "https://www.youtube.com/watch?v=_oyxCn2iSjU", // Jeff Nippard
@@ -45,7 +34,6 @@ export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
   glute_bridge: "https://www.youtube.com/watch?v=ylpfCk3i-0Y", // Scott Herman
   leg_curl: "https://www.youtube.com/watch?v=1Tq3QdYUuHs", // Scott Herman
   "45_degree_back_extension": "https://www.youtube.com/watch?v=WJm88qItjeE", // Colossus · glute-biased
->>>>>>> Stashed changes
 
   // Quads
   squat: "https://www.youtube.com/watch?v=gcNh17Ckjgg", // Jeremy Ethier
