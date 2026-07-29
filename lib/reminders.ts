@@ -9,13 +9,19 @@ import type { Workout, WorkoutSession } from "./types";
 
 export const REMINDER_PREFS_KEY = "forma-reminders-v1";
 
+export type ReminderWindow = "anytime" | "morning" | "afternoon" | "evening";
+
 export type ReminderPrefs = {
   /** Master switch — default on. */
   enabled: boolean;
   /** User opted into browser Notification API while the app is open. */
   browserNotify: boolean;
-  /** Local YYYY-MM-DD when the in-app banner was dismissed. */
+  /** Preferred time-of-day window before the banner appears. */
+  preferredWindow: ReminderWindow;
+  /** Local YYYY-MM-DD when the in-app banner was dismissed ("later"). */
   dismissedDate?: string;
+  /** Local YYYY-MM-DD when user marked today's session done without logging. */
+  markedDoneDate?: string;
   /** Local YYYY-MM-DD when a browser notification already fired. */
   lastNotifiedDate?: string;
 };
@@ -23,6 +29,14 @@ export type ReminderPrefs = {
 const DEFAULT_PREFS: ReminderPrefs = {
   enabled: true,
   browserNotify: false,
+  preferredWindow: "anytime",
+};
+
+export const REMINDER_WINDOW_LABELS: Record<ReminderWindow, string> = {
+  anytime: "Any time",
+  morning: "Morning (from 6am)",
+  afternoon: "Afternoon (from 12pm)",
+  evening: "Evening (from 5pm)",
 };
 
 function localDateKey(now = new Date()): string {
@@ -32,16 +46,36 @@ function localDateKey(now = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
+function windowStartHour(window: ReminderWindow): number {
+  if (window === "morning") return 6;
+  if (window === "afternoon") return 12;
+  if (window === "evening") return 17;
+  return 0;
+}
+
+export function isWithinReminderWindow(prefs: ReminderPrefs, now = new Date()): boolean {
+  return now.getHours() >= windowStartHour(prefs.preferredWindow ?? "anytime");
+}
+
 export function loadReminderPrefs(): ReminderPrefs {
   if (typeof window === "undefined") return { ...DEFAULT_PREFS };
   try {
     const raw = window.localStorage.getItem(REMINDER_PREFS_KEY);
     if (!raw) return { ...DEFAULT_PREFS };
     const parsed = JSON.parse(raw) as Partial<ReminderPrefs>;
+    const preferredWindow =
+      parsed.preferredWindow === "morning" ||
+      parsed.preferredWindow === "afternoon" ||
+      parsed.preferredWindow === "evening" ||
+      parsed.preferredWindow === "anytime"
+        ? parsed.preferredWindow
+        : "anytime";
     return {
       enabled: parsed.enabled !== false,
       browserNotify: Boolean(parsed.browserNotify),
+      preferredWindow,
       dismissedDate: parsed.dismissedDate,
+      markedDoneDate: parsed.markedDoneDate,
       lastNotifiedDate: parsed.lastNotifiedDate,
     };
   } catch {
@@ -84,12 +118,22 @@ export function shouldShowTrainingReminder(input: {
   if (!input.prefs.enabled) return false;
   if (!isTrainingDay(input.workouts, now)) return false;
   if (hasSessionToday(input.history, now)) return false;
-  if (input.prefs.dismissedDate === localDateKey(now)) return false;
+  const today = localDateKey(now);
+  if (input.prefs.dismissedDate === today) return false;
+  if (input.prefs.markedDoneDate === today) return false;
+  if (!isWithinReminderWindow(input.prefs, now)) return false;
   return true;
 }
 
 export function dismissTrainingReminderToday(prefs: ReminderPrefs, now = new Date()): ReminderPrefs {
   const next = { ...prefs, dismissedDate: localDateKey(now) };
+  saveReminderPrefs(next);
+  return next;
+}
+
+/** Quiet acknowledgement — hide banner for today without starting a workout. */
+export function markTrainingDoneToday(prefs: ReminderPrefs, now = new Date()): ReminderPrefs {
+  const next = { ...prefs, markedDoneDate: localDateKey(now), dismissedDate: localDateKey(now) };
   saveReminderPrefs(next);
   return next;
 }
@@ -103,13 +147,13 @@ export function trainingReminderCopy(workout: Workout | undefined): {
   if (!workout) {
     return {
       title: "Training day",
-      text: "Your session is waiting whenever you’re ready.",
+      text: "Your session is here whenever you’re ready.",
       tip,
     };
   }
   return {
-    title: `${workout.title} is on today`,
-    text: `About ${workout.duration} minutes · ${workout.exercises.length} movements. Show up and the week keeps building.`,
+    title: `${workout.title} today`,
+    text: `About ${workout.duration} minutes · ${workout.exercises.length} movements. No rush — whenever it fits.`,
     tip,
   };
 }
@@ -134,7 +178,7 @@ export async function maybeNotifyTrainingDay(input: {
     new Notification(BRAND.name, {
       body: `${copy.title}. ${copy.text}`,
       tag: `forma-training-${today}`,
-      silent: false,
+      silent: true,
     });
   } catch {
     return input.prefs;

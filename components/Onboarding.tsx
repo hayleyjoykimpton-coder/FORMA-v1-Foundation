@@ -10,15 +10,18 @@ import {
   EXPERIENCE_LABELS,
   GOAL_LABELS,
   LOCATION_LABELS,
+  NUTRITION_LABELS,
 } from "@/lib/user";
 import type {
   EquipmentAccess,
   ExperienceLevel,
   Goal,
+  NutritionGoal,
   TrainingDays,
   UserProfile,
   WorkoutLocation,
 } from "@/lib/user";
+import type { InBodyDraft } from "@/lib/inbody";
 
 type Choice<T> = { value: T; label: string; hint?: string };
 
@@ -35,10 +38,23 @@ const DAYS: Choice<TrainingDays>[] = [
 ];
 const LOCATIONS: Choice<WorkoutLocation>[] = (Object.keys(LOCATION_LABELS) as WorkoutLocation[]).map((value) => ({ value, label: LOCATION_LABELS[value] }));
 const EQUIPMENT: Choice<EquipmentAccess>[] = (Object.keys(EQUIPMENT_LABELS) as EquipmentAccess[]).map((value) => ({ value, label: EQUIPMENT_LABELS[value] }));
+const NUTRITION: Choice<NutritionGoal>[] = [
+  { value: "maintain", label: NUTRITION_LABELS.maintain, hint: "Steady energy" },
+  { value: "lose", label: NUTRITION_LABELS.lose, hint: "Calorie awareness" },
+  { value: "gain", label: NUTRITION_LABELS.gain, hint: "Fuel for muscle" },
+  { value: "recomp", label: NUTRITION_LABELS.recomp, hint: "High protein, near maintenance" },
+];
 
-const TOTAL_STEPS = 7;
+/** Welcome + 8 content steps (name → … → lifestyle). */
+const TOTAL_STEPS = 9;
 
-export function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) => void }) {
+export type OnboardingResult = {
+  profile: UserProfile;
+  /** Optional first InBody snapshot from day-one onboarding. */
+  inbodyDraft?: InBodyDraft;
+};
+
+export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResult) => void }) {
   const [step, setStep] = useState(0);
   const [firstName, setFirstName] = useState("");
   const [goal, setGoal] = useState<Goal>("sculpt");
@@ -46,24 +62,45 @@ export function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) 
   const [trainingDays, setTrainingDays] = useState<TrainingDays>(3);
   const [workoutLocation, setWorkoutLocation] = useState<WorkoutLocation>("gym");
   const [equipmentAccess, setEquipmentAccess] = useState<EquipmentAccess>("full_gym");
+  const [nutritionGoal, setNutritionGoal] = useState<NutritionGoal>("maintain");
+  const [inWeight, setInWeight] = useState("");
+  const [inSmm, setInSmm] = useState("");
+  const [inFatPct, setInFatPct] = useState("");
+  const [inLean, setInLean] = useState("");
   const [sleep, setSleep] = useState("");
   const [steps, setSteps] = useState("");
   const [stress, setStress] = useState("");
 
+  const buildInBodyDraft = (): InBodyDraft | undefined => {
+    if (!inWeight.trim() && !inSmm.trim() && !inFatPct.trim() && !inLean.trim()) return undefined;
+    return {
+      weightKg: inWeight.trim() || undefined,
+      skeletalMuscleMassKg: inSmm.trim() || undefined,
+      bodyFatPercent: inFatPct.trim() || undefined,
+      leanBodyMassKg: inLean.trim() || undefined,
+      notes: "Logged during onboarding",
+    };
+  };
+
   const finish = () => {
-    onComplete(
-      createProfile({
+    const draft = buildInBodyDraft();
+    const weightNum = inWeight.trim() ? Number(inWeight) : null;
+    onComplete({
+      profile: createProfile({
         firstName: firstName || "Friend",
         goal,
         experienceLevel,
         trainingDays,
         workoutLocation,
         equipmentAccess,
+        nutritionGoal,
+        weight: weightNum !== null && Number.isFinite(weightNum) ? weightNum : null,
         sleepAverage: sleep ? Number(sleep) : null,
         dailySteps: steps ? Number(steps) : null,
         lifestyle: stress,
       }),
-    );
+      ...(draft ? { inbodyDraft: draft } : {}),
+    });
   };
 
   const next = () => setStep((current) => Math.min(TOTAL_STEPS, current + 1));
@@ -173,8 +210,51 @@ export function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) 
           )}
 
           {step === 7 && (
+            <StepChoice
+              eyebrow="Step 7"
+              title="What's your nutrition goal?"
+              lead="This sets your daily calorie and macro targets from day one."
+              options={NUTRITION}
+              selected={nutritionGoal}
+              onSelect={setNutritionGoal}
+              onNext={next}
+            />
+          )}
+
+          {step === 8 && (
             <div className="onboard-body">
-              <span className="eyebrow">Step 7 · Optional</span>
+              <span className="eyebrow">Step 8 · Optional</span>
+              <h1>Got a recent InBody?</h1>
+              <p className="onboard-lead">
+                Log a baseline now so Progress has somewhere to grow from. Skip if you don&rsquo;t have numbers yet.
+              </p>
+              <div className="onboard-input field">
+                <span>Weight (kg)</span>
+                <input type="number" step="0.1" inputMode="decimal" value={inWeight} onChange={(event) => setInWeight(event.target.value)} placeholder="e.g. 62.4" />
+              </div>
+              <div className="onboard-input field">
+                <span>Skeletal muscle (kg)</span>
+                <input type="number" step="0.1" inputMode="decimal" value={inSmm} onChange={(event) => setInSmm(event.target.value)} placeholder="e.g. 24.1" />
+              </div>
+              <div className="onboard-input field">
+                <span>Body fat %</span>
+                <input type="number" step="0.1" inputMode="decimal" value={inFatPct} onChange={(event) => setInFatPct(event.target.value)} placeholder="e.g. 28.5" />
+              </div>
+              <div className="onboard-input field">
+                <span>Lean body mass (kg)</span>
+                <input type="number" step="0.1" inputMode="decimal" value={inLean} onChange={(event) => setInLean(event.target.value)} placeholder="e.g. 44.6" />
+              </div>
+              <div className="onboard-nav">
+                <button className="cta-btn" onClick={next}>
+                  {inWeight || inSmm || inFatPct || inLean ? "Continue" : "Skip for now"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 9 && (
+            <div className="onboard-body">
+              <span className="eyebrow">Step 9 · Optional</span>
               <h1>A little about your lifestyle</h1>
               <p className="onboard-lead">This helps {BRAND.name} balance training and recovery. You can skip it.</p>
               <div className="onboard-input field">
@@ -203,6 +283,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) 
 function StepChoice<T extends string | number>({
   eyebrow,
   title,
+  lead,
   options,
   selected,
   onSelect,
@@ -210,6 +291,7 @@ function StepChoice<T extends string | number>({
 }: {
   eyebrow: string;
   title: string;
+  lead?: string;
   options: Choice<T>[];
   selected: T;
   onSelect: (value: T) => void;
@@ -219,6 +301,7 @@ function StepChoice<T extends string | number>({
     <div className="onboard-body">
       <span className="eyebrow">{eyebrow}</span>
       <h1>{title}</h1>
+      {lead ? <p className="onboard-lead">{lead}</p> : null}
       <div className="choice-grid">
         {options.map((option) => (
           <button

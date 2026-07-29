@@ -48,8 +48,16 @@ export function ProfileScreen({
   onClose: () => void;
   onViewProgress: () => void;
   onRebuildProgramme?: () => void;
-  reminderPrefs?: { enabled: boolean; browserNotify: boolean };
-  onReminderPrefsChange?: (prefs: { enabled: boolean; browserNotify: boolean }) => void;
+  reminderPrefs?: {
+    enabled: boolean;
+    browserNotify: boolean;
+    preferredWindow?: "anytime" | "morning" | "afternoon" | "evening";
+  };
+  onReminderPrefsChange?: (prefs: {
+    enabled: boolean;
+    browserNotify: boolean;
+    preferredWindow?: "anytime" | "morning" | "afternoon" | "evening";
+  }) => void;
   accountMode?: "local" | "cloud" | "gate" | "booting";
   syncNote?: string | null;
   onSignOut?: () => void | Promise<void>;
@@ -244,6 +252,22 @@ export function ProfileScreen({
                     onReminderPrefsChange({ ...reminderPrefs, enabled: v === "on" })
                   }
                 />
+                <label className="mini-label">Preferred time</label>
+                <ChoiceRow
+                  options={[
+                    { value: "anytime", label: "Any time" },
+                    { value: "morning", label: "Morning" },
+                    { value: "afternoon", label: "Afternoon" },
+                    { value: "evening", label: "Evening" },
+                  ]}
+                  selected={reminderPrefs.preferredWindow ?? "anytime"}
+                  onSelect={(v) =>
+                    onReminderPrefsChange({
+                      ...reminderPrefs,
+                      preferredWindow: v as "anytime" | "morning" | "afternoon" | "evening",
+                    })
+                  }
+                />
                 <ChoiceRow
                   options={[
                     { value: "on", label: "Browser notify while open" },
@@ -255,7 +279,7 @@ export function ProfileScreen({
                   }
                 />
                 <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-                  In-app nudges on gym days. Browser notify only works while {BRAND.name} is open — no account spam.
+                  Quiet in-app nudge on gym days after your preferred window. Browser notify only while {BRAND.name} is open.
                 </p>
               </>
             ) : null}

@@ -34,11 +34,11 @@
   --r-btn: 20px;
   --r-pill: 999px;
 
-  /* Shadows — deeper chocolate */
-  --shadow-xs: 0 2px 8px rgba(58, 40, 32, 0.07);
-  --shadow-sm: 0 8px 22px rgba(58, 40, 32, 0.09);
-  --shadow: 0 18px 44px rgba(58, 40, 32, 0.14);
-  --shadow-lg: 0 40px 90px rgba(58, 40, 32, 0.2);
+  /* Shadows — softer, cooler on white (less muddy chocolate bloom) */
+  --shadow-xs: 0 1px 3px rgba(36, 25, 19, 0.04), 0 1px 2px rgba(36, 25, 19, 0.03);
+  --shadow-sm: 0 4px 16px rgba(36, 25, 19, 0.06), 0 1px 3px rgba(36, 25, 19, 0.04);
+  --shadow: 0 12px 36px rgba(36, 25, 19, 0.08), 0 2px 8px rgba(36, 25, 19, 0.04);
+  --shadow-lg: 0 28px 64px rgba(36, 25, 19, 0.12), 0 8px 20px rgba(36, 25, 19, 0.06);
 
   --font-heading: var(--font-serif), Georgia, "Times New Roman", serif;
   --font-body: var(--font-sans), Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -58,7 +58,7 @@ html, body {
 
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
-input, textarea { outline-color: rgba(91, 67, 55, 0.35); }
+input, textarea { outline-color: rgba(63, 44, 36, 0.28); }
 
 /* ---------- App shell ---------------------------------------------------- */
 
@@ -67,9 +67,9 @@ input, textarea { outline-color: rgba(91, 67, 55, 0.35); }
   display: grid;
   place-items: start center;
   background:
-    radial-gradient(circle at 12% -5%, rgba(243, 235, 226, 0.9) 0%, transparent 40%),
-    radial-gradient(circle at 100% 0%, rgba(91, 67, 55, 0.1) 0%, transparent 38%),
-    radial-gradient(circle at 0% 85%, rgba(111, 132, 152, 0.1) 0%, transparent 42%),
+    radial-gradient(circle at 12% -8%, rgba(212, 184, 162, 0.14) 0%, transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(95, 117, 138, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 0% 90%, rgba(176, 138, 108, 0.05) 0%, transparent 44%),
     var(--bg);
 }
 
@@ -103,7 +103,7 @@ p { margin: 0; color: var(--text-2); line-height: 1.55; }
   letter-spacing: 0.2em;
   font-size: 10px;
   font-weight: 600;
-  color: #4a3a32;
+  color: var(--text-2);
 }
 .eyebrow.light { color: rgba(255, 255, 255, 0.9); }
 .muted { color: var(--text-2); }
@@ -192,10 +192,10 @@ textarea::placeholder {
   color: var(--on-cta);
   font-weight: 600;
   letter-spacing: 0.01em;
-  box-shadow: 0 12px 26px rgba(58, 40, 32, 0.28);
+  box-shadow: 0 10px 24px rgba(36, 25, 19, 0.18);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
-.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(58, 40, 32, 0.36); }
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(36, 25, 19, 0.24); }
 .cta-btn:active { transform: scale(0.98); }
 
 .pill-btn {
@@ -217,13 +217,14 @@ textarea::placeholder {
   margin-top: 12px;
   padding: 13px 16px;
   border-radius: var(--r-btn);
-  background: var(--pink);
+  background: var(--wash-earth);
   color: var(--text);
+  border: 1px solid var(--line);
   font-weight: 600;
   font-size: 13px;
-  transition: transform 0.18s ease, filter 0.2s ease;
+  transition: transform 0.18s ease, filter 0.2s ease, background 0.2s ease;
 }
-.secondary-btn:hover { filter: brightness(0.98); }
+.secondary-btn:hover { filter: brightness(0.99); background: var(--wash-peach); }
 .secondary-btn:active { transform: scale(0.98); }
 
 .text-btn {
@@ -356,11 +357,11 @@ button:disabled { cursor: not-allowed; }
 .stat-value { font-family: var(--font-heading); font-size: 26px; font-weight: 400; color: var(--text); }
 .stat-note { font-size: 11px; color: var(--text-2); }
 
-.accent-pink { background: linear-gradient(160deg, var(--wash-peach), var(--pink)); border-color: transparent; }
-.accent-blue { background: linear-gradient(160deg, var(--wash-blue), var(--blue)); border-color: transparent; }
-.accent-mocha { background: linear-gradient(160deg, var(--wash-earth), var(--mocha)); border-color: transparent; }
-.accent-sage { background: linear-gradient(160deg, var(--wash-sage), var(--sage)); border-color: transparent; }
-.accent-green { background: linear-gradient(160deg, var(--wash-green), var(--green)); border-color: transparent; }
+.accent-pink { background: linear-gradient(165deg, var(--wash-peach), #e8d5c4); border-color: transparent; }
+.accent-blue { background: linear-gradient(165deg, var(--wash-blue), #d5e0ea); border-color: transparent; }
+.accent-mocha { background: linear-gradient(165deg, var(--wash-earth), #e4d4c4); border-color: transparent; }
+.accent-sage { background: linear-gradient(165deg, var(--wash-sage), #d7e1ea); border-color: transparent; }
+.accent-green { background: linear-gradient(165deg, var(--wash-green), #d5e0d6); border-color: transparent; }
 
 /* ---------- Today's workout card ---------------------------------------- */
 
@@ -1068,7 +1069,7 @@ input, textarea {
   gap: 4px;
   padding: 10px 8px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line);
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
@@ -1082,7 +1083,10 @@ input, textarea {
   font-weight: 600;
   transition: color 0.2s ease, background 0.2s ease;
 }
-.tabbar button.active { color: var(--text); background: var(--pink); }
+.tabbar button.active {
+  color: var(--on-cta);
+  background: var(--cta);
+}
 
 /* ---------- Loading ------------------------------------------------------ */
 
@@ -1173,7 +1177,7 @@ button.avatar { padding: 0; }
 }
 .choice:hover { transform: translateY(-1px); }
 .choice:active { transform: scale(0.99); }
-.choice.selected { border-color: var(--cta); background: linear-gradient(160deg, var(--wash-peach), var(--pink)); }
+.choice.selected { border-color: var(--cta); background: linear-gradient(165deg, var(--wash-peach), #e8d5c4); }
 .choice small { display: block; font-weight: 400; color: var(--text-2); margin-top: 3px; font-size: 12px; }
 .choice.mini { padding: 9px 14px; font-size: 13px; text-align: center; }
 
@@ -1795,15 +1799,61 @@ button.avatar { padding: 0; }
   gap: 12px;
 }
 
-.exercise-preview small { color: #524038; }
-.stat-label { color: #4a3a32; }
-.stat-note { color: #524038; }
+.exercise-preview small { color: var(--text-2); }
+.stat-label { color: var(--text-2); }
+.stat-note { color: var(--text-2); }
 
 /* InBody scan results */
 .inbody-intro-card { display: flex; flex-direction: column; gap: 14px; }
 .inbody-log-form { margin-top: 8px; }
+.inbody-import-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.inbody-import-status { font-size: 13px; margin: 0; }
 .inbody-trend { margin-top: 10px; }
 .inbody-trend-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 6px; }
 .inbody-trend-tabs { margin-bottom: 10px; }
 .inbody-history { display: grid; gap: 12px; }
 .inbody-scan-card .measurement-list { margin-top: 10px; }
+
+/* Day-one / empty-state jump CTAs */
+.getting-started-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.getting-started-card strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+.getting-started-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.getting-started-actions .cta-btn,
+.getting-started-actions .secondary-btn {
+  flex: 1 1 140px;
+}
+.empty-cta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.empty-cta-card p {
+  margin: 0;
+}
+
+.weekly-review-nudge {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.progress-export-card .workout-card-head {
+  align-items: flex-start;
+  gap: 12px;
+}
+.collapsible-section.pinned .collapsible-head {
+  border-color: color-mix(in srgb, var(--mocha, #8b6b4a) 35%, transparent);
+}

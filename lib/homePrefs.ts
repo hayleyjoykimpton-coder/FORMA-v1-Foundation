@@ -1,5 +1,6 @@
 /**
- * Home module personalisation — which secondary collapsibles show, and in what order.
+ * Home module personalisation — which secondary collapsibles show, order,
+ * pin favourites, and remembered open/closed state.
  * Local-only (same pattern as reminder prefs); not synced to cloud yet.
  */
 
@@ -14,6 +15,10 @@ export type HomeModulePref = {
 
 export type HomePrefs = {
   modules: HomeModulePref[];
+  /** Favourites float to the top of the visible list. */
+  pinned: HomeModuleId[];
+  /** Remembered open/closed state per module. */
+  openState: Partial<Record<HomeModuleId, boolean>>;
 };
 
 export const HOME_MODULE_META: Record<
@@ -47,12 +52,23 @@ const DEFAULT_ORDER: HomeModuleId[] = ["fuel", "habits", "programme", "reflect"]
 export function defaultHomePrefs(): HomePrefs {
   return {
     modules: DEFAULT_ORDER.map((id) => ({ id, visible: true })),
+    pinned: [],
+    openState: {},
   };
 }
 
 function normalise(prefs: Partial<HomePrefs> | null | undefined): HomePrefs {
   const defaults = defaultHomePrefs();
-  if (!prefs?.modules?.length) return defaults;
+  if (!prefs?.modules?.length) {
+    return {
+      ...defaults,
+      pinned: Array.isArray(prefs?.pinned)
+        ? [...new Set(prefs.pinned.filter((id): id is HomeModuleId => Boolean(HOME_MODULE_META[id as HomeModuleId])))]
+        : [],
+      openState:
+        prefs?.openState && typeof prefs.openState === "object" ? { ...prefs.openState } : {},
+    };
+  }
 
   const seen = new Set<HomeModuleId>();
   const modules: HomeModulePref[] = [];
@@ -68,7 +84,18 @@ function normalise(prefs: Partial<HomePrefs> | null | undefined): HomePrefs {
     modules.push({ id, visible: true });
   }
 
-  return { modules };
+  const pinned = Array.isArray(prefs.pinned)
+    ? [...new Set(prefs.pinned.filter((id): id is HomeModuleId => Boolean(HOME_MODULE_META[id as HomeModuleId])))]
+    : [];
+
+  const openState: Partial<Record<HomeModuleId, boolean>> = {};
+  if (prefs.openState && typeof prefs.openState === "object") {
+    for (const id of DEFAULT_ORDER) {
+      if (typeof prefs.openState[id] === "boolean") openState[id] = prefs.openState[id];
+    }
+  }
+
+  return { modules, pinned, openState };
 }
 
 export function loadHomePrefs(): HomePrefs {
@@ -89,6 +116,7 @@ export function saveHomePrefs(prefs: HomePrefs): void {
 
 export function toggleHomeModule(prefs: HomePrefs, id: HomeModuleId): HomePrefs {
   return {
+    ...prefs,
     modules: prefs.modules.map((module) =>
       module.id === id ? { ...module, visible: !module.visible } : module,
     ),
@@ -103,11 +131,38 @@ export function moveHomeModule(prefs: HomePrefs, id: HomeModuleId, delta: -1 | 1
   const modules = [...prefs.modules];
   const [item] = modules.splice(index, 1);
   modules.splice(next, 0, item);
-  return { modules };
+  return { ...prefs, modules };
 }
 
-/** Visible modules in user order — always at least one so Home never looks empty. */
+export function togglePinHomeModule(prefs: HomePrefs, id: HomeModuleId): HomePrefs {
+  const pinned = prefs.pinned.includes(id)
+    ? prefs.pinned.filter((item) => item !== id)
+    : [...prefs.pinned, id];
+  return { ...prefs, pinned };
+}
+
+export function setHomeModuleOpen(prefs: HomePrefs, id: HomeModuleId, open: boolean): HomePrefs {
+  return {
+    ...prefs,
+    openState: { ...prefs.openState, [id]: open },
+  };
+}
+
+/** Visible modules: pinned first (in pin order), then remaining in user order. */
 export function visibleHomeModules(prefs: HomePrefs): HomeModuleId[] {
   const visible = prefs.modules.filter((module) => module.visible).map((module) => module.id);
-  return visible.length ? visible : ["fuel"];
+  const base = visible.length ? visible : (["fuel"] as HomeModuleId[]);
+  const pinned = prefs.pinned.filter((id) => base.includes(id));
+  const rest = base.filter((id) => !pinned.includes(id));
+  return [...pinned, ...rest];
+}
+
+/** Resolved open state — remembered preference, else next-action hint, else false. */
+export function resolvedModuleOpen(
+  prefs: HomePrefs,
+  id: HomeModuleId,
+  hintOpen = false,
+): boolean {
+  if (typeof prefs.openState[id] === "boolean") return prefs.openState[id]!;
+  return hintOpen;
 }
