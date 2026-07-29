@@ -25,7 +25,7 @@ import type { Exercise } from "./types";
 export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
   // Glutes / posterior
   hip_thrust: "https://www.youtube.com/watch?v=42lU8xsumBo", // Hayley pick · Train with Dave
-  romanian_deadlift: "https://www.youtube.com/watch?v=_oyxCn2iSjU", // Jeff Nippard
+  romanian_deadlift: "https://www.youtube.com/watch?v=CBOhr6H7BEY", // Hayley pick · ArielYu_Fit Short
   bulgarian_split_squat: "https://www.youtube.com/watch?v=2C-uNgKwPLE", // Scott Herman
   walking_lunge: "https://www.youtube.com/watch?v=u9Dklt6z3FM", // Jim Stoppani
   step_up: "https://www.youtube.com/watch?v=7AtIjR-QqVA", // Bodybuilding.com
