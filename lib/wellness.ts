@@ -208,11 +208,12 @@ export function setGratitudeLine(
   day = localDateKey(),
 ): WellnessState {
   const lines = gratitudeForDay(state, day);
+  // Keep spaces (including trailing) while typing so sentences work.
+  // Empty-day cleanup uses trim() for "has content" only — do not trimEnd the value.
   lines[index] = value;
-  const trimmed = lines.map((line) => line.trimEnd());
-  const hasContent = trimmed.some((line) => line.trim().length > 0);
+  const hasContent = lines.some((line) => line.trim().length > 0);
   const nextGratitude = { ...state.gratitude };
-  if (hasContent) nextGratitude[day] = trimmed;
+  if (hasContent) nextGratitude[day] = lines;
   else delete nextGratitude[day];
   return { ...state, gratitude: nextGratitude };
 }

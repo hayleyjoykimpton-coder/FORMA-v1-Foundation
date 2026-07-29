@@ -2120,8 +2120,15 @@ export default function FormaApp() {
                       value={line}
                       maxLength={120}
                       placeholder="Write a few words…"
+                      autoComplete="off"
+                      spellCheck
                       onChange={(event) =>
                         setWellness((current) => setGratitudeLine(current, index, event.target.value, todayISO))
+                      }
+                      onBlur={(event) =>
+                        setWellness((current) =>
+                          setGratitudeLine(current, index, event.target.value.trimEnd(), todayISO),
+                        )
                       }
                     />
                   </label>
