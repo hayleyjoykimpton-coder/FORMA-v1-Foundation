@@ -32,6 +32,8 @@ Supabase Free often rate-limits confirmation emails. For local testing, turn off
 - Daily sleep hours + steps live in `wellness.daily` (Today · Body signals). Profile `sleepAverage` / `dailySteps` remain goals/defaults, not the day log.
 - Exercise form videos: curated YouTube links + search fallback (`lib/exerciseVideos.ts`). Users can paste their own YouTube/Vimeo URL on each exercise in Training edit. **Do not** store uploaded video files in localStorage / `user_state` JSON — needs Supabase Storage later (with App Store / Capacitor path).
 - Nutrition: goal-aware targets from `profile.nutritionGoal` (`lib/nutritionTargets.ts`). Meal log + optional AI photo via `POST /api/analyze-meal` (`OPENAI_API_KEY` server-only). Without the key, manual macros still work. Meals sync under `programme.meals`.
+
+
 - Home UX: one dominant **Do this next** card (`lib/nextAction.ts`); secondary modules sit in collapsibles. Prefer progressive disclosure over adding more equal-weight cards.
 - **Do not replace** the editorial AI images in `public/img/` (hero, recovery, nutrition, glutes, upper, etc.). Hayley likes them as-is — keep using the existing paths in `lib/content.ts` `IMAGES`.
 

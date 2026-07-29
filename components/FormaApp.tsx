@@ -97,6 +97,7 @@ import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progre
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
 import { AuthScreen } from "@/components/AuthScreen";
 import { BreathworkSession } from "@/components/Breathwork";
+
 import { CollapsibleSection, ScoreExplainer } from "@/components/Collapsible";
 import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
@@ -1546,6 +1547,7 @@ export default function FormaApp() {
                 </div>
               </article>
             ) : null}
+
 
             {todaysWorkout && todaysWorkout.exercises.length > 0 && nextAction.kind === "train" ? (
               <article className="card workout-today">
