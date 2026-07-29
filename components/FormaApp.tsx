@@ -245,6 +245,7 @@ export default function FormaApp() {
   const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => defaultHomePrefs());
   const [homeCustomiseOpen, setHomeCustomiseOpen] = useState(false);
   const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
+  const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
@@ -870,6 +871,52 @@ export default function FormaApp() {
     setSession(null);
     setRestRemaining(0);
     setTab("progress");
+  };
+
+  const deleteHistorySession = (sessionId: string) => {
+    const session = history.find((entry) => entry.id === sessionId);
+    const label = session?.workoutTitle ?? "this session";
+    if (typeof window !== "undefined" && !window.confirm(`Delete ${label} from history? This can’t be undone.`)) {
+      return;
+    }
+    setHistory((current) => current.filter((entry) => entry.id !== sessionId));
+    if (editingHistoryId === sessionId) setEditingHistoryId(null);
+    if (cueSessionId === sessionId) setCueSessionId(null);
+    setSyncNote("Session removed from history");
+  };
+
+  const updateHistorySession = (
+    sessionId: string,
+    patch: Partial<Pick<WorkoutSession, "workoutTitle" | "notes" | "completedAt">>,
+  ) => {
+    setHistory((current) =>
+      current.map((entry) => (entry.id === sessionId ? { ...entry, ...patch } : entry)),
+    );
+  };
+
+  const updateHistorySet = (
+    sessionId: string,
+    exerciseId: string,
+    setIndex: number,
+    patch: Partial<{ reps: number; weight: number; rpe: number; complete: boolean }>,
+  ) => {
+    setHistory((current) =>
+      current.map((entry) => {
+        if (entry.id !== sessionId) return entry;
+        return {
+          ...entry,
+          exercises: entry.exercises.map((exercise) => {
+            if (exercise.exerciseId !== exerciseId) return exercise;
+            return {
+              ...exercise,
+              sets: exercise.sets.map((set, index) =>
+                index === setIndex ? { ...set, ...patch, skipped: patch.complete === false ? true : set.skipped } : set,
+              ),
+            };
+          }),
+        };
+      }),
+    );
   };
 
   const applyProgressionCues = () => {
@@ -1580,49 +1627,58 @@ export default function FormaApp() {
               ) : null}
             </article>
 
-            {todaysWorkout && todaysWorkout.exercises.length > 0 && nextAction.kind !== "train" ? (
-              <article className="card workout-today compact-workout">
-                <div className="workout-today-body">
-                  <span className="eyebrow">{todaysWorkout.day} · {todaysWorkout.title}</span>
-                  <p className="muted">{todaysWorkout.exercises.length} exercises · ~{todaysWorkout.duration} min</p>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    disabled={!todaysWorkout.exercises.length}
-                    onClick={() => startWorkout(todaysWorkout)}
+            {todaysWorkout && todaysWorkout.exercises.length > 0 ? (
+              <>
+                <SectionHeading eyebrow="Today's workout" title={todaysWorkout.title} />
+                <article className="card workout-today">
+                  <div
+                    className="workout-today-media"
+                    style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title)})` }}
                   >
-                    Start workout
-                  </button>
-                </div>
-              </article>
-            ) : null}
-
-
-            {todaysWorkout && todaysWorkout.exercises.length > 0 && nextAction.kind === "train" ? (
-              <article className="card workout-today">
-                <div className="workout-today-media" style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title)})` }}>
-                  <span className="media-chip">{todaysWorkout.duration} min</span>
-                  <button className="media-edit" onClick={() => { setEditingWorkoutId(todaysWorkout.id); setTab("training"); }}>Edit</button>
-                </div>
-                <div className="workout-today-body">
-                  <span className="eyebrow">{todaysWorkout.day} · {season}</span>
-                  <ul className="exercise-preview">
-                    {todaysWorkout.exercises.map((item, index) => {
-                      const recommendation = getRecommendation(item, history, phaseDef);
-                      return (
-                        <li key={item.id}>
-                          <span className="ep-index">{index + 1}</span>
-                          <div>
-                            <strong>{item.name}</strong>
-                            <small>{item.sets} × {item.repMin}–{item.repMax} · RPE {item.rpe}</small>
-                            <em>{recommendation.title}</em>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              </article>
+                    <span className="media-chip">{todaysWorkout.duration} min</span>
+                    <button
+                      type="button"
+                      className="media-edit"
+                      onClick={() => {
+                        setEditingWorkoutId(todaysWorkout.id);
+                        setTab("training");
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  <div className="workout-today-body">
+                    <span className="eyebrow">
+                      {todaysWorkout.day} · {season}
+                    </span>
+                    <ul className="exercise-preview">
+                      {todaysWorkout.exercises.map((item, index) => {
+                        const recommendation = getRecommendation(item, history, phaseDef);
+                        return (
+                          <li key={item.id}>
+                            <span className="ep-index">{index + 1}</span>
+                            <div>
+                              <strong>{item.name}</strong>
+                              <small>
+                                {item.sets} × {item.repMin}–{item.repMax} · RPE {item.rpe}
+                              </small>
+                              <em>{recommendation.title}</em>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <button
+                      type="button"
+                      className="cta-btn"
+                      disabled={!todaysWorkout.exercises.length}
+                      onClick={() => startWorkout(todaysWorkout)}
+                    >
+                      Start workout
+                    </button>
+                  </div>
+                </article>
+              </>
             ) : null}
 
             <div className="home-customise-bar">
@@ -2465,26 +2521,131 @@ export default function FormaApp() {
 
             <SectionHeading eyebrow="History" title="Recent sessions" />
             <div className="history-list">
-              {[...history].reverse().map((item) => (
+              {[...history].reverse().map((item) => {
+                const isEditing = editingHistoryId === item.id;
+                return (
                 <article className="card history-card" key={item.id}>
                   <div className="workout-card-head">
                     <div>
                       <span className="eyebrow">{new Date(item.completedAt).toLocaleDateString()}</span>
-                      <h3>{item.workoutTitle}</h3>
+                      {isEditing ? (
+                        <input
+                          className="full"
+                          value={item.workoutTitle}
+                          onChange={(event) =>
+                            updateHistorySession(item.id, { workoutTitle: event.target.value })
+                          }
+                          aria-label="Session title"
+                        />
+                      ) : (
+                        <h3>{item.workoutTitle}</h3>
+                      )}
                     </div>
-                    <span className="season-pill">{item.season}</span>
+                    <div className="history-card-actions">
+                      <span className="season-pill">{item.season}</span>
+                      <ActionMenu
+                        label={`Actions for ${item.workoutTitle}`}
+                        items={[
+                          {
+                            label: isEditing ? "Done editing" : "Edit session",
+                            onClick: () =>
+                              setEditingHistoryId((current) => (current === item.id ? null : item.id)),
+                          },
+                          {
+                            label: "Delete",
+                            danger: true,
+                            onClick: () => deleteHistorySession(item.id),
+                          },
+                        ]}
+                      />
+                    </div>
                   </div>
-                  {item.exercises.map((exercise) => {
-                    const completed = exercise.sets.filter((set) => set.complete);
-                    return (
-                      <p key={exercise.exerciseId}>
-                        <strong>{exercise.name}</strong>
-                        <span>{completed.map((set) => `${set.weight}kg × ${set.reps}`).join(" · ") || "Not completed"}</span>
-                      </p>
-                    );
-                  })}
+                  {isEditing ? (
+                    <div className="history-edit-list">
+                      <label className="field">
+                        <span>Completed date</span>
+                        <input
+                          type="date"
+                          value={item.completedAt.slice(0, 10)}
+                          onChange={(event) => {
+                            const date = event.target.value;
+                            if (!date) return;
+                            const previous = new Date(item.completedAt);
+                            const next = new Date(`${date}T12:00:00`);
+                            next.setHours(previous.getHours(), previous.getMinutes(), previous.getSeconds());
+                            updateHistorySession(item.id, { completedAt: next.toISOString() });
+                          }}
+                        />
+                      </label>
+                      {item.exercises.map((exercise) => (
+                        <div className="history-edit-exercise" key={exercise.exerciseId}>
+                          <strong>{exercise.name}</strong>
+                          {exercise.sets.map((set, setIndex) => (
+                            <div className="history-edit-set" key={`${exercise.exerciseId}-${setIndex}`}>
+                              <span className="eyebrow">Set {setIndex + 1}</span>
+                              <div className="field-grid history-set-grid">
+                                <Field
+                                  label="kg"
+                                  value={set.weight}
+                                  step="0.5"
+                                  onChange={(value) =>
+                                    updateHistorySet(item.id, exercise.exerciseId, setIndex, { weight: value })
+                                  }
+                                />
+                                <Field
+                                  label="Reps"
+                                  value={set.reps}
+                                  onChange={(value) =>
+                                    updateHistorySet(item.id, exercise.exerciseId, setIndex, { reps: value })
+                                  }
+                                />
+                                <Field
+                                  label="RPE"
+                                  value={set.rpe}
+                                  step="0.5"
+                                  onChange={(value) =>
+                                    updateHistorySet(item.id, exercise.exerciseId, setIndex, { rpe: value })
+                                  }
+                                />
+                              </div>
+                              <label className="history-complete-toggle">
+                                <input
+                                  type="checkbox"
+                                  checked={set.complete}
+                                  onChange={(event) =>
+                                    updateHistorySet(item.id, exercise.exerciseId, setIndex, {
+                                      complete: event.target.checked,
+                                    })
+                                  }
+                                />
+                                <span>Completed</span>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="pill-btn small"
+                        onClick={() => setEditingHistoryId(null)}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  ) : (
+                    item.exercises.map((exercise) => {
+                      const completed = exercise.sets.filter((set) => set.complete);
+                      return (
+                        <p key={exercise.exerciseId}>
+                          <strong>{exercise.name}</strong>
+                          <span>{completed.map((set) => `${set.weight}kg × ${set.reps}`).join(" · ") || "Not completed"}</span>
+                        </p>
+                      );
+                    })
+                  )}
                 </article>
-              ))}
+                );
+              })}
               {!history.length && (
                 <article className="card guided-empty">
                   Complete your first workout to unlock history, records and trends.
