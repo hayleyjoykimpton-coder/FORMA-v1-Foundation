@@ -101,7 +101,16 @@ import {
 import type { Readiness } from "@/lib/coach";
 import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
-import { AuthScreen } from "@/components/AuthScreen";
+import { AuthScreen, SyncToast } from "@/components/AuthScreen";
+import {
+  cloudLooksEmpty,
+  formatSyncTime,
+  getSessionEmail,
+  localLooksRich,
+  type SyncStatus,
+  EMPTY_SYNC_STATUS,
+} from "@/lib/syncConfidence";
+import type { CloudState } from "@/lib/sync";
 import { BreathworkSession } from "@/components/Breathwork";
 
 import { ActionMenu } from "@/components/ActionMenu";
@@ -259,6 +268,15 @@ export default function FormaApp() {
   const [authMode, setAuthMode] = useState<AuthMode>("booting");
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [syncNote, setSyncNote] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(EMPTY_SYNC_STATUS);
+  const [toast, setToast] = useState<{ message: string; tone: "info" | "ok" | "error"; key: number } | null>(
+    null,
+  );
+  const [syncConflict, setSyncConflict] = useState<{
+    userId: string;
+    cloud: CloudState;
+  } | null>(null);
+  const skipNextPushRef = useRef(false);
   const [cueSessionId, setCueSessionId] = useState<string | null>(null);
   const [reminderPrefs, setReminderPrefs] = useState<ReminderPrefs>({
     enabled: true,
@@ -314,105 +332,184 @@ export default function FormaApp() {
     }
   };
 
-  const applyCloudBundle = async (userId: string) => {
-    const cloud = await pullCloudState(userId);
-    const local = loadForma();
-    const localProfile = loadProfile();
+  const showToast = (message: string, tone: "info" | "ok" | "error" = "info") => {
+    setToast({ message, tone, key: Date.now() });
+  };
 
-    // Prefer cloud when it has a profile; otherwise keep local and upload.
-    if (cloud?.profile) {
-      const sourceWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
-      let nextWorkouts = sourceWorkouts;
-      let didUpgrade = false;
-      if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
-        nextWorkouts = transferExerciseWeights(
-          sourceWorkouts,
-          generateProgram(cloud.profile, {
-            week: cloud.week,
-            alignActive: cloud.alignActive,
-          }),
-        );
-        didUpgrade = true;
-      }
-      setProfile(cloud.profile);
-      setWorkouts(nextWorkouts);
-      setHistory(cloud.history);
-      setWeek(cycleWeek(cloud.week));
-      setAlignActive(cloud.alignActive);
-      setProgressEntries(cloud.progress);
-      setProgressPhotos(cloud.photos);
-      setJournal(cloud.journal);
-      setWellness(cloud.wellness);
-      setMeals(cloud.meals);
-      setInBody(cloud.inbody);
-      if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
-      else setWater(0);
-      const today = pickTodaysWorkout(nextWorkouts);
-      setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
-      if (cloud.sessionDraft && nextWorkouts.some((w) => w.id === cloud.sessionDraft!.workoutId)) {
-        setPausedDraft(cloud.sessionDraft);
-      }
-      saveProfile(cloud.profile);
-      saveWellness(cloud.wellness);
-      saveMeals(cloud.meals);
-      saveInBody(cloud.inbody);
-      window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
-      window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
-      window.localStorage.setItem(
-        STORAGE.program,
-        JSON.stringify({
+  const uploadLocalToCloud = async (userId: string) => {
+    const local = loadForma();
+    const profileToSave = loadProfile();
+    if (profileToSave) {
+      await pushProfile({ ...profileToSave, id: userId, email: profileToSave.email || "" });
+    }
+    await pushUserState({
+      workouts: local.workouts,
+      history: local.history,
+      week: local.week,
+      alignActive: local.alignActive,
+      progress: loadProgress(),
+      photos: loadPhotos(),
+      water: { date: new Date().toDateString(), count: local.water },
+      journal: local.journal,
+      wellness: local.wellness,
+      meals: loadMeals(),
+      inbody: loadInBody(),
+      sessionDraft: local.sessionDraft,
+    });
+  };
+
+  const applyCloudData = (cloud: CloudState, userId: string) => {
+    const local = loadForma();
+    const sourceWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
+    let nextWorkouts = sourceWorkouts;
+    let didUpgrade = false;
+    if (cloud.profile && programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
+      nextWorkouts = transferExerciseWeights(
+        sourceWorkouts,
+        generateProgram(cloud.profile, {
           week: cloud.week,
-          programId: FORMA_PROGRAM.id,
-          schemaVersion: PROGRAM_SCHEMA_VERSION,
           alignActive: cloud.alignActive,
         }),
       );
-      saveProgress(cloud.progress);
-      savePhotos(cloud.photos);
+      didUpgrade = true;
+    }
+    if (cloud.profile) {
+      setProfile(cloud.profile);
+      saveProfile(cloud.profile);
+    }
+    setWorkouts(nextWorkouts);
+    setHistory(cloud.history);
+    setWeek(cycleWeek(cloud.week));
+    setAlignActive(cloud.alignActive);
+    setProgressEntries(cloud.progress);
+    setProgressPhotos(cloud.photos);
+    setJournal(cloud.journal);
+    setWellness(cloud.wellness);
+    setMeals(cloud.meals);
+    setInBody(cloud.inbody);
+    if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
+    else setWater(0);
+    const today = pickTodaysWorkout(nextWorkouts);
+    setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
+    if (cloud.sessionDraft && nextWorkouts.some((w) => w.id === cloud.sessionDraft!.workoutId)) {
+      setPausedDraft(cloud.sessionDraft);
+    }
+    saveWellness(cloud.wellness);
+    saveMeals(cloud.meals);
+    saveInBody(cloud.inbody);
+    window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
+    window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
+    window.localStorage.setItem(
+      STORAGE.program,
+      JSON.stringify({
+        week: cloud.week,
+        programId: FORMA_PROGRAM.id,
+        schemaVersion: PROGRAM_SCHEMA_VERSION,
+        alignActive: cloud.alignActive,
+      }),
+    );
+    saveProgress(cloud.progress);
+    savePhotos(cloud.photos);
 
-      // Persist upgraded programme immediately so the next boot does not re-load legacy titles.
-      if (didUpgrade) {
-        await pushUserState({
-          workouts: nextWorkouts,
-          history: cloud.history,
-          week: cloud.week,
-          alignActive: cloud.alignActive,
-          progress: cloud.progress,
-          photos: cloud.photos,
-          water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
-          journal: cloud.journal,
-          wellness: cloud.wellness,
-          meals: cloud.meals,
-          inbody: cloud.inbody,
-          sessionDraft: cloud.sessionDraft,
-        });
-      }
-    } else {
-      applyLocalBundle({ seedHayley: !localProfile });
-      const profileToSave = loadProfile();
-      if (profileToSave) {
-        await pushProfile({ ...profileToSave, id: userId, email: profileToSave.email || "" });
-      }
-      await pushUserState({
-        workouts: local.workouts,
-        history: local.history,
-        week: local.week,
-        alignActive: local.alignActive,
-        progress: loadProgress(),
-        photos: loadPhotos(),
-        water: { date: new Date().toDateString(), count: local.water },
-        journal: local.journal,
-        wellness: local.wellness,
-        meals: loadMeals(),
-        inbody: loadInBody(),
-        sessionDraft: local.sessionDraft,
+    if (didUpgrade && cloud.profile) {
+      void pushUserState({
+        workouts: nextWorkouts,
+        history: cloud.history,
+        week: cloud.week,
+        alignActive: cloud.alignActive,
+        progress: cloud.progress,
+        photos: cloud.photos,
+        water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
+        journal: cloud.journal,
+        wellness: cloud.wellness,
+        meals: cloud.meals,
+        inbody: cloud.inbody,
+        sessionDraft: cloud.sessionDraft,
       });
     }
 
     setCloudUserId(userId);
     setAuthMode("cloud");
     window.localStorage.removeItem(LOCAL_ONLY_KEY);
+    skipNextPushRef.current = true;
+    const syncedAt = new Date().toISOString();
+    setSyncStatus((current) => ({
+      ...current,
+      phase: "saved",
+      message: "Synced from cloud",
+      lastSyncedAt: syncedAt,
+    }));
     setSyncNote("Synced to your account");
+    showToast("Synced from cloud", "ok");
+  };
+
+  const applyCloudBundle = async (userId: string, opts?: { forceCloud?: boolean }) => {
+    const cloud = await pullCloudState(userId);
+    const local = loadForma();
+    const localProfile = loadProfile();
+    const email = await getSessionEmail();
+    setSyncStatus((current) => ({ ...current, authEmail: email }));
+
+    const localRich = localLooksRich({
+      historyLength: local.history.length,
+      progressLength: loadProgress().length,
+      mealCount: loadMeals().entries.length,
+      inbodyCount: loadInBody().scans.length,
+      photoCount: loadPhotos().length,
+    });
+
+    // Prefer cloud when it has a profile; otherwise keep local and upload.
+    if (cloud?.profile) {
+      const emptyCloud = cloudLooksEmpty(cloud);
+
+      // Fresh signup / empty account — protect rich local data by uploading it.
+      if (!opts?.forceCloud && emptyCloud && localRich) {
+        applyLocalBundle({ seedHayley: false });
+        await uploadLocalToCloud(userId);
+        setCloudUserId(userId);
+        setAuthMode("cloud");
+        window.localStorage.removeItem(LOCAL_ONLY_KEY);
+        const syncedAt = new Date().toISOString();
+        setSyncStatus((current) => ({
+          ...current,
+          phase: "saved",
+          message: "This device saved to cloud",
+          lastSyncedAt: syncedAt,
+          authEmail: email,
+        }));
+        setSyncNote("This device’s data saved to your account");
+        showToast("Saved this device to cloud", "ok");
+        return;
+      }
+
+      // Both sides have real data — ask before overwriting.
+      if (!opts?.forceCloud && !emptyCloud && localRich) {
+        setSyncConflict({ userId, cloud });
+        setCloudUserId(userId);
+        setAuthMode("cloud");
+        window.localStorage.removeItem(LOCAL_ONLY_KEY);
+        return;
+      }
+
+      applyCloudData(cloud, userId);
+      return;
+    }
+
+    applyLocalBundle({ seedHayley: !localProfile });
+    await uploadLocalToCloud(userId);
+    setCloudUserId(userId);
+    setAuthMode("cloud");
+    window.localStorage.removeItem(LOCAL_ONLY_KEY);
+    const syncedAt = new Date().toISOString();
+    setSyncStatus((current) => ({
+      ...current,
+      phase: "saved",
+      message: "This device saved to cloud",
+      lastSyncedAt: syncedAt,
+      authEmail: email,
+    }));
+    setSyncNote("Synced to your account");
+    showToast("Saved this device to cloud", "ok");
   };
 
   useEffect(() => {
@@ -457,10 +554,13 @@ export default function FormaApp() {
     const subscription = supabase?.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
         setCloudUserId(null);
+        setSyncConflict(null);
+        setSyncStatus(EMPTY_SYNC_STATUS);
         setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
         return;
       }
-      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user.id) {
+      // Only hydrate on sign-in — token refresh must not clobber local edits.
+      if (event === "SIGNED_IN" && session?.user.id) {
         await applyCloudBundle(session.user.id);
         setHydrated(true);
       }
@@ -496,7 +596,12 @@ export default function FormaApp() {
 
   // Cloud sync (debounced) whenever signed-in state changes.
   useEffect(() => {
-    if (!hydrated || authMode !== "cloud" || !cloudUserId || !profile) return;
+    if (!hydrated || authMode !== "cloud" || !cloudUserId || !profile || syncConflict) return;
+    if (skipNextPushRef.current) {
+      skipNextPushRef.current = false;
+      return;
+    }
+    setSyncStatus((current) => ({ ...current, phase: "pending", message: "Saving to cloud…" }));
     const timer = window.setTimeout(() => {
       void (async () => {
         const profileResult = await pushProfile(profile);
@@ -515,9 +620,24 @@ export default function FormaApp() {
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
-          setSyncNote(profileResult.error || stateResult.error || "Sync failed");
+          const message = profileResult.error || stateResult.error || "Sync failed";
+          setSyncStatus((current) => ({
+            ...current,
+            phase: "error",
+            message,
+          }));
+          setSyncNote(message);
+          showToast(message, "error");
         } else {
+          const syncedAt = new Date().toISOString();
+          setSyncStatus((current) => ({
+            ...current,
+            phase: "saved",
+            message: "Saved to cloud",
+            lastSyncedAt: syncedAt,
+          }));
           setSyncNote("Synced just now");
+          // Quiet success for background debounce — toast only on errors / sign-in sync.
         }
       })();
     }, 900);
@@ -539,6 +659,7 @@ export default function FormaApp() {
     inbody,
     pausedDraft,
     hydrated,
+    syncConflict,
   ]);
 
   useEffect(() => {
@@ -920,6 +1041,9 @@ export default function FormaApp() {
     setSession(null);
     setRestRemaining(0);
     setTab("progress");
+    if (authMode === "cloud") {
+      showToast("Workout saved · syncing to cloud", "ok");
+    }
   };
 
   const deleteHistorySession = (sessionId: string) => {
@@ -1213,10 +1337,35 @@ export default function FormaApp() {
         }}
         accountMode={authMode}
         syncNote={syncNote}
+        syncStatusLabel={
+          authMode === "cloud"
+            ? syncStatus.phase === "pending"
+              ? "Saving to cloud…"
+              : syncStatus.phase === "error"
+                ? syncStatus.message || "Sync failed"
+                : `Cloud · ${formatSyncTime(syncStatus.lastSyncedAt)}`
+            : null
+        }
+        authEmail={syncStatus.authEmail}
+        onRefreshCloud={
+          cloudUserId
+            ? async () => {
+                setSyncStatus((current) => ({
+                  ...current,
+                  phase: "pending",
+                  message: "Refreshing…",
+                }));
+                await applyCloudBundle(cloudUserId, { forceCloud: true });
+                setSyncConflict(null);
+              }
+            : undefined
+        }
         onSignOut={async () => {
           await signOut();
           window.localStorage.removeItem(LOCAL_ONLY_KEY);
           setCloudUserId(null);
+          setSyncConflict(null);
+          setSyncStatus(EMPTY_SYNC_STATUS);
           setAuthMode("gate");
           setProfileOpen(false);
         }}
@@ -1226,6 +1375,73 @@ export default function FormaApp() {
           setProfileOpen(false);
         }}
       />
+    );
+  }
+
+  if (syncConflict) {
+    const cloud = syncConflict.cloud;
+    return (
+      <div className="app">
+        <div className="shell">
+          <div className="screen auth-screen">
+            <span className="wordmark">FORMA</span>
+            <h1>Choose your data</h1>
+            <p className="muted">
+              This device and your cloud account both have training data. Pick which one to keep —
+              the other will be replaced.
+            </p>
+            <article className="card">
+              <span className="eyebrow">This device</span>
+              <p className="muted">
+                {history.length} sessions · {progressEntries.length} body logs ·{" "}
+                {meals.entries.length} meals · {inbody.scans.length} InBody
+              </p>
+              <button
+                type="button"
+                className="cta-btn"
+                onClick={() => {
+                  void (async () => {
+                    const userId = syncConflict.userId;
+                    setSyncConflict(null);
+                    applyLocalBundle({ seedHayley: false });
+                    await uploadLocalToCloud(userId);
+                    setCloudUserId(userId);
+                    setAuthMode("cloud");
+                    const syncedAt = new Date().toISOString();
+                    setSyncStatus((current) => ({
+                      ...current,
+                      phase: "saved",
+                      message: "This device saved to cloud",
+                      lastSyncedAt: syncedAt,
+                    }));
+                    showToast("Kept this device · saved to cloud", "ok");
+                  })();
+                }}
+              >
+                Keep this device
+              </button>
+            </article>
+            <article className="card">
+              <span className="eyebrow">Cloud account</span>
+              <p className="muted">
+                {cloud.history.length} sessions · {cloud.progress.length} body logs ·{" "}
+                {cloud.meals.entries.length} meals · {cloud.inbody.scans.length} InBody
+                {cloud.updatedAt ? ` · updated ${formatSyncTime(cloud.updatedAt)}` : ""}
+              </p>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => {
+                  applyCloudData(cloud, syncConflict.userId);
+                  setSyncConflict(null);
+                }}
+              >
+                Use cloud instead
+              </button>
+            </article>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -1283,6 +1499,9 @@ export default function FormaApp() {
           setMeals((current) => addMeal(current, draft));
           setMealLogOpen(false);
           setSyncNote(`Meal saved · ${draft.macros.calories || "—"} kcal`);
+          if (authMode === "cloud") {
+            showToast("Meal saved · syncing to cloud", "ok");
+          }
         }}
       />
     );
@@ -3176,6 +3395,12 @@ export default function FormaApp() {
             </button>
           ))}
         </nav>
+        <SyncToast
+          key={toast?.key ?? "idle"}
+          message={toast?.message ?? null}
+          tone={toast?.tone ?? "info"}
+          visible={Boolean(toast)}
+        />
       </div>
     </div>
   );
