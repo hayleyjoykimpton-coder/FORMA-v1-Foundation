@@ -47,3 +47,13 @@ Hayley asked to **pause** native App Store work for now. Preferred path later: *
 - Apple Developer account is available ($99/yr) and someone can run Xcode / TestFlight
 
 Do **not** start Capacitor/App Store scaffolding until she asks again or those readiness signals are clear.
+
+## Product note — AI meal photos / Pro (future, do not start yet)
+Hayley does **not** want to absorb OpenAI cost for every member. Preferred direction later:
+
+- Keep **manual meal logging free**
+- Put **AI photo macros** behind a paid plan (e.g. **FORMA Pro** via Stripe on web)
+- Optional usage cap / credits so heavy users don’t blow the OpenAI bill
+- Gate `POST /api/analyze-meal` server-side by subscription status — never ask members for their own OpenAI keys
+
+Do **not** build Stripe/paywall/credits until she asks. Manual logging and an optional owner-funded `OPENAI_API_KEY` remain fine for now.
