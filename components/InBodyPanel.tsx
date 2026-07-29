@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SectionHeading, StatTile } from "@/components/ui";
+import { fileToResizedDataUrl } from "@/lib/images";
 import {
   INBODY_METRIC_LABELS,
   INBODY_METRIC_UNITS,
   addInBodyScan,
+  analyzeInBodyPhoto,
+  draftFromAnalyzeResult,
   latestInBodyScan,
   localDateKey,
   metricDelta,
@@ -73,15 +76,56 @@ export function InBodyPanel({
   state: InBodyState;
   onChange: (next: InBodyState) => void;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [date, setDate] = useState(localDateKey());
   const [fields, setFields] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
   const [trendKey, setTrendKey] = useState<InBodyMetricKey>("bodyFatPercent");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   const latest = latestInBodyScan(state);
   const previous = previousInBodyScan(state);
   const trendPoints = seriesForMetric(state, trendKey);
+
+  const applyDraft = (draft: ReturnType<typeof draftFromAnalyzeResult>) => {
+    if (draft.date) setDate(draft.date);
+    const nextFields: Record<string, string> = {};
+    for (const { key } of FORM_FIELDS) {
+      const value = draft[key];
+      if (typeof value === "string" && value) nextFields[key] = value;
+    }
+    setFields(nextFields);
+    if (draft.notes) setNotes(draft.notes);
+  };
+
+  const onPickPhoto = async (file: File | null) => {
+    if (!file) return;
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      setStatus("PDF pages aren’t read directly — export the page as an image, or photograph the printout.");
+      return;
+    }
+    setBusy(true);
+    setShowForm(true);
+    setStatus("Preparing printout photo…");
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 1024, 0.72);
+      setStatus("Reading InBody numbers…");
+      const result = await analyzeInBodyPhoto(dataUrl);
+      if (!result) {
+        setStatus("AI unavailable — enter numbers manually (needs OPENAI_API_KEY + billing).");
+        return;
+      }
+      applyDraft(draftFromAnalyzeResult(result));
+      const conf = result.confidence ? ` · ${result.confidence} confidence` : "";
+      setStatus(`Estimate ready${conf} — check figures before saving.`);
+    } catch {
+      setStatus("Could not read that image — try a clearer photo or enter manually.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const save = () => {
     const next = addInBodyScan(state, {
@@ -98,6 +142,7 @@ export function InBodyPanel({
     });
     if (next.scans.length === state.scans.length) {
       setShowForm(false);
+      setStatus(null);
       return;
     }
     onChange(next);
@@ -105,6 +150,7 @@ export function InBodyPanel({
     setNotes("");
     setDate(localDateKey());
     setShowForm(false);
+    setStatus(null);
   };
 
   const highlightKeys: InBodyMetricKey[] = [
@@ -122,12 +168,41 @@ export function InBodyPanel({
       />
       <article className="card inbody-intro-card">
         <p className="muted">
-          Log numbers from your InBody printout — muscle, fat % and lean mass over time.
-          Use this alongside tape measurements on Body; it doesn’t replace them.
+          Photograph your InBody printout for AI fill-in, or type the numbers. Muscle, fat % and lean mass
+          over time — alongside tape measurements on Body.
         </p>
-        <button type="button" className="cta-btn" onClick={() => setShowForm((value) => !value)}>
-          {showForm ? "Close" : "Log InBody scan"}
-        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,application/pdf"
+          hidden
+          onChange={(event) => {
+            void onPickPhoto(event.target.files?.[0] ?? null);
+            event.target.value = "";
+          }}
+        />
+        <div className="inbody-import-actions">
+          <button
+            type="button"
+            className="cta-btn"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            {busy ? "Reading…" : "Import from photo"}
+          </button>
+          <button
+            type="button"
+            className="secondary-btn"
+            disabled={busy}
+            onClick={() => {
+              setShowForm((value) => !value);
+              setStatus(null);
+            }}
+          >
+            {showForm ? "Close form" : "Enter manually"}
+          </button>
+        </div>
+        {status ? <p className="muted inbody-import-status">{status}</p> : null}
         {showForm ? (
           <div className="log-form inbody-log-form">
             <label className="field">
@@ -162,7 +237,7 @@ export function InBodyPanel({
                 placeholder="Morning scan, post-training, etc."
               />
             </label>
-            <button type="button" className="cta-btn" onClick={save}>
+            <button type="button" className="cta-btn" onClick={save} disabled={busy}>
               Save scan
             </button>
           </div>
@@ -275,7 +350,7 @@ export function InBodyPanel({
         </>
       ) : (
         <article className="card guided-empty">
-          After your next InBody appointment, tap Log InBody scan and enter the printout numbers.
+          After your next InBody appointment, import a photo of the printout or enter the numbers manually.
           Muscle and lean mass trends will appear here.
         </article>
       )}

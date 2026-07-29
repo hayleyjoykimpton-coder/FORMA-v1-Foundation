@@ -201,3 +201,51 @@ export function seriesForMetric(
       value: scan[key] as number,
     }));
 }
+
+export type AnalyzeInBodyResult = {
+  date?: string;
+  weightKg?: number | null;
+  skeletalMuscleMassKg?: number | null;
+  bodyFatMassKg?: number | null;
+  bodyFatPercent?: number | null;
+  leanBodyMassKg?: number | null;
+  visceralFatLevel?: number | null;
+  bmi?: number | null;
+  bmrKcal?: number | null;
+  notes?: string;
+  confidence?: "high" | "medium" | "low";
+};
+
+/** Map AI result into form-friendly draft strings. */
+export function draftFromAnalyzeResult(result: AnalyzeInBodyResult): InBodyDraft {
+  const str = (value: number | null | undefined) =>
+    value === null || value === undefined ? undefined : String(value);
+  return {
+    ...(result.date ? { date: result.date } : {}),
+    weightKg: str(result.weightKg),
+    skeletalMuscleMassKg: str(result.skeletalMuscleMassKg),
+    bodyFatMassKg: str(result.bodyFatMassKg),
+    bodyFatPercent: str(result.bodyFatPercent),
+    leanBodyMassKg: str(result.leanBodyMassKg),
+    visceralFatLevel: str(result.visceralFatLevel),
+    bmi: str(result.bmi),
+    bmrKcal: str(result.bmrKcal),
+    notes: result.notes || undefined,
+  };
+}
+
+/** Client helper — returns null when AI is unavailable or fails. */
+export async function analyzeInBodyPhoto(imageDataUrl: string): Promise<AnalyzeInBodyResult | null> {
+  try {
+    const res = await fetch("/api/analyze-inbody", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: imageDataUrl }),
+    });
+    if (res.status === 503) return null;
+    if (!res.ok) return null;
+    return (await res.json()) as AnalyzeInBodyResult;
+  } catch {
+    return null;
+  }
+}

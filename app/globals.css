@@ -1796,8 +1796,23 @@ button.avatar { padding: 0; }
 /* InBody scan results */
 .inbody-intro-card { display: flex; flex-direction: column; gap: 14px; }
 .inbody-log-form { margin-top: 8px; }
+.inbody-import-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.inbody-import-status { font-size: 13px; margin: 0; }
 .inbody-trend { margin-top: 10px; }
 .inbody-trend-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 6px; }
 .inbody-trend-tabs { margin-bottom: 10px; }
 .inbody-history { display: grid; gap: 12px; }
 .inbody-scan-card .measurement-list { margin-top: 10px; }
+
+.weekly-review-nudge {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.progress-export-card .workout-card-head {
+  align-items: flex-start;
+  gap: 12px;
+}
+.collapsible-section.pinned .collapsible-head {
+  border-color: color-mix(in srgb, var(--mocha, #8b6b4a) 35%, transparent);
+}
