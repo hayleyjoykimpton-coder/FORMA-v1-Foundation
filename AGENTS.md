@@ -37,7 +37,7 @@ Supabase Free often rate-limits confirmation emails. For local testing, turn off
 - Home UX: one dominant **Do this next** card (`lib/nextAction.ts`); secondary modules sit in collapsibles. Prefer progressive disclosure over adding more equal-weight cards. Home module show/hide/reorder is local (`lib/homePrefs.ts` · Customise Home).
 - Progress uses a sticky sub-nav (Overview | Strength | Body | InBody | Photos). InBody scans live in `lib/inbody.ts` / `programme.inbody` (manual printout entry — no image upload). Training exercise/workout edit·swap·delete lives behind a ⋯ `ActionMenu`.
 - **Do not replace** the editorial AI images in `public/img/` (hero, recovery, nutrition, glutes, upper, etc.). Hayley likes them as-is — keep using the existing paths in `lib/content.ts` `IMAGES`.
-- Visual trial (optional): warm-white canvas (`--bg: #faf8f5`) + pure white cards in `app/globals.css` `:root`. Pure white canvas: `--bg: #ffffff`. Cream revert: `--bg: #e9e1d6` / `--card: #f3ebe2` from git history. Hayley likes pure white; warm white is the comparison trial.
+- Visual: pure white canvas (`--bg: #ffffff`) + polished espresso/serenity tokens in `app/globals.css` `:root` (Hayley’s pick). Warm white option: `--bg: #faf8f5`. Cream revert: `--bg: #e9e1d6` / `--card: #f3ebe2` from git history.
 
 ## Product note — App Store (paused)
 Hayley asked to **pause** native App Store work for now. Preferred path later: **Capacitor iOS wrapper** around the existing Next.js app (then HealthKit + real push).
