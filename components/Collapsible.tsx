@@ -8,6 +8,9 @@ export function CollapsibleSection({
   title,
   summary,
   defaultOpen = false,
+  open: openControlled,
+  onOpenChange,
+  pinned = false,
   children,
 }: {
   eyebrow: string;
@@ -15,20 +18,35 @@ export function CollapsibleSection({
   /** One-line teaser when collapsed */
   summary?: string;
   defaultOpen?: boolean;
+  /** Controlled open state (when provided with onOpenChange). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  pinned?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const controlled = typeof openControlled === "boolean" && typeof onOpenChange === "function";
+  const open = controlled ? openControlled : uncontrolledOpen;
+
+  const toggle = () => {
+    const next = !open;
+    if (controlled) onOpenChange!(next);
+    else setUncontrolledOpen(next);
+  };
 
   return (
-    <section className={`collapsible-section${open ? " open" : ""}`}>
+    <section className={`collapsible-section${open ? " open" : ""}${pinned ? " pinned" : ""}`}>
       <button
         type="button"
         className="collapsible-head"
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggle}
         aria-expanded={open}
       >
         <div className="collapsible-copy">
-          <span className="eyebrow">{eyebrow}</span>
+          <span className="eyebrow">
+            {pinned ? "Pinned · " : ""}
+            {eyebrow}
+          </span>
           <strong>{title}</strong>
           {!open && summary ? <small className="muted">{summary}</small> : null}
         </div>
