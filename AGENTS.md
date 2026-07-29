@@ -39,6 +39,7 @@ Supabase Free often rate-limits confirmation emails. For local testing, turn off
 - Onboarding collects **nutrition goal** + optional **first InBody** on day one (`components/Onboarding.tsx`). Empty Home/Progress surfaces expose jump CTAs to Log meal / Log InBody / Start workout.
 - **Do not replace** the editorial AI images in `public/img/` (hero, recovery, nutrition, glutes, upper, etc.). Hayley likes them as-is — keep using the existing paths in `lib/content.ts` `IMAGES`.
 - Visual: pure white canvas (`--bg: #ffffff`) + polished espresso/serenity tokens in `app/globals.css` `:root` (Hayley’s pick). Warm white option: `--bg: #faf8f5`. Cream revert: `--bg: #e9e1d6` / `--card: #f3ebe2` from git history.
+- Sync confidence: Profile Account shows auth email + last sync time; toast on sign-in sync / errors (`SyncToast`). Empty cloud after signup uploads rich local data instead of wiping it. If both sides have data, conflict chooser (Keep this device / Use cloud). Password reset on AuthScreen. Do **not** re-pull on `TOKEN_REFRESHED`.
 
 ## Product note — App Store (paused)
 Hayley asked to **pause** native App Store work for now. Preferred path later: **Capacitor iOS wrapper** around the existing Next.js app (then HealthKit + real push).

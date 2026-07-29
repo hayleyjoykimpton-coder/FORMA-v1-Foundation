@@ -32,6 +32,8 @@ export type CloudState = {
   meals: MealsState;
   inbody: InBodyState;
   sessionDraft: SessionDraftStored | null;
+  /** ISO timestamp from user_state.updated_at when available. */
+  updatedAt: string | null;
 };
 
 type ProfileRow = {
@@ -75,6 +77,7 @@ type StateRow = {
   water: { date?: string; count?: number };
   journal: Record<string, string>;
   session_draft: SessionDraftStored | null;
+  updated_at?: string;
 };
 
 function rowToProfile(row: ProfileRow): UserProfile {
@@ -166,6 +169,7 @@ export async function pullCloudState(userId: string): Promise<CloudState | null>
     meals: normalizeMeals(state?.programme?.meals),
     inbody: normalizeInBody(state?.programme?.inbody),
     sessionDraft: state?.session_draft ?? null,
+    updatedAt: typeof state?.updated_at === "string" ? state.updated_at : null,
   };
 }
 

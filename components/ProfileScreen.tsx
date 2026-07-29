@@ -39,6 +39,9 @@ export function ProfileScreen({
   onReminderPrefsChange,
   accountMode = "local",
   syncNote = null,
+  syncStatusLabel = null,
+  authEmail = null,
+  onRefreshCloud,
   onSignOut,
   onSignIn,
 }: {
@@ -59,6 +62,10 @@ export function ProfileScreen({
   }) => void;
   accountMode?: "local" | "cloud" | "gate" | "booting";
   syncNote?: string | null;
+  /** e.g. "Saved just now" / "Sync failed" from cloud status */
+  syncStatusLabel?: string | null;
+  authEmail?: string | null;
+  onRefreshCloud?: () => void | Promise<void>;
   onSignOut?: () => void | Promise<void>;
   onSignIn?: () => void;
 }) {
@@ -132,7 +139,20 @@ export function ProfileScreen({
                 ? "Signed in — your programme and progress sync across devices."
                 : "This device only — create an account to sync across phone and laptop."}
             </p>
-            {syncNote && accountMode === "cloud" ? <p className="auth-info">{syncNote}</p> : null}
+            {accountMode === "cloud" && authEmail ? (
+              <p className="account-email">
+                <strong>{authEmail}</strong>
+              </p>
+            ) : null}
+            {accountMode === "cloud" && syncStatusLabel ? (
+              <p className="auth-info">{syncStatusLabel}</p>
+            ) : null}
+            {syncNote && accountMode === "cloud" ? <p className="muted account-sync-note">{syncNote}</p> : null}
+            {accountMode === "cloud" && onRefreshCloud ? (
+              <button type="button" className="secondary-btn" onClick={() => void onRefreshCloud()}>
+                Refresh from cloud
+              </button>
+            ) : null}
             {accountMode === "cloud" && onSignOut ? (
               <button className="secondary-btn" onClick={() => void onSignOut()}>Sign out</button>
             ) : null}
