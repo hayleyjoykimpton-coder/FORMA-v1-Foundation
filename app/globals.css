@@ -1786,3 +1786,12 @@ button.avatar { padding: 0; }
 .exercise-preview small { color: #524038; }
 .stat-label { color: #4a3a32; }
 .stat-note { color: #524038; }
+
+/* InBody scan results */
+.inbody-intro-card { display: flex; flex-direction: column; gap: 14px; }
+.inbody-log-form { margin-top: 8px; }
+.inbody-trend { margin-top: 10px; }
+.inbody-trend-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 6px; }
+.inbody-trend-tabs { margin-bottom: 10px; }
+.inbody-history { display: grid; gap: 12px; }
+.inbody-scan-card .measurement-list { margin-top: 10px; }
