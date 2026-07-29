@@ -1,74 +1,68 @@
 /**
  * Exercise instruction videos.
  *
- * Library entries use curated YouTube links from reputable coaches
- * (Jeff Nippard, Scott Herman, Athlean-X, Jeremy Ethier, etc.).
- * Users can override any exercise with their own YouTube / Vimeo / URL
- * via the training editor (`Exercise.videoUrl`).
- *
- * Broken IDs are omitted so resolveExerciseVideoUrl falls back to a
- * YouTube “proper form” search. Verified via YouTube oEmbed.
+ * Prefer high-engagement YouTube Shorts (vertical form tips) so “Watch form”
+ * matches the style Hayley likes. Verified via YouTube oEmbed.
+ * Users can still override any exercise via Training edit (`Exercise.videoUrl`).
  *
  * File uploads are intentionally not supported yet — video blobs do not
- * fit localStorage / the user_state JSON sync path. Cloud Storage can
- * land later when native/App Store work resumes.
+ * fit localStorage / the user_state JSON sync path.
  */
 
 import { EXERCISES } from "./exercises";
 import type { Exercise } from "./types";
 
 /**
- * Hand-picked public form demos for key FORMA lifts.
- * Prefer high-signal coaching channels over low-quality shorts (except
- * where Hayley requested a specific link, e.g. hip_thrust).
+ * Hand-picked YouTube Shorts for key FORMA lifts.
+ * Prefer viral, high-like form Shorts; keep Hayley’s explicit picks.
  */
 export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
-  // Glutes / posterior
-  hip_thrust: "https://www.youtube.com/watch?v=42lU8xsumBo", // Hayley pick · Train with Dave
-  romanian_deadlift: "https://www.youtube.com/watch?v=CBOhr6H7BEY", // Hayley pick · ArielYu_Fit Short
-  bulgarian_split_squat: "https://www.youtube.com/watch?v=2C-uNgKwPLE", // Scott Herman
-  walking_lunge: "https://www.youtube.com/watch?v=u9Dklt6z3FM", // Jim Stoppani
-  step_up: "https://www.youtube.com/watch?v=7AtIjR-QqVA", // Bodybuilding.com
-  cable_kickback: "https://www.youtube.com/watch?v=dJa_Nf4zdik", // Jeff Nippard × Stephanie Buttermore
-  hip_abduction: "https://www.youtube.com/watch?v=b-cxonq03vQ", // Life Fitness machine guide
-  glute_bridge: "https://www.youtube.com/watch?v=ylpfCk3i-0Y", // Scott Herman
-  leg_curl: "https://www.youtube.com/watch?v=1Tq3QdYUuHs", // Scott Herman
-  "45_degree_back_extension": "https://www.youtube.com/watch?v=WJm88qItjeE", // Colossus · glute-biased
+  // Glutes / posterior — Hayley picks first
+  hip_thrust: "https://www.youtube.com/shorts/42lU8xsumBo", // Hayley · Train with Dave
+  romanian_deadlift: "https://www.youtube.com/shorts/CBOhr6H7BEY", // Hayley · ArielYu_Fit
+  bulgarian_split_squat: "https://www.youtube.com/shorts/Cow3ESXmrTU", // DeltaBolic · ~396K
+  walking_lunge: "https://www.youtube.com/shorts/dW5l-RxHzaE", // Colossus Fitness
+  step_up: "https://www.youtube.com/shorts/9day6RhW8XA", // Move With Us · ~1M
+  cable_kickback: "https://www.youtube.com/shorts/n-cgsNePyFo", // Gerardi · ~2.4M
+  hip_abduction: "https://www.youtube.com/shorts/WOv7Aca6r-0", // LisaFiitt
+  glute_bridge: "https://www.youtube.com/shorts/LkCJxld5Bj4", // WeShape
+  leg_curl: "https://www.youtube.com/shorts/0fuxdoKUCHA", // Sean Nalewanyj
+  "45_degree_back_extension": "https://www.youtube.com/shorts/LJk_rYNMHHQ", // Bret Contreras
 
   // Quads
-  squat: "https://www.youtube.com/watch?v=gcNh17Ckjgg", // Jeremy Ethier
-  hack_squat: "https://www.youtube.com/watch?v=0tn5K9NlCfo", // Bodybuilding.com
-  leg_press: "https://www.youtube.com/watch?v=oujca3_Shgw", // Scott Herman
-  leg_extension: "https://www.youtube.com/watch?v=YyvSfVjQeL0", // Scott Herman
+  squat: "https://www.youtube.com/shorts/gslEzVggur8", // Davis Diley · ~6M · 292K likes
+  hack_squat: "https://www.youtube.com/shorts/91B_5-XEzE4", // N1 Education
+  leg_press: "https://www.youtube.com/shorts/jA9tsYbA7Ms", // Sean Nalewanyj
+  leg_extension: "https://www.youtube.com/shorts/d3d2yz7V26c", // DeltaBolic
 
   // Pull / posture
-  lat_pulldown: "https://www.youtube.com/watch?v=CAwf7n6Luuc", // Scott Herman
-  seated_row: "https://www.youtube.com/watch?v=GZbfZ033f74", // Scott Herman
-  chest_supported_row: "https://www.youtube.com/watch?v=H75im9fAUMc", // Men's Health
-  rear_delt_fly: "https://www.youtube.com/watch?v=JQFAPP_HxdM", // TylerPath
+  lat_pulldown: "https://www.youtube.com/shorts/77bPLrsMwiQ", // DeltaBolic · ~8M
+  seated_row: "https://www.youtube.com/shorts/BbYc8JbD8dI", // TylerPath
+  chest_supported_row: "https://www.youtube.com/shorts/azN0upTD8Go", // Gerardi
+  rear_delt_fly: "https://www.youtube.com/shorts/LsT-bR_zxLo", // DeltaBolic
 
   // Push / shoulders
-  shoulder_press: "https://www.youtube.com/watch?v=qEwKCR5JCog", // Scott Herman
-  lateral_raise: "https://www.youtube.com/watch?v=3VcKaXpzqRo", // Scott Herman
-  incline_press: "https://www.youtube.com/watch?v=8iPEnn-ltC8", // Scott Herman
-  push_up: "https://www.youtube.com/watch?v=IODxDxX7oi4", // Calisthenicmovement
+  shoulder_press: "https://www.youtube.com/shorts/k6tzKisR3NY", // DeltaBolic · ~18M
+  lateral_raise: "https://www.youtube.com/shorts/Kl3LEzQ5Zqs", // DeltaBolic · ~11M
+  incline_press: "https://www.youtube.com/shorts/JgP9JJnmsjc", // DeltaBolic
+  push_up: "https://www.youtube.com/shorts/wD1M-f69Yy8", // FitnessFAQs
 
   // Core
-  cable_crunch: "https://www.youtube.com/watch?v=36HK6uPM_PQ", // Jim Stoppani
-  dead_bug: "https://www.youtube.com/watch?v=4XLEnwUr1d8", // Bodybuilding.com
-  pallof_press: "https://www.youtube.com/watch?v=HXrLaqNIkTs", // PureGym
-  side_plank: "https://www.youtube.com/watch?v=K2VljzCC16g", // Howcast
-  hanging_knee_raise: "https://www.youtube.com/watch?v=Pr1ieGZ5atk", // ATHLEAN-X
-  cable_woodchop: "https://www.youtube.com/watch?v=pAplQXk3dkU", // Scott Herman
-  russian_twist: "https://www.youtube.com/watch?v=wkD8rjkodUI", // Howcast
+  cable_crunch: "https://www.youtube.com/shorts/tQgNAIzcjlk", // LeanBeefPatty
+  dead_bug: "https://www.youtube.com/shorts/HrxOWhPdsOY", // Dr. Jordan Weber
+  pallof_press: "https://www.youtube.com/shorts/2g5tJz1jJsg", // Brandon Smitley
+  side_plank: "https://www.youtube.com/shorts/sH5PiIUjDW8", // VIGEO
+  hanging_knee_raise: "https://www.youtube.com/shorts/2n4UqRIJyk4", // Gerardi · hanging raise ~1.4M
+  cable_woodchop: "https://www.youtube.com/shorts/suSEgI6VpBg", // Colossus Fitness
+  russian_twist: "https://www.youtube.com/shorts/S_odouUnGOc", // KevTheTrainer
 
   // Arms
-  bicep_curl: "https://www.youtube.com/watch?v=sAq_ocpRh_I", // Scott Herman
-  triceps_pushdown: "https://www.youtube.com/watch?v=2-LAMcpzODU", // Scott Herman
+  bicep_curl: "https://www.youtube.com/shorts/803JIAWBj_c", // Sean Nalewanyj · ~12M
+  triceps_pushdown: "https://www.youtube.com/shorts/1FjkhpZsaxc", // DeltaBolic
 };
 
 export function youtubeFormSearch(name: string): string {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${name} proper form`)}`;
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${name} proper form shorts`)}`;
 }
 
 export function isLikelyVideoUrl(value: string): boolean {
@@ -82,7 +76,7 @@ export function isLikelyVideoUrl(value: string): boolean {
 
 /**
  * Resolve the best instruction URL for an exercise instance.
- * Priority: user override → library curated → YouTube form search.
+ * Priority: user override → library curated Short → YouTube form search.
  */
 export function resolveExerciseVideoUrl(exercise: Exercise): string {
   const custom = exercise.videoUrl?.trim();
