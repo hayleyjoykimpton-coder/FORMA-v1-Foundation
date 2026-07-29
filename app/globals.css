@@ -1166,7 +1166,7 @@ button.avatar { padding: 0; }
 }
 .choice:hover { transform: translateY(-1px); }
 .choice:active { transform: scale(0.99); }
-.choice.selected { border-color: var(--cta); background: linear-gradient(160deg, var(--wash-peach), var(--pink)); }
+.choice.selected { border-color: var(--cta); background: linear-gradient(165deg, var(--wash-peach), #e8d5c4); }
 .choice small { display: block; font-weight: 400; color: var(--text-2); margin-top: 3px; font-size: 12px; }
 .choice.mini { padding: 9px 14px; font-size: 13px; text-align: center; }
 
