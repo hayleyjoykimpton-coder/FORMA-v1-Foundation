@@ -14,6 +14,7 @@
 import { EXERCISES } from "./exercises";
 import type { Exercise } from "./types";
 
+
 /**
  * Hand-picked public form demos for key FORMA lifts.
  * Verified via YouTube oEmbed — broken IDs are omitted so resolveExerciseVideoUrl
@@ -29,6 +30,7 @@ export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
   leg_curl: "https://www.youtube.com/watch?v=1Tq3QdYUuHs",
   squat: "https://www.youtube.com/watch?v=ultWZbUMPL8",
   hack_squat: "https://www.youtube.com/watch?v=0tn5K9NlCfo",
+
   leg_press: "https://www.youtube.com/watch?v=GvRgijoJ2xY",
   lat_pulldown: "https://www.youtube.com/watch?v=CAwf7n6Luuc",
   seated_row: "https://www.youtube.com/watch?v=GZbfZ033f74",
@@ -36,6 +38,7 @@ export const LIBRARY_VIDEO_URLS: Partial<Record<string, string>> = {
   lateral_raise: "https://www.youtube.com/watch?v=3VcKaXpzqRo",
   incline_press: "https://www.youtube.com/watch?v=8iPEnn-ltC8",
   push_up: "https://www.youtube.com/watch?v=IODxDxX7oi4",
+
   dead_bug: "https://www.youtube.com/watch?v=4XLEnwUr1d8",
   pallof_press: "https://www.youtube.com/watch?v=AH_QZLm_0-s",
   side_plank: "https://www.youtube.com/watch?v=K2VljzCC16g",
