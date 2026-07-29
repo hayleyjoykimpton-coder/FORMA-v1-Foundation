@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BRAND } from "@/lib/brand";
 
 export const runtime = "nodejs";
 
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
           ? "The user wants recomposition — high protein, near-maintenance calories."
           : "The user wants to maintain — balanced macros.";
 
-  const prompt = `You are a nutrition coach for FORMA, a women's strength & wellness app.
+  const prompt = `You are a nutrition coach for ${BRAND.name}, a women's strength & wellness app.
 Estimate the meal from the photo. ${goalHint}
 
 Respond with ONLY valid JSON (no markdown) using this shape:

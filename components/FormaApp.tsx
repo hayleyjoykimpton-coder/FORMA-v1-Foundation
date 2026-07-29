@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BRAND } from "@/lib/brand";
 import {
   HYDRATION_GOAL,
   IMAGES,
@@ -95,6 +96,7 @@ import {
 import type { Readiness } from "@/lib/coach";
 import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
+import { AuthScreen } from "@/components/AuthScreen";
 import { BrandLogo } from "@/components/BrandLogo";
 import { BreathworkSession } from "@/components/Breathwork";
 
@@ -629,7 +631,7 @@ export default function FormaApp() {
             : "Browser notifications unavailable here",
         );
       } else {
-        setSyncNote("Browser notify on while FORMA is open");
+        setSyncNote(`Browser notify on while ${BRAND.name} is open`);
       }
     }
     saveReminderPrefs(next);
@@ -2794,7 +2796,7 @@ export default function FormaApp() {
               <ScoreExplainer title="Readiness">
                 <p>
                   Readiness is <strong>self-reported</strong> — not from a wearable. Before a workout (or anytime here),
-                  you rate sleep, energy, stress, soreness, motivation and pain on a 1–5 scale. FORMA turns that into a
+                  you rate sleep, energy, stress, soreness, motivation and pain on a 1–5 scale. {BRAND.name} turns that into a
                   0–100 score and can ease your session when you’re low.
                 </p>
                 <p>
@@ -2852,7 +2854,7 @@ export default function FormaApp() {
             <article className="card breath-cta-card">
               <p className="coach-message">
                 {breathworkDoneToday(wellness, todayISO)
-                  ? "You've already breathed with FORMA today. Come back anytime you need another reset."
+                  ? `You've already breathed with ${BRAND.name} today. Come back anytime you need another reset.`
                   : season === "Align" || alignActive
                     ? "Align week loves a longer exhale — try 4–7–8 or a physiological sigh before rest."
                     : "A two-minute sigh or box breath settles stress before sleep — or after a hard session."}

@@ -2,7 +2,7 @@
 export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <img
-      src="/brand/logo.svg"
+      src="/brand/logo.png"
       alt="Life & Soul"
       className={`brand-logo ${className}`.trim()}
       width={175}

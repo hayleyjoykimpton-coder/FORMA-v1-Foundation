@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { IMAGES } from "@/lib/content";
+import { BRAND } from "@/lib/brand";
 import {
   createProfile,
   EQUIPMENT_LABELS,
@@ -86,13 +88,13 @@ export function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) 
 
           {step === 0 && (
             <div className="onboard-body">
-              <span className="wordmark">FORMA</span>
+              <BrandLogo />
               <div
                 className="onboard-hero-img"
                 style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.04), rgba(74,55,44,.4)), url(${IMAGES.hero})` }}
                 aria-hidden
               />
-              <h1>Welcome to FORMA</h1>
+              <h1>Welcome to {BRAND.name}</h1>
               <p className="onboard-lead">Your personalised strength and wellness journey begins here.</p>
               <div className="onboard-nav">
                 <button className="cta-btn" onClick={next}>Begin</button>
@@ -174,7 +176,7 @@ export function Onboarding({ onComplete }: { onComplete: (profile: UserProfile) 
             <div className="onboard-body">
               <span className="eyebrow">Step 7 · Optional</span>
               <h1>A little about your lifestyle</h1>
-              <p className="onboard-lead">This helps FORMA balance training and recovery. You can skip it.</p>
+              <p className="onboard-lead">This helps {BRAND.name} balance training and recovery. You can skip it.</p>
               <div className="onboard-input field">
                 <span>Average sleep (hours)</span>
                 <input type="number" value={sleep} onChange={(event) => setSleep(event.target.value)} placeholder="e.g. 7" />

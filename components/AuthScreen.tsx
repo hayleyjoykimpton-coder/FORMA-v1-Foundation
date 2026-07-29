@@ -79,7 +79,7 @@ export function AuthScreen({
           {mode === "signup" && (
             <label className="field">
               <span>First name</span>
-              <input value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="Hayley" />
+              <input value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="e.g. Emma" />
             </label>
           )}
 

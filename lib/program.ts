@@ -187,7 +187,7 @@ export type Program = {
  */
 export const FORMA_PROGRAM: Program = {
   id: "forma-foundation-v2",
-  name: "FORMA Foundation",
+  name: "Life & Soul Foundation",
   phases: [
     {
       phase: "Foundation",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { BRAND } from "@/lib/brand";
 import {
   EQUIPMENT_LABELS,
   EXPERIENCE_LABELS,
@@ -254,7 +255,7 @@ export function ProfileScreen({
                   }
                 />
                 <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-                  In-app nudges on gym days. Browser notify only works while FORMA is open — no account spam.
+                  In-app nudges on gym days. Browser notify only works while {BRAND.name} is open — no account spam.
                 </p>
               </>
             ) : null}

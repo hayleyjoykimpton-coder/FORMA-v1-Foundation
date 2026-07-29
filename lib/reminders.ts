@@ -3,6 +3,7 @@
  * while FORMA is open). No push / service-worker infra required.
  */
 
+import { BRAND } from "./brand";
 import { COACH_REMINDERS } from "./content";
 import type { Workout, WorkoutSession } from "./types";
 
@@ -130,7 +131,7 @@ export async function maybeNotifyTrainingDay(input: {
 
   const copy = trainingReminderCopy(input.workout);
   try {
-    new Notification("FORMA", {
+    new Notification(BRAND.name, {
       body: `${copy.title}. ${copy.text}`,
       tag: `forma-training-${today}`,
       silent: false,
