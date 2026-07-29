@@ -1,15 +1,16 @@
 /* ==========================================================================
-   FORMA — White trial × polished earth & serenity
-   Clean white canvas, espresso brand, refined (not chalky) accents.
-   Easy to revert: swap --bg / --card back to warm stone / parchment.
+   FORMA — Warm-white trial × polished earth & serenity
+   Warm white canvas (#faf8f5), pure white cards, espresso brand.
+   Pure white canvas: set --bg: #ffffff (Hayley likes this too).
+   Cream revert: --bg: #e9e1d6 / --card: #f3ebe2 from git history.
    ========================================================================== */
 
 :root {
-  /* Foundation — white trial */
-  --bg: #ffffff;          /* clean white canvas */
-  --card: #ffffff;        /* white cards; depth via border + soft shadow */
-  --text: #241913;        /* espresso — slightly sharper on white */
-  --text-2: #5c4a40;      /* warm secondary, clearer contrast on white */
+  /* Foundation — warm white trial (cards stay pure white for lift) */
+  --bg: #faf8f5;          /* warm white canvas */
+  --card: #ffffff;        /* pure white cards on warm white */
+  --text: #241913;        /* espresso — sharp on light grounds */
+  --text-2: #5c4a40;      /* warm secondary */
   --line: #ebe4dc;        /* soft greige hairline */
   --on-cta: #ffffff;      /* crisp white on espresso CTAs */
 
@@ -69,9 +70,9 @@ input, textarea { outline-color: rgba(63, 44, 36, 0.28); }
   display: grid;
   place-items: start center;
   background:
-    radial-gradient(circle at 12% -8%, rgba(212, 184, 162, 0.18) 0%, transparent 42%),
-    radial-gradient(circle at 100% 0%, rgba(95, 117, 138, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 0% 90%, rgba(176, 138, 108, 0.07) 0%, transparent 44%),
+    radial-gradient(circle at 12% -8%, rgba(212, 184, 162, 0.22) 0%, transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(95, 117, 138, 0.07) 0%, transparent 40%),
+    radial-gradient(circle at 0% 90%, rgba(176, 138, 108, 0.08) 0%, transparent 44%),
     var(--bg);
 }
 
