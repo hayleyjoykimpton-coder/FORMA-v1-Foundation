@@ -403,8 +403,9 @@ button:disabled { cursor: not-allowed; }
   font-size: 12px;
   font-weight: 600;
 }
-.workout-today-body { padding: 16px 18px 18px; }
-.workout-today-body .eyebrow { margin-bottom: 6px; }
+.workout-today-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+.workout-today-body .eyebrow { margin-bottom: 0; }
+.workout-today-body .cta-btn { width: 100%; margin-top: 6px; }
 
 .exercise-preview { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 12px; }
 .exercise-preview li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; }
@@ -998,6 +999,44 @@ input, textarea {
 .history-card p { display: grid; gap: 4px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
 .history-card p strong { font-size: 14px; }
 .history-card p span { color: var(--text-2); font-size: 12px; }
+.history-card-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.history-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.history-edit-exercise {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.history-edit-set {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-lg);
+  background: rgba(58, 40, 32, 0.04);
+}
+.history-set-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.history-complete-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.history-complete-toggle input { width: auto; }
 .empty-state { color: var(--text-2); text-align: center; line-height: 1.5; }
 
 /* ---------- Recovery ----------------------------------------------------- */
@@ -1616,6 +1655,133 @@ button.avatar { padding: 0; }
 }
 .score-explainer-body p { color: inherit; }
 .score-explainer-body strong { color: var(--text); }
+
+/* Progress sub-nav */
+.subnav.choice-row {
+  margin: 0 0 4px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 8px 0 10px;
+  background: linear-gradient(180deg, var(--bg) 70%, transparent);
+}
+.subnav .choice.mini {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  font-size: 13px;
+  padding: 8px 6px;
+}
+
+/* Training ⋯ overflow menu */
+.action-menu {
+  position: relative;
+  display: inline-flex;
+}
+.action-menu-trigger {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.action-menu-trigger:hover,
+.action-menu.open .action-menu-trigger {
+  border-color: var(--text);
+  opacity: 1;
+}
+.action-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  min-width: 148px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.action-menu-panel button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.action-menu-panel button:hover {
+  background: rgba(58, 40, 32, 0.06);
+}
+.action-menu-panel button.danger {
+  color: #c06a63;
+}
+.editor-actions.toolbar .action-menu {
+  margin-left: auto;
+}
+.exercise-overflow {
+  justify-content: flex-end;
+}
+
+/* Home module personalisation */
+.home-customise-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+.home-customise-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.home-customise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.home-customise-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-customise-row strong {
+  display: block;
+  font-size: 15px;
+}
+.home-customise-row small {
+  display: block;
+  margin-top: 2px;
+}
+.home-customise-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.home-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.home-module {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .exercise-preview small { color: #524038; }
 .stat-label { color: #4a3a32; }

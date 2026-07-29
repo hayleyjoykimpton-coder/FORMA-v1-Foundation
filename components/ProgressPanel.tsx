@@ -59,6 +59,8 @@ function WeightChart({ points }: { points: WeightPoint[] }) {
   );
 }
 
+export type ProgressPanelSection = "body" | "photos" | "all";
+
 export function ProgressPanel({
   profile,
   entries,
@@ -66,6 +68,7 @@ export function ProgressPanel({
   onSaveEntry,
   onAddPhoto,
   onDeletePhoto,
+  section = "all",
 }: {
   profile: UserProfile;
   entries: ProgressEntry[];
@@ -73,7 +76,11 @@ export function ProgressPanel({
   onSaveEntry: (entry: ProgressEntry) => void;
   onAddPhoto: (photo: ProgressPhoto) => void;
   onDeletePhoto: (id: string) => void;
+  /** When set, only render body measurements or photos (Progress sub-nav). */
+  section?: ProgressPanelSection;
 }) {
+  const showBody = section === "all" || section === "body";
+  const showPhotos = section === "all" || section === "photos";
   const [showForm, setShowForm] = useState(false);
   const [weight, setWeight] = useState("");
   const [measurements, setMeasurements] = useState<Record<string, string>>({});
@@ -122,136 +129,144 @@ export function ProgressPanel({
 
   return (
     <>
-      <SectionHeading eyebrow="Your journey" title={weeks > 0 ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Your transformation"} />
-      <article className="card">
-        <p className="muted">Goal: <strong>{goalLabel}</strong>. {GOAL_FOCUS[profile.goal]}</p>
-        <div className="stat-grid three transform-stats">
-          <StatTile label="Current" value={current !== null ? `${current}kg` : "—"} note="latest" accent="pink" />
-          <StatTile label="Starting" value={starting !== null ? `${starting}kg` : "—"} note="baseline" accent="mocha" />
-          <StatTile
-            label="Change"
-            value={change !== null ? `${change > 0 ? "+" : ""}${change}kg` : "—"}
-            note="since start"
-            accent="sage"
-          />
-        </div>
-        {points.length >= 2 ? (
-          <WeightChart points={points} />
-        ) : (
-          <p className="guided-empty">Log your weight twice to unlock your first trend line.</p>
-        )}
-        <button className="secondary-btn" onClick={() => setShowForm((value) => !value)}>
-          {showForm ? "Close" : "Log weight & measurements"}
-        </button>
-        {showForm && (
-          <div className="log-form">
-            <label className="field">
-              <span>Weight (kg)</span>
-              <input type="number" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="e.g. 62" />
-            </label>
-            <div className="profile-fields">
-              {MEASUREMENT_KEYS.map((key) => (
-                <label className="field" key={key}>
-                  <span>{MEASUREMENT_LABELS[key]} (cm)</span>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={measurements[key] ?? ""}
-                    onChange={(event) => setMeasurements((current) => ({ ...current, [key]: event.target.value }))}
-                  />
+      {showBody ? (
+        <>
+          <SectionHeading eyebrow="Your journey" title={weeks > 0 ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Your transformation"} />
+          <article className="card">
+            <p className="muted">Goal: <strong>{goalLabel}</strong>. {GOAL_FOCUS[profile.goal]}</p>
+            <div className="stat-grid three transform-stats">
+              <StatTile label="Current" value={current !== null ? `${current}kg` : "—"} note="latest" accent="pink" />
+              <StatTile label="Starting" value={starting !== null ? `${starting}kg` : "—"} note="baseline" accent="mocha" />
+              <StatTile
+                label="Change"
+                value={change !== null ? `${change > 0 ? "+" : ""}${change}kg` : "—"}
+                note="since start"
+                accent="sage"
+              />
+            </div>
+            {points.length >= 2 ? (
+              <WeightChart points={points} />
+            ) : (
+              <p className="guided-empty">Log your weight twice to unlock your first trend line.</p>
+            )}
+            <button className="secondary-btn" onClick={() => setShowForm((value) => !value)}>
+              {showForm ? "Close" : "Log weight & measurements"}
+            </button>
+            {showForm && (
+              <div className="log-form">
+                <label className="field">
+                  <span>Weight (kg)</span>
+                  <input type="number" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="e.g. 62" />
+                </label>
+                <div className="profile-fields">
+                  {MEASUREMENT_KEYS.map((key) => (
+                    <label className="field" key={key}>
+                      <span>{MEASUREMENT_LABELS[key]} (cm)</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={measurements[key] ?? ""}
+                        onChange={(event) => setMeasurements((current) => ({ ...current, [key]: event.target.value }))}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <label className="field">
+                  <span>Notes</span>
+                  <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="How you're feeling, energy, strength…" />
+                </label>
+                <button className="cta-btn" onClick={saveEntry}>Save entry</button>
+              </div>
+            )}
+          </article>
+
+          <SectionHeading eyebrow="Measurements" title="Body measurements" />
+          <article className="card">
+            <div className="measurement-list">
+              {MEASUREMENT_KEYS.map((key) => {
+                const latest = latestMeasurement(entries, key);
+                const delta = measurementDelta(entries, key);
+                return (
+                  <div className="measurement-row" key={key}>
+                    <span>{MEASUREMENT_LABELS[key]}</span>
+                    <div className="measurement-value">
+                      <strong>{latest !== null ? `${latest} cm` : "—"}</strong>
+                      {delta !== null && delta !== 0 && (
+                        <span className={`delta ${delta > 0 ? "up" : "down"}`}>{delta > 0 ? "+" : ""}{delta} cm</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {!entries.length && <p className="guided-empty">Add your first measurement to begin tracking change.</p>}
+          </article>
+        </>
+      ) : null}
+
+      {showPhotos ? (
+        <>
+          <SectionHeading eyebrow="Photos" title="Progress photos" />
+          <article className="card">
+            <div className="photo-actions">
+              {PHOTO_CATEGORIES.map((category) => (
+                <label className="pill-btn small photo-upload" key={category}>
+                  + {PHOTO_LABELS[category]}
+                  <input type="file" accept="image/*" hidden onChange={(event) => handleFile(category, event)} />
                 </label>
               ))}
             </div>
-            <label className="field">
-              <span>Notes</span>
-              <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="How you're feeling, energy, strength…" />
-            </label>
-            <button className="cta-btn" onClick={saveEntry}>Save entry</button>
-          </div>
-        )}
-      </article>
+            {recentPhotos.length ? (
+              <div className="photo-grid">
+                {recentPhotos.map((photo) => (
+                  <div className="photo-cell" key={photo.id}>
+                    <img src={photo.image} alt={`${PHOTO_LABELS[photo.category]} · ${formatDate(photo.date)}`} />
+                    <button className="photo-del" onClick={() => onDeletePhoto(photo.id)} aria-label="Delete photo">×</button>
+                    <span className="photo-cap">{PHOTO_LABELS[photo.category]} · {formatDate(photo.date)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="guided-empty">Add a front, side or back photo to start your visual timeline.</p>
+            )}
+          </article>
 
-      <SectionHeading eyebrow="Measurements" title="Body measurements" />
-      <article className="card">
-        <div className="measurement-list">
-          {MEASUREMENT_KEYS.map((key) => {
-            const latest = latestMeasurement(entries, key);
-            const delta = measurementDelta(entries, key);
-            return (
-              <div className="measurement-row" key={key}>
-                <span>{MEASUREMENT_LABELS[key]}</span>
-                <div className="measurement-value">
-                  <strong>{latest !== null ? `${latest} cm` : "—"}</strong>
-                  {delta !== null && delta !== 0 && (
-                    <span className={`delta ${delta > 0 ? "up" : "down"}`}>{delta > 0 ? "+" : ""}{delta} cm</span>
+          <SectionHeading eyebrow="Compare" title="Before / after" />
+          <article className="card">
+            <div className="choice-row">
+              {PHOTO_CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  className={`choice mini${compareCategory === category ? " selected" : ""}`}
+                  onClick={() => setCompareCategory(category)}
+                >
+                  {PHOTO_LABELS[category]}
+                </button>
+              ))}
+            </div>
+            {before ? (
+              <div className="compare-grid">
+                <div className="compare-cell">
+                  <img src={before.image} alt={`Before · ${formatDate(before.date)}`} />
+                  <span className="photo-cap">Before · {formatDate(before.date)}</span>
+                </div>
+                <div className="compare-cell">
+                  {after ? (
+                    <>
+                      <img src={after.image} alt={`After · ${formatDate(after.date)}`} />
+                      <span className="photo-cap">After · {formatDate(after.date)}</span>
+                    </>
+                  ) : (
+                    <div className="compare-placeholder">Add another {PHOTO_LABELS[compareCategory].toLowerCase()} photo later to compare.</div>
                   )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-        {!entries.length && <p className="guided-empty">Add your first measurement to begin tracking change.</p>}
-      </article>
-
-      <SectionHeading eyebrow="Photos" title="Progress photos" />
-      <article className="card">
-        <div className="photo-actions">
-          {PHOTO_CATEGORIES.map((category) => (
-            <label className="pill-btn small photo-upload" key={category}>
-              + {PHOTO_LABELS[category]}
-              <input type="file" accept="image/*" hidden onChange={(event) => handleFile(category, event)} />
-            </label>
-          ))}
-        </div>
-        {recentPhotos.length ? (
-          <div className="photo-grid">
-            {recentPhotos.map((photo) => (
-              <div className="photo-cell" key={photo.id}>
-                <img src={photo.image} alt={`${PHOTO_LABELS[photo.category]} · ${formatDate(photo.date)}`} />
-                <button className="photo-del" onClick={() => onDeletePhoto(photo.id)} aria-label="Delete photo">×</button>
-                <span className="photo-cap">{PHOTO_LABELS[photo.category]} · {formatDate(photo.date)}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="guided-empty">Add a front, side or back photo to start your visual timeline.</p>
-        )}
-      </article>
-
-      <SectionHeading eyebrow="Compare" title="Before / after" />
-      <article className="card">
-        <div className="choice-row">
-          {PHOTO_CATEGORIES.map((category) => (
-            <button
-              key={category}
-              className={`choice mini${compareCategory === category ? " selected" : ""}`}
-              onClick={() => setCompareCategory(category)}
-            >
-              {PHOTO_LABELS[category]}
-            </button>
-          ))}
-        </div>
-        {before ? (
-          <div className="compare-grid">
-            <div className="compare-cell">
-              <img src={before.image} alt={`Before · ${formatDate(before.date)}`} />
-              <span className="photo-cap">Before · {formatDate(before.date)}</span>
-            </div>
-            <div className="compare-cell">
-              {after ? (
-                <>
-                  <img src={after.image} alt={`After · ${formatDate(after.date)}`} />
-                  <span className="photo-cap">After · {formatDate(after.date)}</span>
-                </>
-              ) : (
-                <div className="compare-placeholder">Add another {PHOTO_LABELS[compareCategory].toLowerCase()} photo later to compare.</div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <p className="guided-empty">Upload a {PHOTO_LABELS[compareCategory].toLowerCase()} photo to start your comparison.</p>
-        )}
-      </article>
+            ) : (
+              <p className="guided-empty">Upload a {PHOTO_LABELS[compareCategory].toLowerCase()} photo to start your comparison.</p>
+            )}
+          </article>
+        </>
+      ) : null}
     </>
   );
 }
