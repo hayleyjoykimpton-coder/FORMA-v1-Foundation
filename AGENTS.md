@@ -35,7 +35,7 @@ Supabase Free often rate-limits confirmation emails. For local testing, turn off
 
 
 - Home UX: one dominant **Do this next** card (`lib/nextAction.ts`); secondary modules sit in collapsibles. Prefer progressive disclosure over adding more equal-weight cards. Home module show/hide/reorder is local (`lib/homePrefs.ts` · Customise Home).
-- Progress uses a sticky sub-nav (Overview | Strength | Body | Photos). Training exercise/workout edit·swap·delete lives behind a ⋯ `ActionMenu`.
+- Progress uses a sticky sub-nav (Overview | Strength | Body | InBody | Photos). InBody scans live in `lib/inbody.ts` / `programme.inbody` (manual printout entry — no image upload). Training exercise/workout edit·swap·delete lives behind a ⋯ `ActionMenu`.
 - **Do not replace** the editorial AI images in `public/img/` (hero, recovery, nutrition, glutes, upper, etc.). Hayley likes them as-is — keep using the existing paths in `lib/content.ts` `IMAGES`.
 
 ## Product note — App Store (paused)

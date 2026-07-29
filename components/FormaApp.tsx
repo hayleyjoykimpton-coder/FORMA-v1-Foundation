@@ -105,6 +105,13 @@ import { Onboarding } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
+import { InBodyPanel } from "@/components/InBodyPanel";
+import {
+  EMPTY_INBODY,
+  loadInBody,
+  saveInBody,
+} from "@/lib/inbody";
+import type { InBodyState } from "@/lib/inbody";
 import {
   defaultHomePrefs,
   HOME_MODULE_META,
@@ -156,7 +163,7 @@ import {
 } from "@/components/ui";
 
 type Tab = "today" | "training" | "progress" | "recovery";
-type ProgressSubTab = "overview" | "strength" | "body" | "photos";
+type ProgressSubTab = "overview" | "strength" | "body" | "inbody" | "photos";
 type SessionDraft = {
   workoutId: string;
   exerciseIndex: number;
@@ -179,6 +186,7 @@ const PROGRESS_SUBTABS: { key: ProgressSubTab; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "strength", label: "Strength" },
   { key: "body", label: "Body" },
+  { key: "inbody", label: "InBody" },
   { key: "photos", label: "Photos" },
 ];
 
@@ -186,7 +194,7 @@ function loadProgressSubTab(): ProgressSubTab {
   if (typeof window === "undefined") return "overview";
   try {
     const raw = window.localStorage.getItem(PROGRESS_SUBTAB_KEY);
-    if (raw === "overview" || raw === "strength" || raw === "body" || raw === "photos") return raw;
+    if (raw === "overview" || raw === "strength" || raw === "body" || raw === "inbody" || raw === "photos") return raw;
   } catch {
     /* ignore */
   }
@@ -228,6 +236,7 @@ export default function FormaApp() {
   const [standaloneReadiness, setStandaloneReadiness] = useState(false);
   const [mealLogOpen, setMealLogOpen] = useState(false);
   const [meals, setMeals] = useState<MealsState>({ entries: [] });
+  const [inbody, setInBody] = useState<InBodyState>(EMPTY_INBODY);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
@@ -270,6 +279,7 @@ export default function FormaApp() {
     setJournal(state.journal);
     setWellness(state.wellness);
     setMeals(loadMeals());
+    setInBody(loadInBody());
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
@@ -319,6 +329,7 @@ export default function FormaApp() {
       setJournal(cloud.journal);
       setWellness(cloud.wellness);
       setMeals(cloud.meals);
+      setInBody(cloud.inbody);
       if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
       else setWater(0);
       const today = pickTodaysWorkout(nextWorkouts);
@@ -329,6 +340,7 @@ export default function FormaApp() {
       saveProfile(cloud.profile);
       saveWellness(cloud.wellness);
       saveMeals(cloud.meals);
+      saveInBody(cloud.inbody);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
       window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
       window.localStorage.setItem(
@@ -356,6 +368,7 @@ export default function FormaApp() {
           journal: cloud.journal,
           wellness: cloud.wellness,
           meals: cloud.meals,
+          inbody: cloud.inbody,
           sessionDraft: cloud.sessionDraft,
         });
       }
@@ -376,6 +389,7 @@ export default function FormaApp() {
         journal: local.journal,
         wellness: local.wellness,
         meals: loadMeals(),
+        inbody: loadInBody(),
         sessionDraft: local.sessionDraft,
       });
     }
@@ -482,6 +496,7 @@ export default function FormaApp() {
           journal,
           wellness,
           meals,
+          inbody,
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
@@ -506,6 +521,7 @@ export default function FormaApp() {
     journal,
     wellness,
     meals,
+    inbody,
     pausedDraft,
     hydrated,
   ]);
@@ -532,6 +548,11 @@ export default function FormaApp() {
     if (!hydrated) return;
     saveMeals(meals);
   }, [meals, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveInBody(inbody);
+  }, [inbody, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -2737,6 +2758,10 @@ export default function FormaApp() {
               onDeletePhoto={handleDeletePhoto}
               section={progressSubTab}
             />
+            )}
+
+            {progressSubTab === "inbody" && (
+              <InBodyPanel state={inbody} onChange={setInBody} />
             )}
           </div>
         )}
