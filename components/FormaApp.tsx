@@ -95,7 +95,7 @@ import {
 import type { Readiness } from "@/lib/coach";
 import { loadPhotos, loadProgress, savePhotos, saveProgress } from "@/lib/progress";
 import type { ProgressEntry, ProgressPhoto } from "@/lib/progress";
-import { AuthScreen } from "@/components/AuthScreen";
+import { BrandLogo } from "@/components/BrandLogo";
 import { BreathworkSession } from "@/components/Breathwork";
 
 import { ActionMenu } from "@/components/ActionMenu";
@@ -1132,7 +1132,7 @@ export default function FormaApp() {
       <div className="app">
         <div className="shell">
           <div className="loading">
-            <span className="wordmark">FORMA</span>
+            <BrandLogo />
             <p>Preparing your practice…</p>
           </div>
         </div>
@@ -1556,7 +1556,7 @@ export default function FormaApp() {
         {tab === "today" && (
           <div className="screen home-screen">
             <header className="topbar">
-              <span className="wordmark">FORMA</span>
+              <BrandLogo />
               <button
                 className={`avatar ${profile.profilePhoto ? "has-photo" : ""}`}
                 onClick={() => setProfileOpen(true)}

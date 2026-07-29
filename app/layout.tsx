@@ -15,10 +15,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FORMA",
-  description: "A premium personal strength & wellness system.",
+  title: "Life & Soul",
+  description: "Train, move, recover and thrive — your personalised strength & wellness journey.",
   other: {
-    "theme-color": "#5B4337",
+    "theme-color": "#1a1410",
   },
 };
 

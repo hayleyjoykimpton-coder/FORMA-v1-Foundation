@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { signIn, signUp } from "@/lib/sync";
 
@@ -57,7 +58,7 @@ export function AuthScreen({
     <div className="app">
       <div className="shell">
         <div className="screen auth-screen">
-          <span className="wordmark">FORMA</span>
+          <BrandLogo />
           <h1>{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
           <p className="muted">
             Your programme, weights, history and photos stay private to your account — and sync across devices.
@@ -70,7 +71,7 @@ export function AuthScreen({
                 Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
                 <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> (or{" "}
                 <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>) to enable accounts.
-                You can keep using FORMA on this device meanwhile.
+                You can keep using Life & Soul on this device meanwhile.
               </p>
             </article>
           )}

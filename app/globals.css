@@ -1,33 +1,32 @@
 /* ==========================================================================
-   FORMA — Neutral Elegance × Blue Serenity × Warm Earth
-   Rich chocolate brand, grounded earth accents, muted (not pastel) blues.
+   Life & Soul — luxe black · warm brown · white
    ========================================================================== */
 
 :root {
-  /* Foundation — warmer, less washed-out */
-  --bg: #e9e1d6;          /* warm stone */
-  --card: #f3ebe2;        /* soft parchment */
-  --text: #2f201a;        /* deep chocolate — brand & logo */
-  --text-2: #524038;      /* warmer brown — readable secondary on cream */
-  --line: #d2c4b6;        /* greige border */
-  --on-cta: #f4efe8;      /* ivory on dark chocolate buttons */
+  /* Foundation — crisp white & warm ivory */
+  --bg: #f7f5f2;          /* off-white */
+  --card: #ffffff;        /* pure white cards */
+  --text: #1a1410;        /* near-black */
+  --text-2: #4a3f36;      /* warm brown-grey */
+  --line: #ddd6ce;        /* soft taupe border */
+  --on-cta: #f7f5f2;      /* ivory on dark buttons */
 
-  /* Accents — deeper, less pastel */
-  --pink: #c4a992;        /* warm mocha sand (legacy token name) */
-  --cta: #5b4337;         /* chocolate brown — primary CTA */
-  --blue: #8fa3b5;        /* Blue Serenity mid (muted, not pastel) */
-  --mocha: #a8876c;       /* camel earth */
-  --sage: #8e9eae;        /* cooler serenity blue-grey */
-  --green: #7d8f72;       /* muted olive success */
-  --serenity: #6f8498;    /* deeper Blue Serenity */
-  --earth-deep: #3a2820;  /* deepest chocolate */
+  /* Accents — brown luxe, minimal colour */
+  --pink: #a8876c;        /* warm bronze (legacy token) */
+  --cta: #3d2e24;         /* deep espresso — primary CTA */
+  --blue: #8a7f76;        /* warm stone (replaces blue) */
+  --mocha: #6b5344;       /* rich brown */
+  --sage: #7a6e64;        /* muted taupe */
+  --green: #5c6b52;       /* understated olive */
+  --serenity: #4a3f36;    /* deep brown */
+  --earth-deep: #1a1410;  /* black-brown */
 
-  /* Gradient washes — tinted, not chalky */
-  --wash-peach: #e5d5c5;
-  --wash-blue: #d5dee7;
-  --wash-earth: #e0d0c0;
-  --wash-sage: #d6dee6;
-  --wash-green: #d8e0d4;
+  /* Gradient washes — neutral luxe */
+  --wash-peach: #ece6df;
+  --wash-blue: #e8e4df;
+  --wash-earth: #e5ddd4;
+  --wash-sage: #e6e2dc;
+  --wash-green: #e4e8e0;
 
   /* Radius */
   --r-card: 28px;
@@ -123,6 +122,19 @@ textarea::placeholder {
   color: var(--text);
   padding-left: 0.32em;
 }
+
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 34px;
+  max-width: min(200px, 72vw);
+  object-fit: contain;
+  object-position: left center;
+}
+
+.auth-screen .brand-logo { margin-bottom: 8px; }
+.topbar .brand-logo { height: 28px; }
+.loading .brand-logo { margin: 0 auto 12px; }
 
 /* ---------- Top bar ------------------------------------------------------ */
 
