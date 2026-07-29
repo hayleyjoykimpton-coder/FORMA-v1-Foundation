@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SectionHeading, StatTile } from "@/components/ui";
 import { fileToResizedDataUrl } from "@/lib/images";
 import {
@@ -72,9 +72,14 @@ function MiniTrend({ points }: { points: { label: string; value: number }[] }) {
 export function InBodyPanel({
   state,
   onChange,
+  forceOpenForm = false,
+  onForceOpenConsumed,
 }: {
   state: InBodyState;
   onChange: (next: InBodyState) => void;
+  /** When true, open the log form once (e.g. empty-state CTA). */
+  forceOpenForm?: boolean;
+  onForceOpenConsumed?: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
@@ -84,6 +89,12 @@ export function InBodyPanel({
   const [trendKey, setTrendKey] = useState<InBodyMetricKey>("bodyFatPercent");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!forceOpenForm) return;
+    setShowForm(true);
+    onForceOpenConsumed?.();
+  }, [forceOpenForm, onForceOpenConsumed]);
 
   const latest = latestInBodyScan(state);
   const previous = previousInBodyScan(state);
@@ -349,9 +360,14 @@ export function InBodyPanel({
           </div>
         </>
       ) : (
-        <article className="card guided-empty">
-          After your next InBody appointment, import a photo of the printout or enter the numbers manually.
-          Muscle and lean mass trends will appear here.
+        <article className="card guided-empty empty-cta-card">
+          <p>
+            After your next InBody appointment — photograph the printout or enter the numbers.
+            Muscle and lean mass trends will appear here.
+          </p>
+          <button type="button" className="cta-btn" onClick={() => setShowForm(true)}>
+            Log InBody
+          </button>
         </article>
       )}
     </>

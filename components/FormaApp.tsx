@@ -108,12 +108,14 @@ import { ActionMenu } from "@/components/ActionMenu";
 import { CollapsibleSection, ScoreExplainer } from "@/components/Collapsible";
 import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
+import type { OnboardingResult } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
 import {
   EMPTY_INBODY,
+  addInBodyScan,
   loadInBody,
   saveInBody,
 } from "@/lib/inbody";
@@ -247,6 +249,7 @@ export default function FormaApp() {
   const [mealLogOpen, setMealLogOpen] = useState(false);
   const [meals, setMeals] = useState<MealsState>({ entries: [] });
   const [inbody, setInBody] = useState<InBodyState>(EMPTY_INBODY);
+  const [inbodyForceForm, setInbodyForceForm] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [readinessWorkout, setReadinessWorkout] = useState<Workout | null>(null);
@@ -432,7 +435,7 @@ export default function FormaApp() {
         }
 
         if (window.localStorage.getItem(LOCAL_ONLY_KEY) === "1") {
-          applyLocalBundle({ seedHayley: true });
+          applyLocalBundle({ seedHayley: false });
           setAuthMode("local");
           return;
         }
@@ -764,11 +767,24 @@ export default function FormaApp() {
     setSyncNote(next ? "Early Align recovery on" : "Back to your main phase");
   };
 
-  const handleOnboardingComplete = (nextProfile: UserProfile) => {
+  const handleOnboardingComplete = (result: OnboardingResult) => {
+    const { profile: nextProfile, inbodyDraft } = result;
     saveProfile(nextProfile);
     setProfile(nextProfile);
     applyGeneratedProgram(nextProfile, { week: 1, alignActive: false });
+    if (inbodyDraft) {
+      setInBody((current) => {
+        const next = addInBodyScan(current, inbodyDraft);
+        saveInBody(next);
+        return next;
+      });
+    }
     setTab("today");
+    setSyncNote(
+      inbodyDraft
+        ? "Plan ready · nutrition goal set · InBody logged"
+        : "Plan ready · nutrition goal set",
+    );
   };
 
   const handleProfileSave = (updated: UserProfile) => {
@@ -1161,7 +1177,9 @@ export default function FormaApp() {
         }}
         onContinueLocal={() => {
           window.localStorage.setItem(LOCAL_ONLY_KEY, "1");
-          applyLocalBundle({ seedHayley: true });
+          // Fresh local users should see onboarding (nutrition + InBody).
+          // Hayley seed only applies when Supabase is unset (dev convenience).
+          applyLocalBundle({ seedHayley: false });
           setAuthMode("local");
         }}
       />
@@ -1574,6 +1592,28 @@ export default function FormaApp() {
     }
   };
 
+  const jumpToLogMeal = () => {
+    setTab("today");
+    setMealLogOpen(true);
+  };
+
+  const jumpToLogInBody = () => {
+    setInbodyForceForm(true);
+    setProgressSubTab("inbody");
+    setTab("progress");
+  };
+
+  const jumpToStartWorkout = () => {
+    if (todaysWorkout && todaysWorkout.exercises.length > 0) {
+      startWorkout(todaysWorkout);
+      return;
+    }
+    setTab("training");
+  };
+
+  const showDayOneCtas =
+    history.length === 0 || meals.entries.length === 0 || inbody.scans.length === 0;
+
   return (
     <div className="app">
       <div className="shell">
@@ -1642,6 +1682,31 @@ export default function FormaApp() {
               </button>
               <p className="muted next-action-meta">{nextAction.eyebrow} · {greeting}</p>
             </article>
+
+            {showDayOneCtas ? (
+              <article className="card getting-started-card">
+                <span className="eyebrow">Day one</span>
+                <strong>Jump straight in</strong>
+                <p className="muted">Empty spaces are invitations — pick one action.</p>
+                <div className="getting-started-actions">
+                  {history.length === 0 ? (
+                    <button type="button" className="cta-btn" onClick={jumpToStartWorkout}>
+                      Start workout
+                    </button>
+                  ) : null}
+                  {meals.entries.length === 0 ? (
+                    <button type="button" className="secondary-btn" onClick={jumpToLogMeal}>
+                      Log meal
+                    </button>
+                  ) : null}
+                  {inbody.scans.length === 0 ? (
+                    <button type="button" className="secondary-btn" onClick={jumpToLogInBody}>
+                      Log InBody
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            ) : null}
 
             {showTrainingReminder ? (
               <article className="card training-reminder-card">
@@ -1994,7 +2059,7 @@ export default function FormaApp() {
                       <div className="image-card-copy">
                         <span className="eyebrow light">Meals</span>
                         <h3>Snap a plate or log macros</h3>
-                        <span className="link-cue">AI estimates · edit anytime ›</span>
+                        <span className="link-cue">Log meal ›</span>
                       </div>
                     </article>
                   )}
@@ -2517,6 +2582,31 @@ export default function FormaApp() {
               <StatTile label="This week" value={`${weekSessions}/${profile.trainingDays}`} accent="sage" />
             </div>
 
+            {showDayOneCtas ? (
+              <article className="card getting-started-card">
+                <span className="eyebrow">Get started</span>
+                <strong>Fill your first data points</strong>
+                <p className="muted">These jump straight to the action — no hunting through tabs.</p>
+                <div className="getting-started-actions">
+                  {history.length === 0 ? (
+                    <button type="button" className="cta-btn" onClick={jumpToStartWorkout}>
+                      Start workout
+                    </button>
+                  ) : null}
+                  {meals.entries.length === 0 ? (
+                    <button type="button" className="secondary-btn" onClick={jumpToLogMeal}>
+                      Log meal
+                    </button>
+                  ) : null}
+                  {inbody.scans.length === 0 ? (
+                    <button type="button" className="secondary-btn" onClick={jumpToLogInBody}>
+                      Log InBody
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            ) : null}
+
             <article className="card progress-export-card">
               <div className="workout-card-head">
                 <div>
@@ -2670,7 +2760,12 @@ export default function FormaApp() {
                   })}
                 </div>
               ) : (
-                <p className="guided-empty">Complete a workout to unlock your training volume chart.</p>
+                <div className="guided-empty empty-cta-card">
+                  <p>Complete a workout to unlock your training volume chart.</p>
+                  <button type="button" className="cta-btn" onClick={jumpToStartWorkout}>
+                    Start workout
+                  </button>
+                </div>
               )}
             </article>
 
@@ -2821,8 +2916,11 @@ export default function FormaApp() {
                 );
               })}
               {!history.length && (
-                <article className="card guided-empty">
-                  Complete your first workout to unlock history, records and trends.
+                <article className="card guided-empty empty-cta-card">
+                  <p>Complete your first workout to unlock history, records and trends.</p>
+                  <button type="button" className="cta-btn" onClick={jumpToStartWorkout}>
+                    Start workout
+                  </button>
                 </article>
               )}
             </div>
@@ -2849,7 +2947,12 @@ export default function FormaApp() {
                   );
                 })}
                 {!strengthProgress.length && (
-                  <p className="guided-empty">Log a working set to begin tracking strength progress.</p>
+                  <div className="guided-empty empty-cta-card">
+                    <p>Log a working set to begin tracking strength progress.</p>
+                    <button type="button" className="cta-btn" onClick={jumpToStartWorkout}>
+                      Start workout
+                    </button>
+                  </div>
                 )}
               </div>
             </article>
@@ -2907,7 +3010,12 @@ export default function FormaApp() {
             )}
 
             {progressSubTab === "inbody" && (
-              <InBodyPanel state={inbody} onChange={setInBody} />
+              <InBodyPanel
+                state={inbody}
+                onChange={setInBody}
+                forceOpenForm={inbodyForceForm}
+                onForceOpenConsumed={() => setInbodyForceForm(false)}
+              />
             )}
           </div>
         )}
