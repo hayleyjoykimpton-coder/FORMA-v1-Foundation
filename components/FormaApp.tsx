@@ -260,6 +260,12 @@ export default function FormaApp() {
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [cueSessionId, setCueSessionId] = useState<string | null>(null);
+  const [sessionCelebration, setSessionCelebration] = useState<{
+    title: string;
+    lines: string[];
+    setsDone: number;
+    setsTotal: number;
+  } | null>(null);
   const [reminderPrefs, setReminderPrefs] = useState<ReminderPrefs>({
     enabled: true,
     browserNotify: false,
@@ -899,9 +905,23 @@ export default function FormaApp() {
 
   const finishWorkout = () => {
     if (!session || !activeWorkout) return;
+    const incomplete = session.results.some((result) =>
+      result.sets.some((set) => !set.complete && !set.skipped),
+    );
+    if (
+      incomplete &&
+      typeof window !== "undefined" &&
+      !window.confirm("Some sets aren’t marked done. Finish anyway? Unfinished sets will be saved as skipped.")
+    ) {
+      return;
+    }
     const exercises = session.results.map((result) => ({
       ...result,
-      sets: result.sets.map((set) => ({ ...set, skipped: !set.complete })),
+      note: result.note?.trim() || undefined,
+      sets: result.sets.map((set) => ({
+        ...set,
+        skipped: set.skipped || !set.complete,
+      })),
     }));
     const completed: WorkoutSession = {
       id: uid(),
@@ -913,13 +933,41 @@ export default function FormaApp() {
       readiness: session.readiness,
       exercises,
     };
-    setHistory((current) => [...current, completed]);
+    const nextHistory = [...history, completed];
+    setHistory(nextHistory);
     setCueSessionId(completed.id);
     persistSessionDraft(null);
     setPausedDraft(null);
     setSession(null);
     setRestRemaining(0);
-    setTab("progress");
+    const setsDone = exercises.reduce(
+      (sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length,
+      0,
+    );
+    const setsTotal = exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0);
+    setSessionCelebration({
+      title: activeWorkout.title,
+      lines: postWorkoutSummary(completed, nextHistory),
+      setsDone,
+      setsTotal,
+    });
+  };
+
+  const updateExerciseNote = (exerciseIndex: number, note: string) => {
+    setSession((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        results: current.results.map((exercise, index) =>
+          index === exerciseIndex ? { ...exercise, note } : exercise,
+        ),
+      };
+    });
+  };
+
+  const skipSet = (exerciseIndex: number, setIndex: number) => {
+    updateSet(exerciseIndex, setIndex, { complete: false, skipped: true });
+    setRestRemaining(0);
   };
 
   const deleteHistorySession = (sessionId: string) => {
@@ -1288,6 +1336,66 @@ export default function FormaApp() {
     );
   }
 
+  if (sessionCelebration) {
+    return (
+      <div className="app">
+        <div className="shell">
+          <div className="screen session-done-screen">
+            <span className="eyebrow">Session done</span>
+            <h1>Nice work</h1>
+            <p className="onboard-lead">{sessionCelebration.title}</p>
+            <article className="card session-done-card">
+              <div className="stat-grid two">
+                <StatTile
+                  label="Sets logged"
+                  value={`${sessionCelebration.setsDone}`}
+                  note={`of ${sessionCelebration.setsTotal}`}
+                  accent="sage"
+                />
+                <StatTile
+                  label="Completion"
+                  value={`${
+                    sessionCelebration.setsTotal
+                      ? Math.round((sessionCelebration.setsDone / sessionCelebration.setsTotal) * 100)
+                      : 0
+                  }%`}
+                  note="working sets"
+                  accent="mocha"
+                />
+              </div>
+              <div className="session-done-lines">
+                {sessionCelebration.lines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="cta-btn"
+                onClick={() => {
+                  setSessionCelebration(null);
+                  setProgressSubTab("overview");
+                  setTab("progress");
+                }}
+              >
+                See your progress
+              </button>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => {
+                  setSessionCelebration(null);
+                  setTab("today");
+                }}
+              >
+                Back to Home
+              </button>
+            </article>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (session && activeWorkout) {
     const exercise = activeWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
@@ -1296,8 +1404,8 @@ export default function FormaApp() {
     const coaching = exerciseCoaching(exercise);
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
-    const setsDone = result.sets.filter((set) => set.complete).length;
-    const progressPct = Math.round((setsDone / result.sets.length) * 100);
+    const setsAddressed = result.sets.filter((set) => set.complete || set.skipped).length;
+    const progressPct = Math.round((setsAddressed / result.sets.length) * 100);
 
     return (
       <div className="app">
@@ -1352,7 +1460,10 @@ export default function FormaApp() {
 
               <div className="set-list">
                 {result.sets.map((set, setIndex) => (
-                  <article className={`set-row ${set.complete ? "complete" : ""}`} key={setIndex}>
+                  <article
+                    className={`set-row ${set.complete ? "complete" : ""}${set.skipped && !set.complete ? " skipped" : ""}`}
+                    key={setIndex}
+                  >
                     <strong>Set {setIndex + 1}</strong>
                     <label>
                       <span>kg</span>
@@ -1363,7 +1474,12 @@ export default function FormaApp() {
                         value={set.weight === 0 ? "" : set.weight}
                         placeholder="0"
                         onFocus={(event) => event.target.select()}
-                        onChange={(event) => updateSet(session.exerciseIndex, setIndex, { weight: parseNumberInput(event.target.value) })}
+                        onChange={(event) =>
+                          updateSet(session.exerciseIndex, setIndex, {
+                            weight: parseNumberInput(event.target.value),
+                            skipped: false,
+                          })
+                        }
                       />
                     </label>
                     <label>
@@ -1374,7 +1490,12 @@ export default function FormaApp() {
                         value={set.reps === 0 ? "" : set.reps}
                         placeholder="0"
                         onFocus={(event) => event.target.select()}
-                        onChange={(event) => updateSet(session.exerciseIndex, setIndex, { reps: parseNumberInput(event.target.value) })}
+                        onChange={(event) =>
+                          updateSet(session.exerciseIndex, setIndex, {
+                            reps: parseNumberInput(event.target.value),
+                            skipped: false,
+                          })
+                        }
                       />
                     </label>
                     <label>
@@ -1388,22 +1509,51 @@ export default function FormaApp() {
                         value={set.rpe === 0 ? "" : set.rpe}
                         placeholder="0"
                         onFocus={(event) => event.target.select()}
-                        onChange={(event) => updateSet(session.exerciseIndex, setIndex, { rpe: parseNumberInput(event.target.value) })}
+                        onChange={(event) =>
+                          updateSet(session.exerciseIndex, setIndex, {
+                            rpe: parseNumberInput(event.target.value),
+                            skipped: false,
+                          })
+                        }
                       />
                     </label>
-                    <button
-                      className="set-complete"
-                      onClick={() => {
-                        const nextComplete = !set.complete;
-                        updateSet(session.exerciseIndex, setIndex, { complete: nextComplete });
-                        if (nextComplete) setRestRemaining(exercise.restSeconds);
-                      }}
-                    >
-                      {set.complete ? "✓" : "Done"}
-                    </button>
+                    <div className="set-row-actions">
+                      <button
+                        type="button"
+                        className="set-complete"
+                        onClick={() => {
+                          const nextComplete = !set.complete;
+                          updateSet(session.exerciseIndex, setIndex, {
+                            complete: nextComplete,
+                            skipped: false,
+                          });
+                          if (nextComplete) setRestRemaining(exercise.restSeconds);
+                        }}
+                      >
+                        {set.complete ? "✓" : "Done"}
+                      </button>
+                      {!set.complete ? (
+                        <button
+                          type="button"
+                          className="set-skip"
+                          onClick={() => skipSet(session.exerciseIndex, setIndex)}
+                        >
+                          {set.skipped ? "Skipped" : "Skip"}
+                        </button>
+                      ) : null}
+                    </div>
                   </article>
                 ))}
               </div>
+
+              <label className="field session-note-field">
+                <span>Note for this exercise</span>
+                <input
+                  value={result.note ?? ""}
+                  onChange={(event) => updateExerciseNote(session.exerciseIndex, event.target.value)}
+                  placeholder="Felt strong, form cue, leftover fatigue…"
+                />
+              </label>
 
               {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
             </article>
@@ -1482,16 +1632,48 @@ export default function FormaApp() {
               })()}
             </article>
 
-            <article className="card rest-card">
+            <article className={`card rest-card${restRemaining > 0 ? " active" : ""}`}>
               <div>
-                <span className="eyebrow">Rest timer</span>
-                <strong>{minutes}:{seconds}</strong>
+                <span className="eyebrow">{restRemaining > 0 ? "Resting" : "Rest timer"}</span>
+                <strong>
+                  {minutes}:{seconds}
+                </strong>
               </div>
               <div className="rest-actions">
-                <button onClick={() => setRestRemaining(exercise.restSeconds)}>Restart</button>
-                <button onClick={() => setRestRemaining(0)}>Skip</button>
+                <button type="button" onClick={() => setRestRemaining((current) => Math.max(0, current - 15))}>
+                  −15s
+                </button>
+                <button type="button" onClick={() => setRestRemaining(exercise.restSeconds)}>
+                  Restart
+                </button>
+                <button type="button" onClick={() => setRestRemaining((current) => current + 15)}>
+                  +15s
+                </button>
+                <button type="button" onClick={() => setRestRemaining(0)}>
+                  Skip rest
+                </button>
               </div>
             </article>
+
+            {setsAddressed === result.sets.length && session.exerciseIndex < activeWorkout.exercises.length - 1 ? (
+              <button
+                type="button"
+                className="cta-btn"
+                onClick={() => {
+                  setSessionSwapOpen(false);
+                  setRestRemaining(0);
+                  setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 });
+                }}
+              >
+                Next exercise →
+              </button>
+            ) : null}
+
+            {setsAddressed === result.sets.length && session.exerciseIndex === activeWorkout.exercises.length - 1 ? (
+              <button type="button" className="cta-btn" onClick={finishWorkout}>
+                Finish session
+              </button>
+            ) : null}
 
             <div className="session-nav">
               <button
@@ -1529,10 +1711,10 @@ export default function FormaApp() {
   const goalLower = goalLabel.toLowerCase();
   const encouragement =
     history.length === 0
-      ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is built to ${goalLower} — begin gently and let consistency lead.`
+      ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is ready — start gently.`
       : streak >= 3
-        ? `A ${streak}-day rhythm, ${profile.firstName} — this is exactly how you ${goalLower}. Keep it flowing.`
-        : `Consistency over intensity. Today's session moves you toward "${goalLower}".`;
+        ? `${streak} days moving, ${profile.firstName}. Soft consistency toward ${goalLower}.`
+        : `Today is another quiet step toward ${goalLower}.`;
 
   const pausedTitle = pausedDraft
     ? workouts.find((workout) => workout.id === pausedDraft.workoutId)?.title ?? "Workout"
@@ -1750,8 +1932,8 @@ export default function FormaApp() {
             {!weeklyReviewDismissed && shouldShowWeeklyReviewNudge() && review ? (
               <article className="card weekly-review-nudge">
                 <div className="training-reminder-copy">
-                  <span className="eyebrow">Sunday</span>
-                  <strong>Weekly review</strong>
+                  <span className="eyebrow">Sunday check-in</span>
+                  <strong>How did the week feel?</strong>
                   <p className="muted">{review.summary}</p>
                   <p className="muted">Next: {review.nextGoal}</p>
                 </div>

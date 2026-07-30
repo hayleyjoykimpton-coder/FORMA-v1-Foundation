@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SectionHeading, StatTile } from "@/components/ui";
 import {
   MEASUREMENT_KEYS,
@@ -28,11 +28,11 @@ import { GOAL_LABELS } from "@/lib/user";
 import type { Goal, UserProfile } from "@/lib/user";
 
 const GOAL_FOCUS: Record<Goal, string> = {
-  glutes: "We track glute training, lower-body strength, hip thrust progression and measurements.",
-  sculpt: "We track strength, body composition and measurements as you build a strong, sculpted physique.",
-  strength: "We track strength progression, performance and consistency.",
-  fitness: "We track consistency, performance and how strong and capable you feel.",
-  health: "We track consistency, energy and steady, healthy progress.",
+  glutes: "Glute work, hip thrusts and lower-body strength — measurements as quiet context.",
+  sculpt: "Strength and shape, tracked gently — not a weekly weigh-in story.",
+  strength: "Load and consistency first. The numbers here are optional colour.",
+  fitness: "Showing up and feeling capable — body logs when you want them.",
+  health: "Steady habits and energy. Log what helps you notice change.",
 };
 
 function WeightChart({ points }: { points: WeightPoint[] }) {
@@ -76,16 +76,17 @@ export function ProgressPanel({
   onSaveEntry: (entry: ProgressEntry) => void;
   onAddPhoto: (photo: ProgressPhoto) => void;
   onDeletePhoto: (id: string) => void;
-  /** When set, only render body measurements or photos (Progress sub-nav). */
   section?: ProgressPanelSection;
 }) {
   const showBody = section === "all" || section === "body";
   const showPhotos = section === "all" || section === "photos";
-  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<"closed" | "quick" | "full">("closed");
   const [weight, setWeight] = useState("");
   const [measurements, setMeasurements] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
   const [compareCategory, setCompareCategory] = useState<PhotoCategory>("front");
+  const [beforeId, setBeforeId] = useState<string | null>(null);
+  const [afterId, setAfterId] = useState<string | null>(null);
 
   const current = currentWeight(entries, profile);
   const starting = startingWeight(entries, profile);
@@ -94,22 +95,50 @@ export function ProgressPanel({
   const weeks = weeksTracked(entries, profile);
   const goalLabel = GOAL_LABELS[profile.goal];
 
-  const saveEntry = () => {
+  const categoryPhotos = useMemo(
+    () => photos.filter((photo) => photo.category === compareCategory),
+    [photos, compareCategory],
+  );
+
+  const before =
+    categoryPhotos.find((photo) => photo.id === beforeId) ??
+    categoryPhotos[0] ??
+    null;
+  const after =
+    categoryPhotos.find((photo) => photo.id === afterId) ??
+    (categoryPhotos.length > 1 ? categoryPhotos[categoryPhotos.length - 1] : null);
+
+  const hasTape = entries.some((entry) =>
+    MEASUREMENT_KEYS.some((key) => entry.measurements[key] != null),
+  );
+
+  const openQuickWeight = () => setFormMode((mode) => (mode === "quick" ? "closed" : "quick"));
+  const openFullForm = () => setFormMode((mode) => (mode === "full" ? "closed" : "full"));
+
+  const saveEntry = (mode: "quick" | "full" = formMode === "quick" ? "quick" : "full") => {
     const parsed: Measurements = {};
-    for (const key of MEASUREMENT_KEYS) {
-      const raw = measurements[key];
-      if (raw && raw.trim() !== "" && Number.isFinite(Number(raw))) parsed[key] = Number(raw);
+    if (mode === "full") {
+      for (const key of MEASUREMENT_KEYS) {
+        const raw = measurements[key];
+        if (raw && raw.trim() !== "" && Number.isFinite(Number(raw))) parsed[key] = Number(raw);
+      }
     }
     const weightValue = weight.trim() !== "" && Number.isFinite(Number(weight)) ? Number(weight) : null;
     if (weightValue === null && Object.keys(parsed).length === 0) {
-      setShowForm(false);
+      setFormMode("closed");
       return;
     }
-    onSaveEntry({ id: uid(), date: new Date().toISOString(), weight: weightValue, measurements: parsed, notes: notes.trim() });
+    onSaveEntry({
+      id: uid(),
+      date: new Date().toISOString(),
+      weight: weightValue,
+      measurements: parsed,
+      notes: mode === "full" ? notes.trim() : "",
+    });
     setWeight("");
     setMeasurements({});
     setNotes("");
-    setShowForm(false);
+    setFormMode("closed");
   };
 
   const handleFile = async (category: PhotoCategory, event: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,20 +149,22 @@ export function ProgressPanel({
     onAddPhoto({ id: uid(), date: new Date().toISOString(), image, category, notes: "" });
   };
 
-  const categoryPhotos = photos.filter((photo) => photo.category === compareCategory);
-  const before = categoryPhotos[0] ?? null;
-  const after = categoryPhotos.length > 1 ? categoryPhotos[categoryPhotos.length - 1] : null;
   const recentPhotos = [...photos].reverse();
-
-  const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
   return (
     <>
       {showBody ? (
         <>
-          <SectionHeading eyebrow="Your journey" title={weeks > 0 ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Your transformation"} />
+          <SectionHeading
+            eyebrow="Your journey"
+            title={weeks > 0 ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Your body log"}
+          />
           <article className="card">
-            <p className="muted">Goal: <strong>{goalLabel}</strong>. {GOAL_FOCUS[profile.goal]}</p>
+            <p className="muted">
+              Goal: <strong>{goalLabel}</strong>. {GOAL_FOCUS[profile.goal]}
+            </p>
             <div className="stat-grid three transform-stats">
               <StatTile label="Current" value={current !== null ? `${current}kg` : "—"} note="latest" accent="pink" />
               <StatTile label="Starting" value={starting !== null ? `${starting}kg` : "—"} note="baseline" accent="mocha" />
@@ -147,16 +178,54 @@ export function ProgressPanel({
             {points.length >= 2 ? (
               <WeightChart points={points} />
             ) : (
-              <p className="guided-empty">Log your weight twice to unlock your first trend line.</p>
+              <div className="guided-empty empty-cta-card">
+                <p>Log weight twice to unlock your first trend line.</p>
+                <button type="button" className="cta-btn" onClick={openQuickWeight}>
+                  Log weight
+                </button>
+              </div>
             )}
-            <button className="secondary-btn" onClick={() => setShowForm((value) => !value)}>
-              {showForm ? "Close" : "Log weight & measurements"}
-            </button>
-            {showForm && (
+
+            <div className="body-log-actions">
+              <button type="button" className="cta-btn" onClick={openQuickWeight}>
+                Quick weight
+              </button>
+              <button type="button" className="secondary-btn" onClick={openFullForm}>
+                {formMode === "full" ? "Close form" : "Weight + tape"}
+              </button>
+            </div>
+
+            {formMode === "quick" ? (
+              <div className="log-form quick-weight-form">
+                <label className="field">
+                  <span>Weight (kg)</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    inputMode="decimal"
+                    autoFocus
+                    value={weight}
+                    onChange={(event) => setWeight(event.target.value)}
+                    placeholder={current != null ? String(current) : "e.g. 62.4"}
+                  />
+                </label>
+                <button type="button" className="cta-btn" onClick={() => saveEntry("quick")}>
+                  Save weight
+                </button>
+              </div>
+            ) : null}
+
+            {formMode === "full" ? (
               <div className="log-form">
                 <label className="field">
                   <span>Weight (kg)</span>
-                  <input type="number" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="e.g. 62" />
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={weight}
+                    onChange={(event) => setWeight(event.target.value)}
+                    placeholder="e.g. 62.4"
+                  />
                 </label>
                 <div className="profile-fields">
                   {MEASUREMENT_KEYS.map((key) => (
@@ -166,21 +235,29 @@ export function ProgressPanel({
                         type="number"
                         step="0.1"
                         value={measurements[key] ?? ""}
-                        onChange={(event) => setMeasurements((current) => ({ ...current, [key]: event.target.value }))}
+                        onChange={(event) =>
+                          setMeasurements((current) => ({ ...current, [key]: event.target.value }))
+                        }
                       />
                     </label>
                   ))}
                 </div>
                 <label className="field">
                   <span>Notes</span>
-                  <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="How you're feeling, energy, strength…" />
+                  <input
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="Energy, how clothes feel, strength…"
+                  />
                 </label>
-                <button className="cta-btn" onClick={saveEntry}>Save entry</button>
+                <button type="button" className="cta-btn" onClick={() => saveEntry("full")}>
+                  Save entry
+                </button>
               </div>
-            )}
+            ) : null}
           </article>
 
-          <SectionHeading eyebrow="Measurements" title="Body measurements" />
+          <SectionHeading eyebrow="Measurements" title="Tape" />
           <article className="card">
             <div className="measurement-list">
               {MEASUREMENT_KEYS.map((key) => {
@@ -192,14 +269,24 @@ export function ProgressPanel({
                     <div className="measurement-value">
                       <strong>{latest !== null ? `${latest} cm` : "—"}</strong>
                       {delta !== null && delta !== 0 && (
-                        <span className={`delta ${delta > 0 ? "up" : "down"}`}>{delta > 0 ? "+" : ""}{delta} cm</span>
+                        <span className={`delta ${delta > 0 ? "up" : "down"}`}>
+                          {delta > 0 ? "+" : ""}
+                          {delta} cm
+                        </span>
                       )}
                     </div>
                   </div>
                 );
               })}
             </div>
-            {!entries.length && <p className="guided-empty">Add your first measurement to begin tracking change.</p>}
+            {!hasTape ? (
+              <div className="guided-empty empty-cta-card">
+                <p>No tape yet — add waist, hips or glutes whenever you like.</p>
+                <button type="button" className="cta-btn" onClick={() => setFormMode("full")}>
+                  Log measurements
+                </button>
+              </div>
+            ) : null}
           </article>
         </>
       ) : null}
@@ -220,14 +307,25 @@ export function ProgressPanel({
               <div className="photo-grid">
                 {recentPhotos.map((photo) => (
                   <div className="photo-cell" key={photo.id}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={photo.image} alt={`${PHOTO_LABELS[photo.category]} · ${formatDate(photo.date)}`} />
-                    <button className="photo-del" onClick={() => onDeletePhoto(photo.id)} aria-label="Delete photo">×</button>
-                    <span className="photo-cap">{PHOTO_LABELS[photo.category]} · {formatDate(photo.date)}</span>
+                    <button className="photo-del" onClick={() => onDeletePhoto(photo.id)} aria-label="Delete photo">
+                      ×
+                    </button>
+                    <span className="photo-cap">
+                      {PHOTO_LABELS[photo.category]} · {formatDate(photo.date)}
+                    </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="guided-empty">Add a front, side or back photo to start your visual timeline.</p>
+              <div className="guided-empty empty-cta-card">
+                <p>Add a front, side or back photo when you’re ready — same light, same pose helps.</p>
+                <label className="cta-btn photo-upload-cta">
+                  Add front photo
+                  <input type="file" accept="image/*" hidden onChange={(event) => handleFile("front", event)} />
+                </label>
+              </div>
             )}
           </article>
 
@@ -237,32 +335,106 @@ export function ProgressPanel({
               {PHOTO_CATEGORIES.map((category) => (
                 <button
                   key={category}
+                  type="button"
                   className={`choice mini${compareCategory === category ? " selected" : ""}`}
-                  onClick={() => setCompareCategory(category)}
+                  onClick={() => {
+                    setCompareCategory(category);
+                    setBeforeId(null);
+                    setAfterId(null);
+                  }}
                 >
                   {PHOTO_LABELS[category]}
                 </button>
               ))}
             </div>
+
+            {categoryPhotos.length >= 2 ? (
+              <>
+                <div className="compare-pickers">
+                  <label className="field">
+                    <span>Before</span>
+                    <select
+                      value={before?.id ?? ""}
+                      onChange={(event) => setBeforeId(event.target.value || null)}
+                    >
+                      {categoryPhotos.map((photo) => (
+                        <option key={photo.id} value={photo.id}>
+                          {formatDate(photo.date)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>After</span>
+                    <select
+                      value={after?.id ?? ""}
+                      onChange={(event) => setAfterId(event.target.value || null)}
+                    >
+                      {categoryPhotos.map((photo) => (
+                        <option key={photo.id} value={photo.id}>
+                          {formatDate(photo.date)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  className="text-btn"
+                  onClick={() => {
+                    if (!before || !after) return;
+                    setBeforeId(after.id);
+                    setAfterId(before.id);
+                  }}
+                >
+                  Swap before / after
+                </button>
+              </>
+            ) : null}
+
             {before ? (
               <div className="compare-grid">
                 <div className="compare-cell">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={before.image} alt={`Before · ${formatDate(before.date)}`} />
                   <span className="photo-cap">Before · {formatDate(before.date)}</span>
                 </div>
                 <div className="compare-cell">
-                  {after ? (
+                  {after && after.id !== before.id ? (
                     <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={after.image} alt={`After · ${formatDate(after.date)}`} />
                       <span className="photo-cap">After · {formatDate(after.date)}</span>
                     </>
                   ) : (
-                    <div className="compare-placeholder">Add another {PHOTO_LABELS[compareCategory].toLowerCase()} photo later to compare.</div>
+                    <div className="compare-placeholder empty-cta-card">
+                      <p>Add another {PHOTO_LABELS[compareCategory].toLowerCase()} photo to compare.</p>
+                      <label className="secondary-btn photo-upload-cta">
+                        Upload {PHOTO_LABELS[compareCategory].toLowerCase()}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={(event) => handleFile(compareCategory, event)}
+                        />
+                      </label>
+                    </div>
                   )}
                 </div>
               </div>
             ) : (
-              <p className="guided-empty">Upload a {PHOTO_LABELS[compareCategory].toLowerCase()} photo to start your comparison.</p>
+              <div className="guided-empty empty-cta-card">
+                <p>Upload a {PHOTO_LABELS[compareCategory].toLowerCase()} photo to start comparing.</p>
+                <label className="cta-btn photo-upload-cta">
+                  Add {PHOTO_LABELS[compareCategory].toLowerCase()} photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(event) => handleFile(compareCategory, event)}
+                  />
+                </label>
+              </div>
             )}
           </article>
         </>

@@ -1847,3 +1847,77 @@ button.avatar { padding: 0; }
 .collapsible-section.pinned .collapsible-head {
   border-color: color-mix(in srgb, var(--mocha, #8b6b4a) 35%, transparent);
 }
+
+/* Session polish */
+.set-row.skipped { opacity: 0.72; }
+.set-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  grid-column: 5;
+}
+.set-skip {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+.session-note-field { margin-top: 12px; }
+.rest-card.active {
+  background: linear-gradient(160deg, var(--wash-earth), var(--wash-blue));
+}
+.rest-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.session-done-screen { gap: 16px; padding-top: 48px; }
+.session-done-screen h1 { font-size: 40px; }
+.session-done-card { display: flex; flex-direction: column; gap: 14px; }
+.session-done-lines { display: grid; gap: 10px; }
+.session-done-lines p { margin: 0; color: var(--text); line-height: 1.5; }
+
+/* Body tab polish */
+.body-log-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+.body-log-actions .cta-btn,
+.body-log-actions .secondary-btn { margin-top: 0; width: 100%; }
+.quick-weight-form { margin-top: 12px; }
+.compare-pickers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+.compare-pickers select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+}
+.photo-upload-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.compare-placeholder.empty-cta-card {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .set-row-actions { grid-column: 1 / -1; flex-direction: row; }
+  .body-log-actions { grid-template-columns: 1fr; }
+}

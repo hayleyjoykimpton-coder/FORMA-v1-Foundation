@@ -103,9 +103,9 @@ export const HYDRATION_GOAL = 8;
 export type CoachReminder = { title: string; text: string; accent: Accent };
 
 export const COACH_REMINDERS: CoachReminder[] = [
-  { title: "Hydration", text: "Drink 8 glasses of water today to support recovery and energy.", accent: "blue" },
-  { title: "Protein", text: "Aim for ~120g of protein to rebuild and protect lean strength.", accent: "mocha" },
-  { title: "Recovery", text: "Wind down early — deep sleep is where adaptation happens.", accent: "sage" },
+  { title: "Water", text: "A few glasses today is enough — keep it gentle.", accent: "blue" },
+  { title: "Protein", text: "Include protein when you can. No need to chase a perfect number.", accent: "mocha" },
+  { title: "Rest", text: "An earlier night helps tomorrow’s session land better.", accent: "sage" },
 ];
 
 /**
