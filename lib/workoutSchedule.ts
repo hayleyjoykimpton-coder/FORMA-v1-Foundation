@@ -13,6 +13,16 @@ export const WEEKDAYS = [
 
 export type Weekday = (typeof WEEKDAYS)[number];
 
+function weekdayRank(day: string): number {
+  const index = WEEKDAYS.indexOf(day as Weekday);
+  return index === -1 ? 99 : index;
+}
+
+/** Keep Training list + weekly strip in calendar order. */
+export function sortWorkoutsByWeekday(workouts: Workout[]): Workout[] {
+  return [...workouts].sort((a, b) => weekdayRank(a.day) - weekdayRank(b.day));
+}
+
 /**
  * Reorder two adjacent workouts and swap their day labels so the weekly
  * schedule stays coherent (missed Monday → nudge Glute Strength onto Tuesday).
@@ -36,7 +46,7 @@ export function moveWorkoutWithDays(
 
 /**
  * Put a workout onto a target weekday. If another session already owns that
- * day, swap day labels so nothing is left orphaned.
+ * day, swap day labels so nothing is left orphaned. List is re-sorted by day.
  */
 export function putWorkoutOnDay(
   workouts: Workout[],
@@ -52,9 +62,11 @@ export function putWorkoutOnDay(
     (workout, i) => i !== index && workout.day === targetDay,
   );
 
-  return workouts.map((workout, i) => {
+  const next = workouts.map((workout, i) => {
     if (i === index) return { ...workout, day: targetDay };
     if (i === occupant) return { ...workout, day: current.day };
     return workout;
   });
+
+  return sortWorkoutsByWeekday(next);
 }
