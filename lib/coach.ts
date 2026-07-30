@@ -256,11 +256,11 @@ export function postWorkoutSummary(session: WorkoutSession, history: WorkoutSess
   const completion = completionRate(session);
 
   if (completion >= 1) {
-    lines.push("You completed every working set. Strong, controlled work — consider adding load next session.");
+    lines.push("Every working set done. Lovely work — you can nudge the load next time if it felt easy.");
   } else if (completion >= 0.6) {
-    lines.push(`Solid effort — you finished ${Math.round(completion * 100)}% of your sets. Aim to close out the rest next time.`);
+    lines.push(`You finished ${Math.round(completion * 100)}% of your sets. That’s a solid session.`);
   } else if (completion > 0) {
-    lines.push("Partial session logged — showing up on a tough day still counts. We'll build from here.");
+    lines.push("You showed up and logged what you could. That still counts.");
   }
 
   // Glute volume trend this week vs. previous week.
@@ -276,17 +276,17 @@ export function postWorkoutSummary(session: WorkoutSession, history: WorkoutSess
   );
   if (lastWeek > 0 && thisWeek > lastWeek) {
     const pct = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
-    lines.push(`Excellent — you increased your weekly glute volume by ${pct}%.`);
+    lines.push(`Glute volume is up ${pct}% on last week — quietly compounding.`);
   }
 
   const streak = currentStreak(history.concat(session));
-  if (streak >= 3) lines.push(`Great consistency — that's a ${streak}-day streak. This is how change compounds.`);
+  if (streak >= 3) lines.push(`${streak}-day streak. Consistency over drama.`);
 
   if ((session.readiness ?? 100) < 45) {
-    lines.push("You trained through low readiness — prioritise sleep and nutrition tonight to bounce back.");
+    lines.push("Readiness was low today — prioritise sleep and an easy evening.");
   }
 
-  if (!lines.length) lines.push("Session logged. Consistency is the engine of progress — see you next time.");
+  if (!lines.length) lines.push("Session logged. See you next time.");
   return lines;
 }
 
@@ -528,14 +528,14 @@ export function weeklyReview(profile: UserProfile, history: WorkoutSession[]): W
   const strengthGained = strengthTrends(history).filter((trend) => trend.trend === "improving").length;
 
   let summary: string;
-  if (workouts === 0) summary = "A quiet week. A single session is enough to restart the momentum.";
-  else if (consistency >= 100) summary = `Complete week — all ${profile.trainingDays} sessions logged. Beautifully consistent.`;
-  else summary = `You logged ${workouts} of ${profile.trainingDays} planned sessions. Keep the rhythm building.`;
+  if (workouts === 0) summary = "A quiet week. One session is enough to begin again.";
+  else if (consistency >= 100) summary = `All ${profile.trainingDays} planned sessions logged. Beautifully steady.`;
+  else summary = `${workouts} of ${profile.trainingDays} planned sessions this week. Keep the rhythm soft and steady.`;
 
   const nextGoal =
     consistency >= 100
-      ? "Add a little load or one clean rep where effort felt easy."
-      : `Aim for ${profile.trainingDays} sessions and hit every working set.`;
+      ? "Where it felt easy, add a little load or one clean rep."
+      : `Aim for ${profile.trainingDays} sessions — finished sets matter more than perfect ones.`;
 
   return { workouts, consistency, volume, strengthGained, summary, nextGoal };
 }
@@ -713,7 +713,7 @@ export function weeklyWins(profile: UserProfile, history: WorkoutSession[]): Wee
       id: "streak",
       kind: "streak",
       title: `${streak}-day training streak`,
-      detail: "Consistency is the quiet flex.",
+      detail: "Showing up again and again — that’s the flex.",
     });
   }
 
@@ -722,7 +722,7 @@ export function weeklyWins(profile: UserProfile, history: WorkoutSession[]): Wee
     wins.push({
       id: "consistency",
       kind: "consistency",
-      title: "Full training week complete",
+      title: "Full training week",
       detail: `All ${profile.trainingDays} planned sessions logged.`,
     });
   }
@@ -756,10 +756,10 @@ export function weeklyWins(profile: UserProfile, history: WorkoutSession[]): Wee
     picked.push({
       id: "encourage",
       kind: "encourage",
-      title: thisWeek.length ? "Session logged — well done" : "A quiet week so far",
+      title: thisWeek.length ? "Session logged" : "A quiet week so far",
       detail: thisWeek.length
-        ? "Show up again and the wins will stack."
-        : "One session is enough to restart the story.",
+        ? "Come back when you’re ready — the wins stack gently."
+        : "One session is enough to restart.",
     });
   }
 

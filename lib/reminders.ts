@@ -146,13 +146,13 @@ export function trainingReminderCopy(workout: Workout | undefined): {
   if (!workout) {
     return {
       title: "Training day",
-      text: "Your session is here whenever you’re ready.",
+      text: "Your session is ready when you are.",
       tip,
     };
   }
   return {
-    title: `${workout.title} today`,
-    text: `About ${workout.duration} minutes · ${workout.exercises.length} movements. No rush — whenever it fits.`,
+    title: `${workout.title}`,
+    text: `About ${workout.duration} min · ${workout.exercises.length} movements. Take it at your pace.`,
     tip,
   };
 }
