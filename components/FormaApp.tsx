@@ -86,6 +86,7 @@ import {
   swapCandidates,
   swapReasonLabel,
 } from "@/lib/exerciseSwap";
+import { WEEKDAYS, moveWorkoutWithDays, putWorkoutOnDay } from "@/lib/workoutSchedule";
 import {
   adjustResultsForReadiness,
   coachDashboard,
@@ -276,6 +277,7 @@ export default function FormaApp() {
   const [weeklyReviewDismissed, setWeeklyReviewDismissed] = useState(false);
   const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
+  const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
@@ -685,6 +687,7 @@ export default function FormaApp() {
         short: workout.day.slice(0, 3),
         focus: workout.title,
         image: imageForWorkout(workout.title),
+        workoutId: workout.id,
       })),
     [workouts],
   );
@@ -1071,14 +1074,25 @@ export default function FormaApp() {
   };
 
   const moveWorkout = (id: string, direction: -1 | 1) => {
-    setWorkouts((current) => {
-      const index = current.findIndex((workout) => workout.id === id);
-      const destination = index + direction;
-      if (index < 0 || destination < 0 || destination >= current.length) return current;
-      const next = [...current];
-      [next[index], next[destination]] = [next[destination], next[index]];
-      return next;
-    });
+    setWorkouts((current) => moveWorkoutWithDays(current, id, direction));
+  };
+
+  /** Swap this session onto today's weekday (missed a day? put it here). */
+  const scheduleWorkoutToday = (id: string) => {
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+    setWorkouts((current) => putWorkoutOnDay(current, id, today));
+    setSyncNote("Session moved to today.");
+  };
+
+  const pickSessionToStart = (workout: Workout) => {
+    setSessionPickerOpen(false);
+    startWorkout(workout);
+  };
+
+  const startFromSchedule = (workoutId: string | undefined) => {
+    if (!workoutId) return;
+    const workout = workouts.find((item) => item.id === workoutId);
+    if (workout) startWorkout(workout);
   };
 
   const addExercise = (workoutId: string) => {
@@ -1790,7 +1804,7 @@ export default function FormaApp() {
       startWorkout(todaysWorkout);
       return;
     }
-    setTab("training");
+    setSessionPickerOpen(true);
   };
 
   const showDayOneCtas =
@@ -1911,6 +1925,13 @@ export default function FormaApp() {
                       Start workout
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setSessionPickerOpen(true)}
+                  >
+                    Choose session
+                  </button>
                   <button
                     type="button"
                     className="secondary-btn"
@@ -2040,10 +2061,40 @@ export default function FormaApp() {
                     >
                       Start workout
                     </button>
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => setSessionPickerOpen(true)}
+                    >
+                      Choose a different session
+                    </button>
                   </div>
                 </article>
               </>
-            ) : null}
+            ) : (
+              <>
+                <SectionHeading eyebrow="Training" title="Pick a session" />
+                <article className="card">
+                  <p className="muted">
+                    Nothing scheduled for {todayName} — choose any session, or rearrange the week on Training.
+                  </p>
+                  <button
+                    type="button"
+                    className="cta-btn"
+                    onClick={() => setSessionPickerOpen(true)}
+                  >
+                    Choose session
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setTab("training")}
+                  >
+                    Rearrange week
+                  </button>
+                </article>
+              </>
+            )}
 
             <div className="home-customise-bar">
               <button
@@ -2536,7 +2587,11 @@ export default function FormaApp() {
             </article>
 
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
-            <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
+            <WeeklySchedule
+              schedule={weeklySchedule}
+              todayName={todayName}
+              onSelect={(entry) => startFromSchedule(entry.workoutId)}
+            />
             </CollapsibleSection>
               </div>
             ) : null}
@@ -2557,33 +2612,81 @@ export default function FormaApp() {
             </header>
 
             <SectionHeading eyebrow="This week" title="Weekly schedule" />
-            <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
+            <p className="muted schedule-hint">
+              Tap a day to start · ↑↓ moves the session and its day (handy after a missed day)
+            </p>
+            <WeeklySchedule
+              schedule={weeklySchedule}
+              todayName={todayName}
+              onSelect={(entry) => startFromSchedule(entry.workoutId)}
+            />
 
             <div className="workout-list">
               {workouts.map((workout) => {
                 const isEditing = editingWorkoutId === workout.id;
+                const isTodaysSlot = workout.day === todayName;
                 return (
                   <article className="card workout-card" key={workout.id}>
                     <div className="workout-card-head">
                       <div className="workout-title-block">
                         {isEditing ? (
                           <>
-                            <input value={workout.day} onChange={(event) => updateWorkout(workout.id, { day: event.target.value })} />
+                            <label className="field day-select-field">
+                              <span>Day</span>
+                              <select
+                                value={workout.day}
+                                onChange={(event) =>
+                                  setWorkouts((current) =>
+                                    putWorkoutOnDay(current, workout.id, event.target.value),
+                                  )
+                                }
+                              >
+                                {!WEEKDAYS.includes(workout.day as (typeof WEEKDAYS)[number]) ? (
+                                  <option value={workout.day}>{workout.day}</option>
+                                ) : null}
+                                {WEEKDAYS.map((day) => (
+                                  <option key={day} value={day}>
+                                    {day}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
                             <input value={workout.title} onChange={(event) => updateWorkout(workout.id, { title: event.target.value })} />
                           </>
                         ) : (
                           <>
-                            <span className="eyebrow">{workout.day}</span>
+                            <span className="eyebrow">
+                              {workout.day}
+                              {isTodaysSlot ? " · Today" : ""}
+                            </span>
                             <h3>{workout.title}</h3>
                           </>
                         )}
                       </div>
                       <div className="editor-actions compact">
-                        <button onClick={() => moveWorkout(workout.id, -1)} aria-label="Move up">↑</button>
-                        <button onClick={() => moveWorkout(workout.id, 1)} aria-label="Move down">↓</button>
-                        <button className="pill-btn small" onClick={() => startWorkout(workout)}>Start</button>
+                        <button onClick={() => moveWorkout(workout.id, -1)} aria-label="Move to earlier day" title="Earlier day">
+                          ↑
+                        </button>
+                        <button onClick={() => moveWorkout(workout.id, 1)} aria-label="Move to later day" title="Later day">
+                          ↓
+                        </button>
+                        <button className="pill-btn small" onClick={() => startWorkout(workout)}>
+                          Start
+                        </button>
                       </div>
                     </div>
+
+                    {!isTodaysSlot ? (
+                      <div className="workout-catchup">
+                        <button
+                          type="button"
+                          className="text-btn"
+                          onClick={() => scheduleWorkoutToday(workout.id)}
+                        >
+                          Move to today
+                        </button>
+                      </div>
+                    ) : null}
 
                     <div className="editor-actions toolbar">
                       <ActionMenu
@@ -3350,6 +3453,54 @@ export default function FormaApp() {
             </article>
           </div>
         )}
+
+        {sessionPickerOpen ? (
+          <div className="session-picker-overlay" role="dialog" aria-modal="true" aria-label="Choose session">
+            <article className="card session-picker-card">
+              <div className="workout-card-head">
+                <div>
+                  <span className="eyebrow">Choose session</span>
+                  <h3>What would you like to train?</h3>
+                </div>
+                <button type="button" className="ghost-btn" onClick={() => setSessionPickerOpen(false)}>
+                  Close
+                </button>
+              </div>
+              <p className="muted">
+                Start any session now — or use Training to move days around after a miss.
+              </p>
+              <div className="session-picker-list">
+                {workouts.map((workout) => (
+                  <button
+                    key={workout.id}
+                    type="button"
+                    className={`session-picker-row${workout.day === todayName ? " today" : ""}`}
+                    onClick={() => pickSessionToStart(workout)}
+                  >
+                    <span className="session-picker-day">
+                      {workout.day.slice(0, 3)}
+                      {workout.day === todayName ? " · Today" : ""}
+                    </span>
+                    <strong>{workout.title}</strong>
+                    <small>
+                      {workout.duration} min · {workout.exercises.length} movements
+                    </small>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => {
+                  setSessionPickerOpen(false);
+                  setTab("training");
+                }}
+              >
+                Rearrange week on Training
+              </button>
+            </article>
+          </div>
+        ) : null}
 
         <nav className="tabbar">
           {TABS.map((item) => (
