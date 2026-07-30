@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SectionHeading, StatTile } from "@/components/ui";
-import { fileToResizedDataUrl } from "@/lib/images";
+import { fileToInBodyDataUrl } from "@/lib/images";
 import {
   INBODY_METRIC_LABELS,
   INBODY_METRIC_UNITS,
@@ -123,22 +123,33 @@ export function InBodyPanel({
     setBusy(true);
     setShowForm(true);
     setImportReady(false);
-    setStatus("Preparing your screenshot…");
+    setStatus("Preparing your InBody sheet…");
     try {
-      const dataUrl = await fileToResizedDataUrl(file, 1400, 0.82);
+      // Keep dense InBody 270 type readable (higher res than profile/progress photos).
+      const dataUrl = await fileToInBodyDataUrl(file);
       setPreviewUrl(dataUrl);
-      setStatus("Reading InBody numbers from your screenshot…");
+      setStatus("Reading Muscle-Fat, Obesity & Research numbers…");
       const detailed = await analyzeInBodyPhotoDetailed(dataUrl);
       if (!detailed.ok) {
         setStatus(detailed.message);
         return;
       }
       applyDraft(draftFromAnalyzeResult(detailed.result));
+      const filled = [
+        detailed.result.weightKg != null ? "weight" : null,
+        detailed.result.skeletalMuscleMassKg != null ? "SMM" : null,
+        detailed.result.bodyFatPercent != null ? "PBF" : null,
+        detailed.result.leanBodyMassKg != null ? "FFM" : null,
+      ].filter(Boolean);
       const conf = detailed.result.confidence ? ` · ${detailed.result.confidence} confidence` : "";
-      setStatus(`Numbers filled in${conf} — glance over them, then Save scan.`);
-      setImportReady(true);
+      setStatus(
+        filled.length
+          ? `Filled ${filled.join(", ")}${conf} — check against your sheet, then Save scan.`
+          : `Couldn’t see clear metrics${conf} — enter the numbers manually from your sheet.`,
+      );
+      setImportReady(filled.length > 0);
     } catch {
-      setStatus("Could not read that image — try a clearer screenshot, or enter manually.");
+      setStatus("Could not read that image — try a brighter, flatter screenshot of the full sheet.");
       setImportReady(false);
     } finally {
       setBusy(false);
@@ -189,14 +200,14 @@ export function InBodyPanel({
       />
       <article className="card inbody-intro-card">
         <p className="muted">
-          Upload a screenshot of your InBody results — we fill in the numbers for you. Check them,
-          tap Save scan, and they’re on your Progress. Or enter manually anytime.
+          Upload a clear screenshot of your full InBody result sheet (InBody 270 works well). We read
+          Weight, SMM, body fat, FFM and BMR — then you check and Save. Tip: use a saved screenshot from
+          Photos, not a dim angled photo of the paper.
         </p>
         <input
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
           hidden
           onChange={(event) => {
             void onPickPhoto(event.target.files?.[0] ?? null);
