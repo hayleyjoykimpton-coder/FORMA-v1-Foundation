@@ -234,18 +234,60 @@ export function draftFromAnalyzeResult(result: AnalyzeInBodyResult): InBodyDraft
   };
 }
 
-/** Client helper — returns null when AI is unavailable or fails. */
+/** Client helper — returns null when AI is unavailable or fails. Prefer analyzeInBodyPhotoDetailed. */
 export async function analyzeInBodyPhoto(imageDataUrl: string): Promise<AnalyzeInBodyResult | null> {
+  const detailed = await analyzeInBodyPhotoDetailed(imageDataUrl);
+  return detailed.ok ? detailed.result : null;
+}
+
+export type AnalyzeInBodyDetailed =
+  | { ok: true; result: AnalyzeInBodyResult }
+  | { ok: false; reason: "unavailable" | "quota" | "failed"; message: string };
+
+/** Client helper with actionable error messages for the InBody import UI. */
+export async function analyzeInBodyPhotoDetailed(
+  imageDataUrl: string,
+): Promise<AnalyzeInBodyDetailed> {
   try {
     const res = await fetch("/api/analyze-inbody", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image: imageDataUrl }),
     });
-    if (res.status === 503) return null;
-    if (!res.ok) return null;
-    return (await res.json()) as AnalyzeInBodyResult;
+    if (res.status === 503) {
+      return {
+        ok: false,
+        reason: "unavailable",
+        message: "Photo import isn’t set up yet — enter the numbers manually for now.",
+      };
+    }
+    if (!res.ok) {
+      let detail = "";
+      try {
+        const payload = (await res.json()) as { error?: string; detail?: string };
+        detail = `${payload.error ?? ""} ${payload.detail ?? ""}`.toLowerCase();
+      } catch {
+        /* ignore */
+      }
+      if (detail.includes("insufficient_quota") || detail.includes("billing")) {
+        return {
+          ok: false,
+          reason: "quota",
+          message: "AI credits ran out — enter the numbers manually, or top up OpenAI billing.",
+        };
+      }
+      return {
+        ok: false,
+        reason: "failed",
+        message: "Couldn’t read that screenshot — try a clearer crop, or enter numbers manually.",
+      };
+    }
+    return { ok: true, result: (await res.json()) as AnalyzeInBodyResult };
   } catch {
-    return null;
+    return {
+      ok: false,
+      reason: "failed",
+      message: "Couldn’t reach the reader — check your connection, or enter numbers manually.",
+    };
   }
 }
