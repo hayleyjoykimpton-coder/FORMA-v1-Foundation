@@ -35,7 +35,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Image too large — retake a clearer photo of the printout." }, { status: 413 });
   }
 
-  const prompt = `You are reading an InBody body-composition printout or screen for FORMA, a women's strength app.
+  const prompt = `You are reading an InBody body-composition report for FORMA, a women's strength app.
+The image may be: a phone screenshot of InBody results, a photo of a printed sheet, or a cropped PDF page saved as an image.
+
 Extract the numeric metrics you can see. Prefer metric units (kg). If only lb is shown, convert to kg (÷ 2.205) and round to 1 decimal.
 
 Respond with ONLY valid JSON (no markdown) using this shape:
@@ -52,7 +54,7 @@ Respond with ONLY valid JSON (no markdown) using this shape:
   "notes": "brief note if something was ambiguous",
   "confidence": "high" | "medium" | "low"
 }
-Use null when a field is not visible. Do not invent numbers. Labels may vary (SMM, Soft Lean Mass, PBF, VFL, BMR, etc.).`;
+Use null when a field is not visible. Do not invent numbers. Labels may vary (SMM, Soft Lean Mass, PBF, VFL, BMR, Weight, Body Fat Mass, etc.).`;
 
   try {
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {

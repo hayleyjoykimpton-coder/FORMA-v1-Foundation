@@ -1797,7 +1797,27 @@ button.avatar { padding: 0; }
 .inbody-intro-card { display: flex; flex-direction: column; gap: 14px; }
 .inbody-log-form { margin-top: 8px; }
 .inbody-import-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.inbody-import-actions .cta-btn,
+.inbody-import-actions .secondary-btn { margin-top: 0; flex: 1 1 160px; }
 .inbody-import-status { font-size: 13px; margin: 0; }
+.inbody-import-status.ready { color: var(--text); font-weight: 600; }
+.inbody-preview {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  max-height: 220px;
+  background: var(--bg);
+}
+.inbody-preview img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  background: #fff;
+}
+.cta-btn.inbody-save-ready {
+  box-shadow: 0 0 0 2px rgba(58, 40, 32, 0.18);
+}
 .inbody-trend { margin-top: 10px; }
 .inbody-trend-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: 6px; }
 .inbody-trend-tabs { margin-bottom: 10px; }
