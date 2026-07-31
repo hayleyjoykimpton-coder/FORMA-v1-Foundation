@@ -71,6 +71,8 @@ export type ScheduleDay = {
   focus: string;
   image: string;
   rest?: boolean;
+  /** Present when the schedule is built from live workouts (tappable start). */
+  workoutId?: string;
 };
 
 export const WEEKLY_SCHEDULE: ScheduleDay[] = [

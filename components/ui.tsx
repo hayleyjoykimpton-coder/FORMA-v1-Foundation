@@ -108,23 +108,27 @@ export function PhaseJourney({
   );
 }
 
-/** Editorial 7-day training schedule with the current day highlighted. */
+/** Editorial training schedule with the current day highlighted. Cards can start a session. */
 export function WeeklySchedule({
   schedule,
   todayName,
+  onSelect,
 }: {
   schedule: ScheduleDay[];
   todayName: string;
+  /** When set, non-rest days are tappable (e.g. start that session). */
+  onSelect?: (entry: ScheduleDay) => void;
 }) {
   return (
     <div className="weekly-schedule">
       {schedule.map((entry) => {
         const isToday = entry.day === todayName;
-        return (
-          <article
-            className={`schedule-card${isToday ? " today" : ""}${entry.rest ? " rest" : ""}`}
-            key={entry.day}
-          >
+        const selectable = Boolean(onSelect) && !entry.rest;
+        const className = `schedule-card${isToday ? " today" : ""}${entry.rest ? " rest" : ""}${
+          selectable ? " selectable" : ""
+        }`;
+        const body = (
+          <>
             {entry.rest ? (
               <div className="schedule-rest" aria-hidden />
             ) : (
@@ -139,6 +143,24 @@ export function WeeklySchedule({
               <strong>{entry.focus}</strong>
             </div>
             {isToday ? <span className="schedule-today-pill">Today</span> : null}
+          </>
+        );
+        if (selectable) {
+          return (
+            <button
+              type="button"
+              className={className}
+              key={entry.workoutId ?? entry.day}
+              onClick={() => onSelect?.(entry)}
+              aria-label={`Start ${entry.focus} (${entry.day})`}
+            >
+              {body}
+            </button>
+          );
+        }
+        return (
+          <article className={className} key={entry.workoutId ?? entry.day}>
+            {body}
           </article>
         );
       })}
