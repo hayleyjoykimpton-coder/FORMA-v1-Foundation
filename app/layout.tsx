@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -15,10 +16,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FORMA",
-  description: "A premium personal strength & wellness system.",
+  title: BRAND.name,
+  description: BRAND.tagline,
   other: {
-    "theme-color": "#5B4337",
+    "theme-color": "#1a1410",
   },
 };
 

@@ -1,35 +1,32 @@
 /* ==========================================================================
-   FORMA — Pure white × polished earth & serenity
-   Pure white canvas, white cards, espresso brand, refined accents.
-   Cream revert: --bg: #e9e1d6 / --card: #f3ebe2 from git history.
-   Warm white option: --bg: #faf8f5.
+   Life & Soul — luxe black · warm brown · white
    ========================================================================== */
 
 :root {
-  /* Foundation — pure white (Hayley’s pick) */
-  --bg: #ffffff;          /* pure white canvas */
-  --card: #ffffff;        /* white cards; depth via border + soft shadow */
-  --text: #241913;        /* espresso — sharp on white */
-  --text-2: #5c4a40;      /* warm secondary */
-  --line: #ebe4dc;        /* soft greige hairline */
-  --on-cta: #ffffff;      /* crisp white on espresso CTAs */
+  /* Foundation — crisp white & warm ivory */
+  --bg: #f7f5f2;          /* off-white */
+  --card: #ffffff;        /* pure white cards */
+  --text: #1a1410;        /* near-black */
+  --text-2: #4a3f36;      /* warm brown-grey */
+  --line: #ddd6ce;        /* soft taupe border */
+  --on-cta: #f7f5f2;      /* ivory on dark buttons */
 
-  /* Accents — polished, less muddy */
-  --pink: #d4b8a2;        /* warm sand (legacy token name) */
-  --cta: #3f2c24;         /* deeper espresso primary */
-  --blue: #7f96ab;        /* Blue Serenity — clearer mid */
-  --mocha: #b08a6c;       /* camel earth */
-  --sage: #8496a8;        /* cooler serenity blue-grey */
-  --green: #6f8470;       /* olive success */
-  --serenity: #5f758a;    /* deeper Blue Serenity */
-  --earth-deep: #2a1c16;  /* deepest espresso */
+  /* Accents — brown luxe, minimal colour */
+  --pink: #a8876c;        /* warm bronze (legacy token) */
+  --cta: #3d2e24;         /* deep espresso — primary CTA */
+  --blue: #8a7f76;        /* warm stone (replaces blue) */
+  --mocha: #6b5344;       /* rich brown */
+  --sage: #7a6e64;        /* muted taupe */
+  --green: #5c6b52;       /* understated olive */
+  --serenity: #4a3f36;    /* deep brown */
+  --earth-deep: #1a1410;  /* black-brown */
 
-  /* Soft washes for stat tiles — airy on white */
-  --wash-peach: #f3ebe3;
-  --wash-blue: #e8eef4;
-  --wash-earth: #f0e8df;
-  --wash-sage: #e9eef3;
-  --wash-green: #e8eee8;
+  /* Gradient washes — neutral luxe */
+  --wash-peach: #ece6df;
+  --wash-blue: #e8e4df;
+  --wash-earth: #e5ddd4;
+  --wash-sage: #e6e2dc;
+  --wash-green: #e4e8e0;
 
   /* Radius */
   --r-card: 28px;
@@ -125,6 +122,19 @@ textarea::placeholder {
   color: var(--text);
   padding-left: 0.32em;
 }
+
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 34px;
+  max-width: min(200px, 72vw);
+  object-fit: contain;
+  object-position: left center;
+}
+
+.auth-screen .brand-logo { margin-bottom: 8px; }
+.topbar .brand-logo { height: 28px; }
+.loading .brand-logo { margin: 0 auto 12px; }
 
 /* ---------- Top bar ------------------------------------------------------ */
 

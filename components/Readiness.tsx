@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { computeReadiness, READINESS_METRICS } from "@/lib/coach";
+import { BRAND } from "@/lib/brand";
 import type { Readiness, ReadinessInput } from "@/lib/coach";
 import type { Workout } from "@/lib/types";
 
@@ -55,7 +56,7 @@ export function ReadinessCheck({
             <p className="onboard-lead">
               {forWorkout ? (
                 <>
-                  A quick check before <strong>{workout!.title}</strong>. FORMA adapts your session to how you feel.
+                  A quick check before <strong>{workout!.title}</strong>. {BRAND.name} adapts your session to how you feel.
                 </>
               ) : (
                 <>A quick check-in for Recovery — no workout needed. Your score feeds readiness this week.</>
