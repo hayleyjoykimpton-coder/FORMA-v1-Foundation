@@ -88,6 +88,10 @@ import {
 } from "@/lib/exerciseSwap";
 import { WEEKDAYS, moveWorkoutWithDays, putWorkoutOnDay } from "@/lib/workoutSchedule";
 import {
+  completedWorkoutIdsThisWeek,
+  mergeHistories,
+} from "@/lib/historyMerge";
+import {
   adjustResultsForReadiness,
   coachDashboard,
   exerciseCoaching,
@@ -279,6 +283,8 @@ export default function FormaApp() {
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
+  /** Live session ref so auth/sync callbacks never stomp mid-workout. */
+  const sessionRef = useRef<SessionDraft | null>(null);
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
     const state = loadForma();
@@ -342,9 +348,12 @@ export default function FormaApp() {
         );
         didUpgrade = true;
       }
+      const mergedHistory = mergeHistories(local.history, cloud.history);
+      const liveSession = sessionRef.current;
+
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
-      setHistory(cloud.history);
+      setHistory(mergedHistory);
       setWeek(cycleWeek(cloud.week));
       setAlignActive(cloud.alignActive);
       setProgressEntries(cloud.progress);
@@ -355,8 +364,15 @@ export default function FormaApp() {
       setInBody(cloud.inbody);
       if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
       else setWater(0);
-      const today = pickTodaysWorkout(nextWorkouts);
-      setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
+
+      // Never yank the user onto "today's" workout mid-session.
+      if (liveSession && nextWorkouts.some((workout) => workout.id === liveSession.workoutId)) {
+        setActiveWorkoutId(liveSession.workoutId);
+      } else {
+        const today = pickTodaysWorkout(nextWorkouts);
+        setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
+      }
+
       if (cloud.sessionDraft && nextWorkouts.some((w) => w.id === cloud.sessionDraft!.workoutId)) {
         setPausedDraft(cloud.sessionDraft);
       }
@@ -365,7 +381,7 @@ export default function FormaApp() {
       saveMeals(cloud.meals);
       saveInBody(cloud.inbody);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
-      window.localStorage.setItem(STORAGE.history, JSON.stringify(cloud.history));
+      window.localStorage.setItem(STORAGE.history, JSON.stringify(mergedHistory));
       window.localStorage.setItem(
         STORAGE.program,
         JSON.stringify({
@@ -382,7 +398,7 @@ export default function FormaApp() {
       if (didUpgrade) {
         await pushUserState({
           workouts: nextWorkouts,
-          history: cloud.history,
+          history: mergedHistory,
           week: cloud.week,
           alignActive: cloud.alignActive,
           progress: cloud.progress,
@@ -468,9 +484,13 @@ export default function FormaApp() {
         setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
         return;
       }
-      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user.id) {
+      // TOKEN_REFRESHED used to re-pull and overwrite activeWorkoutId / history mid-session.
+      if (event === "SIGNED_IN" && session?.user.id) {
         await applyCloudBundle(session.user.id);
         setHydrated(true);
+      } else if (event === "TOKEN_REFRESHED" && session?.user.id) {
+        setCloudUserId(session.user.id);
+        setAuthMode("cloud");
       }
     });
 
@@ -481,9 +501,22 @@ export default function FormaApp() {
   }, []);
 
   useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
-    window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
+    // Never persist an empty history over a non-empty store (guards sync races / parse blips).
+    try {
+      const raw = window.localStorage.getItem(STORAGE.history);
+      const previous = raw ? (JSON.parse(raw) as WorkoutSession[]) : [];
+      if (!(history.length === 0 && Array.isArray(previous) && previous.length > 0)) {
+        window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
+      }
+    } catch {
+      window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
+    }
     window.localStorage.setItem(
       STORAGE.program,
       JSON.stringify({
@@ -610,6 +643,10 @@ export default function FormaApp() {
   }, [restRemaining]);
 
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
+  /** Always bind the live session to session.workoutId — never silently switch to "today". */
+  const sessionWorkout = session
+    ? workouts.find((workout) => workout.id === session.workoutId) ?? null
+    : null;
   const todaysWorkout = useMemo(() => pickTodaysWorkout(workouts), [workouts]);
   const scheduledToday = useMemo(() => todaysScheduledWorkout(workouts), [workouts]);
   const showTrainingReminder = useMemo(
@@ -679,6 +716,11 @@ export default function FormaApp() {
     [history],
   );
   const latestSession = history.length ? history[history.length - 1] : null;
+  const completedThisWeek = useMemo(
+    () => completedWorkoutIdsThisWeek(history, workouts),
+    [history, workouts],
+  );
+
   // The weekly schedule reflects the user's actual (personalised) plan.
   const weeklySchedule = useMemo(
     () =>
@@ -688,8 +730,9 @@ export default function FormaApp() {
         focus: workout.title,
         image: imageForWorkout(workout.title),
         workoutId: workout.id,
+        completed: completedThisWeek.has(workout.id),
       })),
-    [workouts],
+    [workouts, completedThisWeek],
   );
 
   const phaseDef = resolveActivePhase(week, alignActive);
@@ -907,7 +950,9 @@ export default function FormaApp() {
   };
 
   const finishWorkout = () => {
-    if (!session || !activeWorkout) return;
+    const workoutForSession =
+      (session && workouts.find((workout) => workout.id === session.workoutId)) || null;
+    if (!session || !workoutForSession) return;
     const incomplete = session.results.some((result) =>
       result.sets.some((set) => !set.complete && !set.skipped),
     );
@@ -928,8 +973,8 @@ export default function FormaApp() {
     }));
     const completed: WorkoutSession = {
       id: uid(),
-      workoutId: activeWorkout.id,
-      workoutTitle: activeWorkout.title,
+      workoutId: workoutForSession.id,
+      workoutTitle: workoutForSession.title,
       completedAt: new Date().toISOString(),
       season,
       week: weekInCycle,
@@ -949,7 +994,7 @@ export default function FormaApp() {
     );
     const setsTotal = exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0);
     setSessionCelebration({
-      title: activeWorkout.title,
+      title: workoutForSession.title,
       lines: postWorkoutSummary(completed, nextHistory),
       setsDone,
       setsTotal,
@@ -1139,14 +1184,16 @@ export default function FormaApp() {
 
   /** Mid-session swap: update programme row + live set log together. */
   const swapExerciseInSession = (candidateId: string) => {
-    if (!session || !activeWorkout) return;
-    const current = activeWorkout.exercises[session.exerciseIndex];
+    if (!session) return;
+    const workoutForSession = workouts.find((workout) => workout.id === session.workoutId);
+    if (!workoutForSession) return;
+    const current = workoutForSession.exercises[session.exerciseIndex];
     if (!current) return;
     const swapped = applyExerciseSwap(current, candidateId);
 
     setWorkouts((workoutsCurrent) =>
       workoutsCurrent.map((workout) =>
-        workout.id === activeWorkout.id
+        workout.id === workoutForSession.id
           ? {
               ...workout,
               exercises: workout.exercises.map((exercise) =>
@@ -1410,9 +1457,12 @@ export default function FormaApp() {
     );
   }
 
-  if (session && activeWorkout) {
-    const exercise = activeWorkout.exercises[session.exerciseIndex];
+  if (session && sessionWorkout) {
+    const exercise = sessionWorkout.exercises[session.exerciseIndex];
     const result = session.results[session.exerciseIndex];
+    if (!exercise || !result) {
+      return null;
+    }
     const recommendation = getRecommendation(exercise, history, phaseDef);
     const prev = previousPerformance(exercise, history);
     const coaching = exerciseCoaching(exercise);
@@ -1420,6 +1470,13 @@ export default function FormaApp() {
     const seconds = String(restRemaining % 60).padStart(2, "0");
     const setsAddressed = result.sets.filter((set) => set.complete || set.skipped).length;
     const progressPct = Math.round((setsAddressed / result.sets.length) * 100);
+    const isLastExercise = session.exerciseIndex >= sessionWorkout.exercises.length - 1;
+    const allSetsAddressed = setsAddressed === result.sets.length;
+    const goNextExercise = () => {
+      setSessionSwapOpen(false);
+      setRestRemaining(0);
+      setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 });
+    };
 
     return (
       <div className="app">
@@ -1428,15 +1485,15 @@ export default function FormaApp() {
             <header className="session-top">
               <button className="ghost-btn" onClick={exitSession}>‹ Exit</button>
               <div className="session-count">
-                <span className="eyebrow">{activeWorkout.title}</span>
-                <strong>{session.exerciseIndex + 1} / {activeWorkout.exercises.length}</strong>
+                <span className="eyebrow">{sessionWorkout.title}</span>
+                <strong>{session.exerciseIndex + 1} / {sessionWorkout.exercises.length}</strong>
               </div>
               <button className="ghost-btn strong" onClick={finishWorkout}>Finish</button>
             </header>
 
             <section
               className="session-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(activeWorkout.title)})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(sessionWorkout.title)})` }}
             >
               <span className="eyebrow light">{season} · Primary target</span>
               <h1>{exercise.name}</h1>
@@ -1446,6 +1503,39 @@ export default function FormaApp() {
                 <span style={{ width: `${progressPct}%` }} />
               </div>
             </section>
+
+            <div className="session-advance">
+              <button
+                type="button"
+                className="secondary-btn"
+                disabled={session.exerciseIndex === 0}
+                onClick={() => {
+                  setSessionSwapOpen(false);
+                  setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 });
+                }}
+              >
+                Previous
+              </button>
+              {isLastExercise ? (
+                <button
+                  type="button"
+                  className="cta-btn"
+                  onClick={finishWorkout}
+                  disabled={!allSetsAddressed}
+                >
+                  Finish session
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="cta-btn"
+                  onClick={goNextExercise}
+                  disabled={!allSetsAddressed}
+                >
+                  Next exercise →
+                </button>
+              )}
+            </div>
 
             <article className="card coach-prev">
               <div className="coach-prev-head">
@@ -1668,47 +1758,6 @@ export default function FormaApp() {
                 </button>
               </div>
             </article>
-
-            {setsAddressed === result.sets.length && session.exerciseIndex < activeWorkout.exercises.length - 1 ? (
-              <button
-                type="button"
-                className="cta-btn"
-                onClick={() => {
-                  setSessionSwapOpen(false);
-                  setRestRemaining(0);
-                  setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 });
-                }}
-              >
-                Next exercise →
-              </button>
-            ) : null}
-
-            {setsAddressed === result.sets.length && session.exerciseIndex === activeWorkout.exercises.length - 1 ? (
-              <button type="button" className="cta-btn" onClick={finishWorkout}>
-                Finish session
-              </button>
-            ) : null}
-
-            <div className="session-nav">
-              <button
-                disabled={session.exerciseIndex === 0}
-                onClick={() => {
-                  setSessionSwapOpen(false);
-                  setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 });
-                }}
-              >
-                Previous
-              </button>
-              <button
-                disabled={session.exerciseIndex === activeWorkout.exercises.length - 1}
-                onClick={() => {
-                  setSessionSwapOpen(false);
-                  setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 });
-                }}
-              >
-                Next exercise
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -2625,8 +2674,12 @@ export default function FormaApp() {
               {workouts.map((workout) => {
                 const isEditing = editingWorkoutId === workout.id;
                 const isTodaysSlot = workout.day === todayName;
+                const isDoneThisWeek = completedThisWeek.has(workout.id);
                 return (
-                  <article className="card workout-card" key={workout.id}>
+                  <article
+                    className={`card workout-card${isDoneThisWeek ? " completed" : ""}`}
+                    key={workout.id}
+                  >
                     <div className="workout-card-head">
                       <div className="workout-title-block">
                         {isEditing ? (
@@ -2657,9 +2710,12 @@ export default function FormaApp() {
                           <>
                             <span className="eyebrow">
                               {workout.day}
-                              {isTodaysSlot ? " · Today" : ""}
+                              {isDoneThisWeek ? " · Done" : isTodaysSlot ? " · Today" : ""}
                             </span>
-                            <h3>{workout.title}</h3>
+                            <h3>
+                              {isDoneThisWeek ? "✓ " : ""}
+                              {workout.title}
+                            </h3>
                           </>
                         )}
                       </div>
