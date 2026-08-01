@@ -73,6 +73,8 @@ export type ScheduleDay = {
   rest?: boolean;
   /** Present when the schedule is built from live workouts (tappable start). */
   workoutId?: string;
+  /** True when a session for this workout was logged this calendar week. */
+  completed?: boolean;
 };
 
 export const WEEKLY_SCHEDULE: ScheduleDay[] = [

@@ -170,7 +170,13 @@ export function loadForma(): LoadedState {
     const rawWorkouts = window.localStorage.getItem(STORAGE.workouts);
     if (rawWorkouts) {
       const workouts = normalizeWorkouts(JSON.parse(rawWorkouts) as Workout[]);
-      const history = JSON.parse(window.localStorage.getItem(STORAGE.history) ?? "[]") as WorkoutSession[];
+      let history: WorkoutSession[] = [];
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(STORAGE.history) ?? "[]") as WorkoutSession[];
+        history = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        history = [];
+      }
       const program = JSON.parse(window.localStorage.getItem(STORAGE.program) ?? "{}") as {
         week?: number;
         schemaVersion?: number;
@@ -220,6 +226,13 @@ export function loadForma(): LoadedState {
     persistCore(fresh.workouts, fresh.history, fresh.week);
     return fresh;
   } catch {
-    return seed();
+    // Avoid wiping history when a single key is corrupt.
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(STORAGE.history) ?? "[]") as WorkoutSession[];
+      const fresh = seed();
+      return { ...fresh, history: Array.isArray(parsed) ? parsed : [] };
+    } catch {
+      return seed();
+    }
   }
 }

@@ -123,10 +123,11 @@ export function WeeklySchedule({
     <div className="weekly-schedule">
       {schedule.map((entry) => {
         const isToday = entry.day === todayName;
+        const done = Boolean(entry.completed);
         const selectable = Boolean(onSelect) && !entry.rest;
-        const className = `schedule-card${isToday ? " today" : ""}${entry.rest ? " rest" : ""}${
-          selectable ? " selectable" : ""
-        }`;
+        const className = `schedule-card${isToday ? " today" : ""}${done ? " completed" : ""}${
+          entry.rest ? " rest" : ""
+        }${selectable ? " selectable" : ""}`;
         const body = (
           <>
             {entry.rest ? (
@@ -142,7 +143,13 @@ export function WeeklySchedule({
               <span className="schedule-day">{entry.short}</span>
               <strong>{entry.focus}</strong>
             </div>
-            {isToday ? <span className="schedule-today-pill">Today</span> : null}
+            {done ? (
+              <span className="schedule-done-pill" aria-label="Completed this week">
+                ✓ Done
+              </span>
+            ) : isToday ? (
+              <span className="schedule-today-pill">Today</span>
+            ) : null}
           </>
         );
         if (selectable) {
@@ -152,7 +159,7 @@ export function WeeklySchedule({
               className={className}
               key={entry.workoutId ?? entry.day}
               onClick={() => onSelect?.(entry)}
-              aria-label={`Start ${entry.focus} (${entry.day})`}
+              aria-label={`${done ? "Completed · " : ""}Start ${entry.focus} (${entry.day})`}
             >
               {body}
             </button>

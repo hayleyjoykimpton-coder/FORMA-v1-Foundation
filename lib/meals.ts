@@ -167,16 +167,59 @@ export async function analyzeMealPhoto(
   imageDataUrl: string,
   nutritionGoal: string,
 ): Promise<AnalyzeMealResult | null> {
+  const detailed = await analyzeMealPhotoDetailed(imageDataUrl, nutritionGoal);
+  return detailed.ok ? detailed.result : null;
+}
+
+export type AnalyzeMealDetailed =
+  | { ok: true; result: AnalyzeMealResult }
+  | { ok: false; reason: "unavailable" | "quota" | "failed"; message: string };
+
+/** Client helper with actionable errors for the meal log UI. */
+export async function analyzeMealPhotoDetailed(
+  imageDataUrl: string,
+  nutritionGoal: string,
+): Promise<AnalyzeMealDetailed> {
   try {
     const res = await fetch("/api/analyze-meal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image: imageDataUrl, nutritionGoal }),
     });
-    if (res.status === 503) return null;
-    if (!res.ok) return null;
-    return (await res.json()) as AnalyzeMealResult;
+    if (res.status === 503) {
+      return {
+        ok: false,
+        reason: "unavailable",
+        message: "Photo macros aren’t set up yet — enter calories manually for now.",
+      };
+    }
+    if (!res.ok) {
+      let detail = "";
+      try {
+        const payload = (await res.json()) as { error?: string; detail?: string };
+        detail = `${payload.error ?? ""} ${payload.detail ?? ""}`.toLowerCase();
+      } catch {
+        /* ignore */
+      }
+      if (detail.includes("insufficient_quota") || detail.includes("billing")) {
+        return {
+          ok: false,
+          reason: "quota",
+          message: "AI credits ran out — enter macros manually (photo is still saved).",
+        };
+      }
+      return {
+        ok: false,
+        reason: "failed",
+        message: "Couldn’t estimate that plate — enter macros manually (photo is still saved).",
+      };
+    }
+    return { ok: true, result: (await res.json()) as AnalyzeMealResult };
   } catch {
-    return null;
+    return {
+      ok: false,
+      reason: "failed",
+      message: "Couldn’t reach meal AI — enter macros manually (photo is still saved).",
+    };
   }
 }

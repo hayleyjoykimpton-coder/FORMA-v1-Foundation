@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { fileToResizedDataUrl } from "@/lib/images";
-import { analyzeMealPhoto, type MealMacros } from "@/lib/meals";
+import { analyzeMealPhotoDetailed, type MealMacros } from "@/lib/meals";
 import { suggestionForRemaining, type DailyTargets } from "@/lib/nutritionTargets";
 import type { NutritionGoal } from "@/lib/user";
 import { NUTRITION_LABELS } from "@/lib/user";
@@ -54,16 +54,17 @@ export function MealLogSheet({
     setBusy(true);
     setStatus("Preparing photo…");
     try {
-      const dataUrl = await fileToResizedDataUrl(file, 512, 0.65);
+      const dataUrl = await fileToResizedDataUrl(file, 1024, 0.78);
       setPhoto(dataUrl);
-      setStatus("Analysing meal with AI…");
-      const result = await analyzeMealPhoto(dataUrl, nutritionGoal);
-      if (!result) {
-        setSource("photo");
-        setStatus("AI unavailable — enter macros manually (add OPENAI_API_KEY to enable).");
+      setSource("photo");
+      setStatus("Estimating calories…");
+      const detailed = await analyzeMealPhotoDetailed(dataUrl, nutritionGoal);
+      if (!detailed.ok) {
+        setStatus(detailed.message);
         setSuggestion(suggestionForRemaining(targets, eaten));
         return;
       }
+      const result = detailed.result;
       setName(result.name || "Meal");
       setIngredients(result.ingredients || "");
       setMacros({
@@ -72,7 +73,6 @@ export function MealLogSheet({
         carbs: result.carbs ?? 0,
         fat: result.fat ?? 0,
       });
-      setSource("photo");
       setAiNote(result.note || "AI estimate — edit if needed");
       setSuggestion(result.suggestion || suggestionForRemaining(targets, eaten));
       setStatus("Estimate ready — edit anything before saving.");
@@ -107,7 +107,6 @@ export function MealLogSheet({
               ref={fileRef}
               type="file"
               accept="image/*"
-              capture="environment"
               hidden
               onChange={(event) => {
                 void onPickPhoto(event.target.files?.[0] ?? null);
@@ -122,7 +121,7 @@ export function MealLogSheet({
                 disabled={busy}
                 onClick={() => fileRef.current?.click()}
               >
-                {busy ? "Working…" : photo ? "Retake photo" : "Take / upload photo"}
+                {busy ? "Working…" : photo ? "Choose another photo" : "Upload meal photo"}
               </button>
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
