@@ -1,5 +1,11 @@
--- Run in Supabase SQL editor on an EXISTING Life & Soul project
--- (skip if you ran the full supabase/schema.sql on a fresh project)
+-- Life & Soul notice board — run once in Supabase → SQL Editor
+-- Fixes: "Could not find the table public.community_posts in the schema cache"
+--
+-- After running:
+--   1. update public.profiles set is_admin = true where email = 'your-coach@email.com';
+--   2. Set NEXT_PUBLIC_ADMIN_EMAILS=your-coach@email.com in Vercel and redeploy
+
+create extension if not exists "pgcrypto";
 
 alter table public.profiles add column if not exists is_admin boolean not null default false;
 alter table public.profiles add column if not exists club text not null default '';
@@ -21,6 +27,10 @@ create index if not exists community_posts_list_idx
   on public.community_posts (post_type, pinned desc, pin_order nulls last, created_at desc);
 
 alter table public.community_posts enable row level security;
+
+-- Authenticated users can read/write via RLS policies below
+grant select, insert, update, delete on public.community_posts to authenticated;
+grant select on public.community_posts to anon;
 
 create or replace function public.is_admin()
 returns boolean
@@ -65,5 +75,17 @@ create policy "community_delete_own" on public.community_posts
 create policy "community_delete_admin" on public.community_posts
   for delete using (public.is_admin());
 
--- Make yourself admin (replace with your auth user id or run after finding your row):
--- update public.profiles set is_admin = true where email = 'hayleyjoykimpton@gmail.com';
+-- Live updates on the Board tab (optional — skip if this errors on older projects)
+do $$
+begin
+  alter publication supabase_realtime add table public.community_posts;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
+
+-- Refresh PostgREST schema cache so the API sees the new table immediately
+notify pgrst, 'reload schema';
+
+-- Coach admin (replace email before running, or run separately):
+-- update public.profiles set is_admin = true where lower(email) = lower('hayleyjoykimpton@gmail.com');

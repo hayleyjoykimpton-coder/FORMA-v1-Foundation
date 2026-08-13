@@ -4,13 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { isAdminUser } from "@/lib/admin";
 import { BRAND } from "@/lib/brand";
 import {
+  communitySetupMessage,
   deleteCommunityPost,
   fetchCommunityPosts,
+  isCommunitySetupError,
   postCommunityMessage,
   postNotice,
   setPostPinned,
+  subscribeCommunityPosts,
   type CommunityPost,
 } from "@/lib/community";
+import { getSessionUserId } from "@/lib/sync";
+import { CLUB_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import { SectionHeading } from "@/components/ui";
 
@@ -39,8 +44,11 @@ export function CommunityPanel({
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeBody, setNoticeBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const isAdmin = isAdminUser(profile, userEmail);
+  const needsSetup = error ? isCommunitySetupError(error) : false;
+  const clubLabel = profile.club ? CLUB_LABELS[profile.club] : null;
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -51,9 +59,21 @@ export function CommunityPanel({
   }, []);
 
   useEffect(() => {
-    if (signedIn) void reload();
-    else setLoading(false);
+    if (signedIn) {
+      void getSessionUserId().then(setCurrentUserId);
+      void reload();
+    } else {
+      setCurrentUserId(null);
+      setLoading(false);
+    }
   }, [signedIn, reload]);
+
+  useEffect(() => {
+    if (!signedIn || needsSetup) return;
+    return subscribeCommunityPosts(() => {
+      void reload();
+    });
+  }, [signedIn, needsSetup, reload]);
 
   const notices = posts.filter((p) => p.postType === "notice");
   const messages = posts.filter((p) => p.postType === "community");
@@ -61,7 +81,7 @@ export function CommunityPanel({
   const submitMessage = async () => {
     setBusy(true);
     setError(null);
-    const result = await postCommunityMessage(messageBody, profile.id, profile.firstName);
+    const result = await postCommunityMessage(messageBody, profile.firstName);
     setBusy(false);
     if (result.error) {
       setError(result.error);
@@ -74,7 +94,7 @@ export function CommunityPanel({
   const submitNotice = async () => {
     setBusy(true);
     setError(null);
-    const result = await postNotice(noticeTitle, noticeBody, profile.id, profile.firstName);
+    const result = await postNotice(noticeTitle, noticeBody, profile.firstName);
     setBusy(false);
     if (result.error) {
       setError(result.error);
@@ -126,12 +146,32 @@ export function CommunityPanel({
     <div className="screen community-screen">
       <header className="topbar community-topbar">
         <div>
-          <span className="eyebrow">6-week challenge</span>
+          <span className="eyebrow">6-week challenge{clubLabel ? ` · ${clubLabel}` : ""}</span>
           <h1 className="community-title">Community</h1>
         </div>
       </header>
 
-      {error ? <p className="community-error">{error}</p> : null}
+      {needsSetup ? (
+        <article className="card community-setup">
+          <span className="eyebrow">One-time setup</span>
+          <h3>Connect the notice board</h3>
+          <p>{communitySetupMessage()}</p>
+          <ol className="community-setup-steps">
+            <li>Open your Supabase project → SQL Editor</li>
+            <li>Paste and run <code>supabase/community_migration.sql</code> from this repo</li>
+            <li>
+              Make yourself coach/admin:
+              <code>update public.profiles set is_admin = true where email = &apos;your@email.com&apos;;</code>
+            </li>
+            <li>Set <code>NEXT_PUBLIC_ADMIN_EMAILS</code> in Vercel (same email)</li>
+          </ol>
+          <button type="button" className="secondary-btn" onClick={() => void reload()}>
+            I&apos;ve run the SQL — refresh
+          </button>
+        </article>
+      ) : null}
+
+      {error && !needsSetup ? <p className="community-error">{error}</p> : null}
 
       <SectionHeading eyebrow="Notice board" title="Updates from your coach" />
       {loading ? (
@@ -147,7 +187,7 @@ export function CommunityPanel({
               key={post.id}
               post={post}
               isAdmin={isAdmin}
-              canDelete={isAdmin || post.authorId === profile.id}
+              canDelete={isAdmin || (!!currentUserId && post.authorId === currentUserId)}
               busy={busy}
               onPin={() => togglePin(post)}
               onDelete={() => removePost(post.id)}
@@ -156,7 +196,7 @@ export function CommunityPanel({
         </div>
       )}
 
-      {isAdmin ? (
+      {isAdmin && !needsSetup ? (
         <article className="card community-compose">
           <span className="eyebrow">Coach · new notice</span>
           <label className="field">
@@ -179,44 +219,48 @@ export function CommunityPanel({
         </article>
       ) : null}
 
-      <SectionHeading eyebrow="Messages" title="Community chat" />
-      <article className="card community-compose">
-        <label className="field">
-          <span>Your message</span>
-          <textarea
-            className="community-textarea"
-            value={messageBody}
-            onChange={(e) => setMessageBody(e.target.value)}
-            placeholder="Share a win, ask a question, encourage someone…"
-            rows={3}
-          />
-        </label>
-        <button type="button" className="cta-btn" disabled={busy || !messageBody.trim()} onClick={() => void submitMessage()}>
-          Post message
-        </button>
-      </article>
+      {!needsSetup ? (
+        <>
+          <SectionHeading eyebrow="Messages" title="Community chat" />
+          <article className="card community-compose">
+            <label className="field">
+              <span>Your message</span>
+              <textarea
+                className="community-textarea"
+                value={messageBody}
+                onChange={(e) => setMessageBody(e.target.value)}
+                placeholder="Share a win, ask a question, encourage someone…"
+                rows={3}
+              />
+            </label>
+            <button type="button" className="cta-btn" disabled={busy || !messageBody.trim()} onClick={() => void submitMessage()}>
+              Post message
+            </button>
+          </article>
 
-      {loading ? (
-        <p className="muted">Loading messages…</p>
-      ) : messages.length === 0 ? (
-        <article className="card community-empty">
-          <p className="muted">Be the first to say hello to the group.</p>
-        </article>
-      ) : (
-        <div className="community-list">
-          {messages.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              isAdmin={isAdmin}
-              canDelete={isAdmin || post.authorId === profile.id}
-              busy={busy}
-              onPin={() => togglePin(post)}
-              onDelete={() => removePost(post.id)}
-            />
-          ))}
-        </div>
-      )}
+          {loading ? (
+            <p className="muted">Loading messages…</p>
+          ) : messages.length === 0 ? (
+            <article className="card community-empty">
+              <p className="muted">Be the first to say hello to the group.</p>
+            </article>
+          ) : (
+            <div className="community-list">
+              {messages.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  isAdmin={isAdmin}
+                  canDelete={isAdmin || (!!currentUserId && post.authorId === currentUserId)}
+                  busy={busy}
+                  onPin={() => togglePin(post)}
+                  onDelete={() => removePost(post.id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }

@@ -63,6 +63,9 @@ create table if not exists public.community_posts (
 create index if not exists community_posts_list_idx
   on public.community_posts (post_type, pinned desc, pin_order nulls last, created_at desc);
 
+grant select, insert, update, delete on public.community_posts to authenticated;
+grant select on public.community_posts to anon;
+
 alter table public.profiles enable row level security;
 alter table public.user_state enable row level security;
 alter table public.community_posts enable row level security;
@@ -125,6 +128,16 @@ create policy "community_delete_own" on public.community_posts
 
 create policy "community_delete_admin" on public.community_posts
   for delete using (public.is_admin());
+
+do $$
+begin
+  alter publication supabase_realtime add table public.community_posts;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
+
+notify pgrst, 'reload schema';
 
 -- Auto-create profile + empty state on signup
 create or replace function public.handle_new_user()

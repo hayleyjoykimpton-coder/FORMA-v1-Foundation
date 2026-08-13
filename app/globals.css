@@ -1950,5 +1950,31 @@ button.avatar { padding: 0; }
   font-weight: 600;
   margin: 0 0 12px;
 }
+.community-setup h3 {
+  margin: 6px 0 10px;
+  font-size: 20px;
+}
+.community-setup p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.community-setup-steps {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.community-setup-steps li { margin-bottom: 8px; }
+.community-setup code {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--wash-earth);
+  font-size: 11px;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
 .community-empty p { margin: 0; }
 
