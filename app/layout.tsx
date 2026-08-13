@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Montserrat, Ubuntu } from "next/font/google";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
-const fraunces = Fraunces({
+/** Matches lifeandsoulmayfair.com.au — Montserrat for body & headings. */
+const montserrat = Montserrat({
   subsets: ["latin"],
-  variable: "--font-serif",
+  variable: "--font-montserrat",
   display: "swap",
+  weight: ["300", "400", "500", "600"],
 });
 
-const inter = Inter({
+/** Mayfair site uses Ubuntu (weight 300) on primary buttons. */
+const ubuntu = Ubuntu({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-ubuntu",
   display: "swap",
+  weight: ["300", "400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -25,7 +29,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
+    <html lang="en" className={`${montserrat.variable} ${ubuntu.variable}`}>
       <body>{children}</body>
     </html>
   );
