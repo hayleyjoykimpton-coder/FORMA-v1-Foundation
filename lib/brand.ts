@@ -4,4 +4,5 @@ export const BRAND = {
   shortName: "Life & Soul",
   tagline: "Train, move, recover and thrive — your personalised strength & wellness journey.",
   programmeName: "Life & Soul Foundation",
+  mensProgrammeName: "Life & Soul Men's Challenge",
 } as const;

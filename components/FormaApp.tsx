@@ -686,7 +686,7 @@ export default function FormaApp() {
         focus: workout.title,
         image: imageForWorkout(workout.title, profile?.gender),
       })),
-    [workouts],
+    [workouts, profile?.gender],
   );
 
   const phaseDef = resolveActivePhase(week, alignActive);
@@ -2751,7 +2751,10 @@ export default function FormaApp() {
               </>
             )}
 
-            <SectionHeading eyebrow="Physique" title="Glute score" />
+            <SectionHeading
+              eyebrow="Physique"
+              title={profile.gender === "male" ? "Strength score" : "Glute score"}
+            />
             <article className="card glute-card">
               <div className="glute-score">
                 <strong>{glute.score}</strong>
@@ -2759,19 +2762,24 @@ export default function FormaApp() {
               </div>
               {history.length < 2 ? (
                 <p className="guided-empty">
-                  A score around 20–40 is normal when you’re just starting. Complete two workouts this week to unlock a meaningful Glute score.
+                  A score around 20–40 is normal when you’re just starting. Complete two workouts this week to unlock a meaningful{" "}
+                  {profile.gender === "male" ? "Strength" : "Glute"} score.
                 </p>
               ) : null}
               <div className="dash-grid">
-                <div className="dash-row"><span>Glute sets · 7d</span><strong>{glute.gluteSets}</strong></div>
+                <div className="dash-row">
+                  <span>{profile.gender === "male" ? "Training sets · 7d" : "Glute sets · 7d"}</span>
+                  <strong>{glute.gluteSets}</strong>
+                </div>
                 <div className="dash-row"><span>Consistency</span><strong>{glute.consistency}%</strong></div>
                 <div className="dash-row"><span>Improving lifts</span><strong>{glute.progression}</strong></div>
                 <div className="dash-row"><span>Recovery</span><strong>{glute.recovery}</strong></div>
               </div>
-              <ScoreExplainer title="Glute score">
+              <ScoreExplainer title={profile.gender === "male" ? "Strength score" : "Glute score"}>
                 <p>
-                  Combines recent glute training volume (35%), how consistently you hit your weekly sessions (25%),
-                  lifts that are progressing (20%), and readiness from your check-ins (20%).
+                  {profile.gender === "male"
+                    ? "Combines recent training volume (35%), session consistency (25%), lifts that are progressing (20%), and readiness from your check-ins (20%)."
+                    : "Combines recent glute training volume (35%), how consistently you hit your weekly sessions (25%), lifts that are progressing (20%), and readiness from your check-ins (20%)."}
                 </p>
                 <p>
                   <strong>Needs Attention</strong> under 50 · <strong>Good</strong> 50–74 · <strong>Excellent</strong> 75+.

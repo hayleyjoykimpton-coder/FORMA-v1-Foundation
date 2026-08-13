@@ -66,7 +66,15 @@ export function imageForWorkout(title: string, gender?: Gender): string {
   const img = editorialImages(gender);
   const t = title.toLowerCase();
   if (/rest|recover|mobility|stretch|align/.test(t)) return img.recovery;
-  if (/abs|core|woodchop|crunch/.test(t)) return img.abs;
+  if (/abs|core|woodchop|crunch|pallof|athletic/.test(t)) return img.abs;
+  // Men's push/pull/legs labels
+  if (/push power|push & pull|upper · push/.test(t)) return img.upper;
+  if (/pull strength|pull|upper · volume|upper hypertrophy/.test(t)) return img.upperSculpt;
+  if (/legs & squat|legs & power|lower · squat|lower · hinge|full body · strength|full body · power/.test(t)) {
+    return img.glutesStrength;
+  }
+  if (/full body/.test(t)) return img.fullbody;
+  // Women's / legacy labels
   if (/glute strength|lower body|lower strength|figure strength/.test(t)) return img.glutesStrength;
   if (/contour drive/.test(t)) return img.fullbody;
   if (/glute|lower|hip|leg|squat|hinge|shape|figure|contour/.test(t)) return img.glutes;
@@ -110,6 +118,16 @@ export type ScheduleDay = {
   image: string;
   rest?: boolean;
 };
+
+export const WEEKLY_SCHEDULE_MALE: ScheduleDay[] = [
+  { day: "Monday", short: "Mon", focus: "Push Power", image: IMAGES_MALE.upper },
+  { day: "Tuesday", short: "Tue", focus: "Pull Strength", image: IMAGES_MALE.strength },
+  { day: "Wednesday", short: "Wed", focus: "Legs & Squat", image: IMAGES_MALE.glutesStrength },
+  { day: "Thursday", short: "Thu", focus: "Upper Hypertrophy", image: IMAGES_MALE.upperSculpt },
+  { day: "Friday", short: "Fri", focus: "Legs & Power", image: IMAGES_MALE.glutesStrength },
+  { day: "Saturday", short: "Sat", focus: "Rest", image: IMAGES_MALE.recovery, rest: true },
+  { day: "Sunday", short: "Sun", focus: "Rest", image: IMAGES_MALE.recovery, rest: true },
+];
 
 export const WEEKLY_SCHEDULE: ScheduleDay[] = [
   { day: "Monday", short: "Mon", focus: "Glute Strength", image: IMAGES.glutesStrength },

@@ -19,7 +19,7 @@ import type { Equipment } from "./exercises";
 import { PHASE_DEFINITIONS, buildWorkout, resolveActivePhase } from "./program";
 import type { DayTemplate, ExerciseSlot, PhaseId } from "./program";
 import type { Workout } from "./types";
-import type { EquipmentAccess, ExperienceLevel, Goal, TrainingDays, UserProfile } from "./user";
+import type { EquipmentAccess, ExperienceLevel, Gender, Goal, TrainingDays, UserProfile } from "./user";
 
 function allowedEquipment(access: EquipmentAccess): Equipment[] {
   switch (access) {
@@ -193,6 +193,138 @@ function upperLowerWeek(experience: ExperienceLevel): DayTemplate[] {
   ];
 }
 
+/**
+ * Men's 6-week challenge splits — compound-first push/pull/legs.
+ * Evidence-based structure: 2× lower + 2× upper weekly (4–5 days),
+ * progressive overload via existing phase RPE/volume (Foundation → Build).
+ */
+
+function mensFiveDayWeek(experience: ExperienceLevel): DayTemplate[] {
+  return [
+    day(
+      DAY_NAMES[0],
+      "Push Power",
+      ["incline_press", "shoulder_press", "push_up", "triceps_pushdown", "lateral_raise"],
+      experience,
+    ),
+    day(
+      DAY_NAMES[1],
+      "Pull Strength",
+      ["romanian_deadlift", "chest_supported_row", "lat_pulldown", "seated_row", "bicep_curl"],
+      experience,
+    ),
+    day(
+      DAY_NAMES[2],
+      "Legs & Squat",
+      ["squat", "leg_press", "bulgarian_split_squat", "leg_curl", "leg_extension"],
+      experience,
+    ),
+    day(
+      DAY_NAMES[3],
+      "Upper Hypertrophy",
+      [
+        "lat_pulldown",
+        "incline_press",
+        "shoulder_press",
+        "rear_delt_fly",
+        "bicep_curl",
+        "triceps_pushdown",
+      ],
+      experience,
+    ),
+    day(
+      DAY_NAMES[4],
+      "Legs & Power",
+      [
+        "romanian_deadlift",
+        "hack_squat",
+        "walking_lunge",
+        "45_degree_back_extension",
+        "pallof_press",
+      ],
+      experience,
+    ),
+  ];
+}
+
+function mensFourDayWeek(experience: ExperienceLevel): DayTemplate[] {
+  return [
+    day(
+      DAY_NAMES[0],
+      "Lower · Squat Focus",
+      ["squat", "romanian_deadlift", "leg_press", "leg_curl", "leg_extension"],
+      experience,
+    ),
+    day(
+      DAY_NAMES[1],
+      "Upper · Push & Pull",
+      ["chest_supported_row", "incline_press", "lat_pulldown", "shoulder_press", "bicep_curl"],
+      experience,
+    ),
+    day(
+      DAY_NAMES[2],
+      "Lower · Hinge Power",
+      [
+        "romanian_deadlift",
+        "bulgarian_split_squat",
+        "hack_squat",
+        "leg_curl",
+        "45_degree_back_extension",
+      ],
+      experience,
+    ),
+    day(
+      DAY_NAMES[3],
+      "Upper · Volume",
+      ["seated_row", "push_up", "lateral_raise", "triceps_pushdown", "rear_delt_fly"],
+      experience,
+    ),
+  ];
+}
+
+function mensThreeDayWeek(experience: ExperienceLevel): DayTemplate[] {
+  return [
+    day(
+      DAY_NAMES[0],
+      "Full Body · Strength",
+      ["squat", "romanian_deadlift", "chest_supported_row", "incline_press", "pallof_press"],
+      experience,
+    ),
+    day(
+      DAY_NAMES[1],
+      "Full Body · Power",
+      ["leg_press", "bulgarian_split_squat", "lat_pulldown", "shoulder_press", "hanging_knee_raise"],
+      experience,
+    ),
+    day(
+      DAY_NAMES[2],
+      "Full Body · Athletic",
+      ["hack_squat", "45_degree_back_extension", "push_up", "seated_row", "cable_crunch"],
+      experience,
+    ),
+  ];
+}
+
+function mensBaseWeek(days: TrainingDays, experience: ExperienceLevel): DayTemplate[] {
+  if (days >= 5) return mensFiveDayWeek(experience);
+  if (days === 4) return mensFourDayWeek(experience);
+  return mensThreeDayWeek(experience);
+}
+
+/** Extra push/pull volume for physique goals — not glute isolation. */
+function applyMensGoalBias(
+  days: DayTemplate[],
+  goal: Goal,
+  experience: ExperienceLevel,
+): DayTemplate[] {
+  if (goal !== "sculpt" && goal !== "glutes") return days;
+  return days.map((template) => {
+    if (!/upper|push|pull|full body/i.test(template.title)) return template;
+    if (template.slots.some((s) => s.exerciseId === "triceps_pushdown")) return template;
+    return { ...template, slots: [...template.slots, slot("triceps_pushdown", experience)] };
+  });
+}
+
 function gluteEmphasisWeek(experience: ExperienceLevel): DayTemplate[] {
   return [
     day(DAY_NAMES[0], "Glute Strength", ["hip_thrust", "romanian_deadlift", "bulgarian_split_squat", "leg_curl", "cable_kickback", "hip_abduction"], experience),
@@ -203,7 +335,12 @@ function gluteEmphasisWeek(experience: ExperienceLevel): DayTemplate[] {
   ];
 }
 
-function baseWeek(days: TrainingDays, experience: ExperienceLevel): DayTemplate[] {
+function baseWeek(
+  days: TrainingDays,
+  experience: ExperienceLevel,
+  gender?: Gender,
+): DayTemplate[] {
+  if (gender === "male") return mensBaseWeek(days, experience);
   if (days >= 5) return gluteEmphasisWeek(experience);
   if (days === 4) return upperLowerWeek(experience);
   return fullBodyWeek(experience);
@@ -240,11 +377,18 @@ export function generateProgram(
     ? PHASE_DEFINITIONS[options.phaseId]
     : resolveActivePhase(week, options.alignActive ?? false);
   const allowed = allowedEquipment(profile.equipmentAccess);
-  const days = applyGoalBias(
-    baseWeek(profile.trainingDays, profile.experienceLevel),
-    profile.goal,
-    profile.experienceLevel,
-  );
+  const days =
+    profile.gender === "male"
+      ? applyMensGoalBias(
+          baseWeek(profile.trainingDays, profile.experienceLevel, "male"),
+          profile.goal,
+          profile.experienceLevel,
+        )
+      : applyGoalBias(
+          baseWeek(profile.trainingDays, profile.experienceLevel, profile.gender),
+          profile.goal,
+          profile.experienceLevel,
+        );
 
   return days.map((template) => {
     const resolved: DayTemplate = {
@@ -255,8 +399,9 @@ export function generateProgram(
   });
 }
 
-/** Old 3/4-day titles before the elevated-split upgrade. */
-const LEGACY_SESSION_TITLE = /^(Full Body [AB]|Lower Body|Upper Body|Glute Focus)$/i;
+/** Old session titles before gender-specific splits. */
+const LEGACY_SESSION_TITLE =
+  /^(Full Body [AB]|Lower Body|Upper Body|Glute Focus|Glute Strength|Glute Shape|Upper Sculpt|Weighted Abs|Figure Strength|Contour Drive)$/i;
 
 /**
  * True when stored workouts should be regenerated for this profile.
@@ -277,5 +422,5 @@ export function programmeNeedsUpgrade(
   return workouts.some((workout, index) => workout.title !== expected[index]?.title);
 }
 
-/** Current programme schema version — bump when the weekly structure changes. */
-export const PROGRAM_SCHEMA_VERSION = 4;
+/** Current programme schema version — bump when weekly structure or gender splits change. */
+export const PROGRAM_SCHEMA_VERSION = 5;

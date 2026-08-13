@@ -38,8 +38,8 @@ const EXPERIENCE: Choice<ExperienceLevel>[] = [
 ];
 const DAYS: Choice<TrainingDays>[] = [
   { value: 3, label: "3 days", hint: "Full body" },
-  { value: 4, label: "4 days", hint: "Upper / lower" },
-  { value: 5, label: "5 days", hint: "Glute emphasis + upper" },
+  { value: 4, label: "4 days", hint: "Upper / lower split" },
+  { value: 5, label: "5 days", hint: "Push · pull · legs" },
 ];
 const LOCATIONS: Choice<WorkoutLocation>[] = (Object.keys(LOCATION_LABELS) as WorkoutLocation[]).map((value) => ({ value, label: LOCATION_LABELS[value] }));
 const EQUIPMENT: Choice<EquipmentAccess>[] = (Object.keys(EQUIPMENT_LABELS) as EquipmentAccess[]).map((value) => ({ value, label: EQUIPMENT_LABELS[value] }));
