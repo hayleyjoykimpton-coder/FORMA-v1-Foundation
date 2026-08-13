@@ -15,6 +15,7 @@ export type EquipmentAccess = "full_gym" | "dumbbells" | "bands" | "bodyweight";
 export type TrainingStyle = "strength" | "hypertrophy" | "pilates" | "mixed";
 export type Gender = "female" | "male" | "other" | "unspecified";
 export type NutritionGoal = "maintain" | "lose" | "gain" | "recomp";
+export type LifeSoulClub = "karratha" | "fremantle" | "port_hedland" | "broome";
 
 export type UserProfile = {
   id: string;
@@ -25,6 +26,8 @@ export type UserProfile = {
   height: number | null;
   weight: number | null;
   gender: Gender;
+  /** Life & Soul club location for the 6-week challenge */
+  club: LifeSoulClub | "";
   goal: Goal;
   experienceLevel: ExperienceLevel;
   trainingDays: TrainingDays;
@@ -92,6 +95,15 @@ export const NUTRITION_LABELS: Record<NutritionGoal, string> = {
   recomp: "Recomposition",
 };
 
+export const CLUB_LABELS: Record<LifeSoulClub, string> = {
+  karratha: "Karratha",
+  fremantle: "Fremantle",
+  port_hedland: "Port Hedland",
+  broome: "Broome",
+};
+
+export const CLUBS: LifeSoulClub[] = ["karratha", "fremantle", "port_hedland", "broome"];
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 /** Build a complete profile from partial input, filling sensible defaults. */
@@ -105,6 +117,7 @@ export function createProfile(input: Partial<UserProfile> & { firstName: string 
     height: input.height ?? null,
     weight: input.weight ?? null,
     gender: input.gender ?? "unspecified",
+    club: input.club ?? "",
     goal: input.goal ?? "sculpt",
     experienceLevel: input.experienceLevel ?? "beginner",
     trainingDays: input.trainingDays ?? 3,

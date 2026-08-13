@@ -2,6 +2,7 @@
 -- (skip if you ran the full supabase/schema.sql on a fresh project)
 
 alter table public.profiles add column if not exists is_admin boolean not null default false;
+alter table public.profiles add column if not exists club text not null default '';
 
 create table if not exists public.community_posts (
   id uuid primary key default gen_random_uuid(),

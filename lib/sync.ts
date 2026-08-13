@@ -43,6 +43,7 @@ type ProfileRow = {
   height: number | null;
   weight: number | null;
   gender: string;
+  club: string;
   goal: string;
   experience_level: string;
   training_days: number;
@@ -88,6 +89,7 @@ function rowToProfile(row: ProfileRow): UserProfile {
     height: row.height == null ? null : Number(row.height),
     weight: row.weight == null ? null : Number(row.weight),
     gender: row.gender as UserProfile["gender"],
+    club: (row.club as UserProfile["club"]) || "",
     goal: row.goal as UserProfile["goal"],
     experienceLevel: row.experience_level as UserProfile["experienceLevel"],
     trainingDays: row.training_days as UserProfile["trainingDays"],
@@ -115,6 +117,7 @@ function profileToRow(profile: UserProfile) {
     height: profile.height,
     weight: profile.weight,
     gender: profile.gender,
+    club: profile.club,
     goal: profile.goal,
     experience_level: profile.experienceLevel,
     training_days: profile.trainingDays,

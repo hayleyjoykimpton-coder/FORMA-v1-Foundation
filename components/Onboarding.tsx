@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { IMAGES } from "@/lib/content";
+import { heroImage, IMAGES } from "@/lib/content";
 import { BRAND } from "@/lib/brand";
 import {
+  CLUB_LABELS,
+  CLUBS,
   createProfile,
   EQUIPMENT_LABELS,
   EXPERIENCE_LABELS,
   GOAL_LABELS,
+  GENDER_LABELS,
   LOCATION_LABELS,
   NUTRITION_LABELS,
 } from "@/lib/user";
@@ -17,12 +20,12 @@ import type {
   ExperienceLevel,
   Gender,
   Goal,
+  LifeSoulClub,
   NutritionGoal,
   TrainingDays,
   UserProfile,
   WorkoutLocation,
 } from "@/lib/user";
-import { GENDER_LABELS } from "@/lib/user";
 import type { InBodyDraft } from "@/lib/inbody";
 
 type Choice<T> = { value: T; label: string; hint?: string };
@@ -53,8 +56,14 @@ const GENDERS: Choice<Gender>[] = [
   { value: "unspecified", label: GENDER_LABELS.unspecified, hint: "Skip for now" },
 ];
 
-/** Welcome + 9 content steps (name → gender → … → lifestyle). */
-const TOTAL_STEPS = 10;
+const CLUB_OPTIONS: Choice<LifeSoulClub>[] = CLUBS.map((value) => ({
+  value,
+  label: CLUB_LABELS[value],
+  hint: "Your Life & Soul club",
+}));
+
+/** Welcome + 10 content steps (name → gender → club → … → lifestyle). */
+const TOTAL_STEPS = 11;
 
 export type OnboardingResult = {
   profile: UserProfile;
@@ -66,6 +75,7 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
   const [step, setStep] = useState(0);
   const [firstName, setFirstName] = useState("");
   const [gender, setGender] = useState<Gender>("unspecified");
+  const [club, setClub] = useState<LifeSoulClub | null>(null);
   const [goal, setGoal] = useState<Goal>("sculpt");
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>("beginner");
   const [trainingDays, setTrainingDays] = useState<TrainingDays>(3);
@@ -98,6 +108,7 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
       profile: createProfile({
         firstName: firstName || "Friend",
         gender,
+        club: club!,
         goal,
         experienceLevel,
         trainingDays,
@@ -117,6 +128,7 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
   const back = () => setStep((current) => Math.max(0, current - 1));
 
   const nameReady = firstName.trim().length > 0;
+  const clubReady = club !== null;
 
   return (
     <div className="app">
@@ -138,7 +150,7 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
               <BrandLogo />
               <div
                 className="onboard-hero-img"
-                style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.04), rgba(74,55,44,.4)), url(${IMAGES.hero})` }}
+                style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.04), rgba(74,55,44,.4)), url(${heroImage(gender === "male" ? "male" : gender === "female" ? "female" : undefined)})` }}
                 aria-hidden
               />
               <h1>Welcome to {BRAND.name}</h1>
@@ -179,6 +191,19 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
           {step === 3 && (
             <StepChoice
               eyebrow="Step 3"
+              title="Which club are you in?"
+              lead="For the 6-week challenge — pick your Life & Soul location."
+              options={CLUB_OPTIONS}
+              selected={club}
+              onSelect={(value) => setClub(value)}
+              onNext={next}
+              continueDisabled={!clubReady}
+            />
+          )}
+
+          {step === 4 && (
+            <StepChoice
+              eyebrow="Step 4"
               title="What's your main goal?"
               options={GOALS}
               selected={goal}
@@ -187,9 +212,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <StepChoice
-              eyebrow="Step 4"
+              eyebrow="Step 5"
               title="Your experience level"
               options={EXPERIENCE}
               selected={experienceLevel}
@@ -198,9 +223,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <StepChoice
-              eyebrow="Step 5"
+              eyebrow="Step 6"
               title="How many days a week?"
               options={DAYS}
               selected={trainingDays}
@@ -209,9 +234,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 6 && (
+          {step === 7 && (
             <StepChoice
-              eyebrow="Step 6"
+              eyebrow="Step 7"
               title="Where will you train?"
               options={LOCATIONS}
               selected={workoutLocation}
@@ -220,9 +245,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 7 && (
+          {step === 8 && (
             <StepChoice
-              eyebrow="Step 7"
+              eyebrow="Step 8"
               title="What equipment do you have?"
               options={EQUIPMENT}
               selected={equipmentAccess}
@@ -231,9 +256,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 8 && (
+          {step === 9 && (
             <StepChoice
-              eyebrow="Step 8"
+              eyebrow="Step 9"
               title="What's your nutrition goal?"
               lead="This sets your daily calorie and macro targets from day one."
               options={NUTRITION}
@@ -243,9 +268,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 9 && (
+          {step === 10 && (
             <div className="onboard-body">
-              <span className="eyebrow">Step 9 · Optional</span>
+              <span className="eyebrow">Step 10 · Optional</span>
               <h1>Got a recent InBody?</h1>
               <p className="onboard-lead">
                 Log a baseline now so Progress has somewhere to grow from. Skip if you don&rsquo;t have numbers yet.
@@ -274,9 +299,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             </div>
           )}
 
-          {step === 10 && (
+          {step === 11 && (
             <div className="onboard-body">
-              <span className="eyebrow">Step 10 · Optional</span>
+              <span className="eyebrow">Step 11 · Optional</span>
               <h1>A little about your lifestyle</h1>
               <p className="onboard-lead">This helps {BRAND.name} balance training and recovery. You can skip it.</p>
               <div className="onboard-input field">
@@ -310,14 +335,16 @@ function StepChoice<T extends string | number>({
   selected,
   onSelect,
   onNext,
+  continueDisabled = false,
 }: {
   eyebrow: string;
   title: string;
   lead?: string;
   options: Choice<T>[];
-  selected: T;
+  selected: T | null;
   onSelect: (value: T) => void;
   onNext: () => void;
+  continueDisabled?: boolean;
 }) {
   return (
     <div className="onboard-body">
@@ -337,7 +364,7 @@ function StepChoice<T extends string | number>({
         ))}
       </div>
       <div className="onboard-nav">
-        <button className="cta-btn" onClick={onNext}>Continue</button>
+        <button className="cta-btn" disabled={continueDisabled} onClick={onNext}>Continue</button>
       </div>
     </div>
   );

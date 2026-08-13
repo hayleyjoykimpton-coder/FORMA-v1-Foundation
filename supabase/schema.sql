@@ -14,6 +14,7 @@ create table if not exists public.profiles (
   height numeric,
   weight numeric,
   gender text not null default 'unspecified',
+  club text not null default '',
   goal text not null default 'sculpt',
   experience_level text not null default 'beginner',
   training_days integer not null default 3,

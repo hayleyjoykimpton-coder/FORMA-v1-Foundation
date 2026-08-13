@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
 import {
   HYDRATION_GOAL,
-  IMAGES,
+  editorialImages,
+  heroImage,
   PHASES,
   imageForExercise,
   imageForWorkout,
@@ -48,7 +49,7 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
-import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS } from "@/lib/user";
+import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS, CLUB_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import {
   generateProgram,
@@ -77,7 +78,7 @@ import {
   trainingReminderCopy,
   type ReminderPrefs,
 } from "@/lib/reminders";
-import { exportProgressBundle } from "@/lib/exportProgress";
+import { exportChallengeBundle, exportProgressBundle } from "@/lib/exportProgress";
 import {
   dismissWeeklyReviewNudge,
   shouldShowWeeklyReviewNudge,
@@ -661,6 +662,7 @@ export default function FormaApp() {
   const volumeSeries = useMemo(() => buildVolumeSeries(history), [history]);
   const strengthProgress = useMemo(() => computeStrengthProgress(workouts, history), [workouts, history]);
   const dashboard = useMemo(() => (profile ? coachDashboard(profile, history) : null), [profile, history]);
+  const images = useMemo(() => editorialImages(profile?.gender), [profile?.gender]);
   const records = useMemo(() => personalRecords(history), [history]);
   const trends = useMemo(() => strengthTrends(history), [history]);
   const glute = useMemo(() => gluteScore(history), [history]);
@@ -682,7 +684,7 @@ export default function FormaApp() {
         day: workout.day,
         short: workout.day.slice(0, 3),
         focus: workout.title,
-        image: imageForWorkout(workout.title),
+        image: imageForWorkout(workout.title, profile?.gender),
       })),
     [workouts],
   );
@@ -1318,7 +1320,7 @@ export default function FormaApp() {
 
             <section
               className="session-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(activeWorkout.title)})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(activeWorkout.title, profile.gender)})` }}
             >
               <span className="eyebrow light">{season} · Primary target</span>
               <h1>{exercise.name}</h1>
@@ -1638,7 +1640,7 @@ export default function FormaApp() {
             <section
               className="home-hero"
               style={{
-                backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.04) 30%, rgba(74,55,44,.58)), url(${profile.profilePhoto || IMAGES.hero})`,
+                backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.04) 30%, rgba(74,55,44,.58)), url(${profile.profilePhoto || heroImage(profile.gender)})`,
               }}
             >
               <input
@@ -1673,6 +1675,9 @@ export default function FormaApp() {
                   <span className="hero-chip subtle">
                     Today · {todaysWorkout ? todaysWorkout.title : "Rest"}
                   </span>
+                  {profile.club ? (
+                    <span className="hero-chip subtle">{CLUB_LABELS[profile.club]}</span>
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -1819,7 +1824,7 @@ export default function FormaApp() {
                 <article className="card workout-today">
                   <div
                     className="workout-today-media"
-                    style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title)})` }}
+                    style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title, profile.gender)})` }}
                   >
                     <span className="media-chip">{todaysWorkout.duration} min</span>
                     <button
@@ -2052,7 +2057,7 @@ export default function FormaApp() {
                   ) : (
                     <article
                       className="card image-card"
-                      style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 40%, rgba(74,55,44,.5)), url(${IMAGES.nutrition})` }}
+                      style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 40%, rgba(74,55,44,.5)), url(${images.nutrition})` }}
                       role="button"
                       tabIndex={0}
                       onClick={() => setMealLogOpen(true)}
@@ -2205,7 +2210,7 @@ export default function FormaApp() {
             <div className="dual-grid">
               <article
                 className="card image-card tall"
-                style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 35%, rgba(74,55,44,.55)), url(${IMAGES.recovery})` }}
+                style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 35%, rgba(74,55,44,.55)), url(${images.recovery})` }}
                 role="button"
                 tabIndex={0}
                 onClick={() => setTab("recovery")}
@@ -2482,7 +2487,7 @@ export default function FormaApp() {
                             ) : (
                               <>
                                 <div className="exercise-summary">
-                                  <div className="exercise-thumb" style={{ backgroundImage: `url(${imageForExercise(exercise.name)})` }} aria-hidden />
+                                  <div className="exercise-thumb" style={{ backgroundImage: `url(${imageForExercise(exercise.name, profile.gender)})` }} aria-hidden />
                                   <div className="reorder-buttons">
                                     <button onClick={() => moveExercise(workout.id, exercise.id, -1)} aria-label="Move exercise up">↑</button>
                                     <button onClick={() => moveExercise(workout.id, exercise.id, 1)} aria-label="Move exercise down">↓</button>
@@ -2614,9 +2619,36 @@ export default function FormaApp() {
             <article className="card progress-export-card">
               <div className="workout-card-head">
                 <div>
+                  <span className="eyebrow">6-week challenge</span>
+                  <strong>Export your results</strong>
+                  <p className="muted">
+                    Download a summary CSV to email your coach — includes club, sessions, weight change, and InBody.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="cta-btn"
+                  onClick={() => {
+                    exportChallengeBundle({
+                      profile,
+                      history,
+                      progress: progressEntries,
+                      inbody,
+                    });
+                    setSyncNote("Challenge export downloaded");
+                  }}
+                >
+                  Export challenge
+                </button>
+              </div>
+            </article>
+
+            <article className="card progress-export-card">
+              <div className="workout-card-head">
+                <div>
                   <span className="eyebrow">Export</span>
-                  <strong>Download your data</strong>
-                  <p className="muted">CSV files for sessions, weight/measurements, and InBody scans.</p>
+                  <strong>Download detailed data</strong>
+                  <p className="muted">Separate CSV files for sessions, weight/measurements, and InBody scans.</p>
                 </div>
                 <button
                   type="button"
@@ -3035,7 +3067,7 @@ export default function FormaApp() {
 
             <article
               className="card image-card tall recovery-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 30%, rgba(74,55,44,.5)), url(${IMAGES.recovery})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.02) 30%, rgba(74,55,44,.5)), url(${images.recovery})` }}
             >
               <div className="image-card-copy">
                 <span className="eyebrow light">Readiness</span>

@@ -1,14 +1,28 @@
 import type { Season } from "./types";
+import type { Gender } from "./user";
 
 /**
- * Static presentation content for the FORMA experience.
- * Keeping this separate from FormaApp keeps the component focused on
- * state/logic while the editorial copy, imagery and schedule live here.
+ * Static presentation content for the Life & Soul experience.
  */
 
 export const USER_NAME = "Hayley";
 
-export const IMAGES = {
+export type EditorialImages = {
+  hero: string;
+  strength: string;
+  glutes: string;
+  glutesStrength: string;
+  upper: string;
+  upperSculpt: string;
+  abs: string;
+  fullbody: string;
+  pilates: string;
+  running: string;
+  nutrition: string;
+  recovery: string;
+};
+
+export const IMAGES: EditorialImages = {
   hero: "/img/hero.jpg",
   strength: "/img/strength.jpg",
   glutes: "/img/glutes.jpg",
@@ -21,35 +35,59 @@ export const IMAGES = {
   running: "/img/running.jpg",
   nutrition: "/img/nutrition.jpg",
   recovery: "/img/recovery.jpg",
-} as const;
+};
+
+/** Men's editorial set — AI-generated luxe fitness photography */
+export const IMAGES_MALE: EditorialImages = {
+  hero: "/img/male/hero.jpg",
+  strength: "/img/male/strength.jpg",
+  glutes: "/img/male/glutes.jpg",
+  glutesStrength: "/img/male/glutes-strength.jpg",
+  upper: "/img/male/upper.jpg",
+  upperSculpt: "/img/male/upper-sculpt.jpg",
+  abs: "/img/male/abs.jpg",
+  fullbody: "/img/male/fullbody.jpg",
+  pilates: "/img/male/pilates.jpg",
+  running: "/img/male/running.jpg",
+  nutrition: "/img/male/nutrition.jpg",
+  recovery: "/img/male/recovery.jpg",
+};
+
+export function editorialImages(gender?: Gender): EditorialImages {
+  return gender === "male" ? IMAGES_MALE : IMAGES;
+}
+
+export function heroImage(gender?: Gender): string {
+  return editorialImages(gender).hero;
+}
 
 /** Pick a workout card image from the session title / focus. */
-export function imageForWorkout(title: string): string {
+export function imageForWorkout(title: string, gender?: Gender): string {
+  const img = editorialImages(gender);
   const t = title.toLowerCase();
-  if (/rest|recover|mobility|stretch|align/.test(t)) return IMAGES.recovery;
-  if (/abs|core|woodchop|crunch/.test(t)) return IMAGES.abs;
-  // First glute / lower / figure day (strength focus) vs shape / contour
-  if (/glute strength|lower body|lower strength|figure strength/.test(t)) return IMAGES.glutesStrength;
-  if (/contour drive/.test(t)) return IMAGES.fullbody;
-  if (/glute|lower|hip|leg|squat|hinge|shape|figure|contour/.test(t)) return IMAGES.glutes;
-  // First upper day (sculpt) vs second (strength)
-  if (/upper sculpt|upper body a|pull day/.test(t)) return IMAGES.upperSculpt;
-  if (/upper|sculpt|pull|push|shoulder|press|row|chest|back|arm/.test(t)) return IMAGES.upper;
-  if (/full\s*body|fullbody/.test(t)) return IMAGES.fullbody;
-  return IMAGES.strength;
+  if (/rest|recover|mobility|stretch|align/.test(t)) return img.recovery;
+  if (/abs|core|woodchop|crunch/.test(t)) return img.abs;
+  if (/glute strength|lower body|lower strength|figure strength/.test(t)) return img.glutesStrength;
+  if (/contour drive/.test(t)) return img.fullbody;
+  if (/glute|lower|hip|leg|squat|hinge|shape|figure|contour/.test(t)) return img.glutes;
+  if (/upper sculpt|upper body a|pull day/.test(t)) return img.upperSculpt;
+  if (/upper|sculpt|pull|push|shoulder|press|row|chest|back|arm/.test(t)) return img.upper;
+  if (/full\s*body|fullbody/.test(t)) return img.fullbody;
+  return img.strength;
 }
 
 /** Soft fallback for exercise thumbnails from the exercise name. */
-export function imageForExercise(name: string): string {
+export function imageForExercise(name: string, gender?: Gender): string {
+  const img = editorialImages(gender);
   const n = name.toLowerCase();
-  if (/crunch|plank|pallof|woodchop|twist|knee raise|core|abs/.test(n)) return IMAGES.abs;
+  if (/crunch|plank|pallof|woodchop|twist|knee raise|core|abs/.test(n)) return img.abs;
   if (/hip|glute|thrust|deadlift|rdl|squat|lunge|split|leg curl|abduction|kickback|step/.test(n)) {
-    return IMAGES.glutes;
+    return img.glutes;
   }
   if (/row|pulldown|press|raise|curl|push|tricep|bicep|delt|lat|chest|shoulder/.test(n)) {
-    return IMAGES.upper;
+    return img.upper;
   }
-  return IMAGES.strength;
+  return img.strength;
 }
 
 /**

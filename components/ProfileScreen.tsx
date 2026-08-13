@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
 import {
+  CLUB_LABELS,
+  CLUBS,
   EQUIPMENT_LABELS,
   EXPERIENCE_LABELS,
   GENDER_LABELS,
@@ -16,6 +18,7 @@ import type {
   ExperienceLevel,
   Gender,
   Goal,
+  LifeSoulClub,
   NutritionGoal,
   TrainingDays,
   TrainingStyle,
@@ -101,6 +104,9 @@ export function ProfileScreen({
             <div>
               <span className="eyebrow">Your profile</span>
               <h2>{draft.firstName || "Your name"}</h2>
+              {draft.club ? (
+                <p className="muted profile-club-tag">{CLUB_LABELS[draft.club as LifeSoulClub]} club</p>
+              ) : null}
               <div className="profile-photo-actions">
                 <button type="button" className="ghost-btn" onClick={() => photoInputRef.current?.click()}>
                   {draft.profilePhoto ? "Change cover photo" : "Add cover photo"}
@@ -152,6 +158,16 @@ export function ProfileScreen({
               <span>Email (optional)</span>
               <input value={draft.email} onChange={(event) => set("email", event.target.value)} placeholder="you@example.com" />
             </label>
+          </article>
+
+          <article className="card profile-section">
+            <span className="eyebrow">Life & Soul club</span>
+            <p className="muted">Your location for the 6-week challenge.</p>
+            <ChoiceRow
+              options={CLUBS.map((v) => ({ value: v, label: CLUB_LABELS[v] }))}
+              selected={draft.club || null}
+              onSelect={(v) => set("club", v)}
+            />
           </article>
 
           <article className="card profile-section">
@@ -316,7 +332,7 @@ function ChoiceRow<T extends string | number>({
   onSelect,
 }: {
   options: { value: T; label: string }[];
-  selected: T;
+  selected: T | null;
   onSelect: (value: T) => void;
 }) {
   return (
