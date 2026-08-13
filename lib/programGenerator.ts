@@ -403,6 +403,14 @@ export function generateProgram(
 const LEGACY_SESSION_TITLE =
   /^(Full Body [AB]|Lower Body|Upper Body|Glute Focus|Glute Strength|Glute Shape|Upper Sculpt|Weighted Abs|Figure Strength|Contour Drive)$/i;
 
+/** True when stored workouts don't match what this profile should have now (gender, days, etc.). */
+export function programmeGenderMismatch(workouts: Workout[], profile: UserProfile): boolean {
+  if (!workouts.length) return true;
+  const expected = generateProgram(profile);
+  if (workouts.length !== expected.length) return true;
+  return workouts.some((workout, index) => workout.title !== expected[index]?.title);
+}
+
 /**
  * True when stored workouts should be regenerated for this profile.
  * Also catches the case where schemaVersion was stamped current while
@@ -416,11 +424,8 @@ export function programmeNeedsUpgrade(
   if (storedSchemaVersion < PROGRAM_SCHEMA_VERSION) return true;
   if (!workouts.length) return true;
   if (workouts.some((workout) => LEGACY_SESSION_TITLE.test(workout.title))) return true;
-
-  const expected = generateProgram(profile);
-  if (workouts.length !== expected.length) return true;
-  return workouts.some((workout, index) => workout.title !== expected[index]?.title);
+  return programmeGenderMismatch(workouts, profile);
 }
 
 /** Current programme schema version — bump when weekly structure or gender splits change. */
-export const PROGRAM_SCHEMA_VERSION = 5;
+export const PROGRAM_SCHEMA_VERSION = 6;

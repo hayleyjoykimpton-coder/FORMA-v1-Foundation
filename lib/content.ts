@@ -65,11 +65,32 @@ export function heroImage(gender?: Gender): string {
 export function imageForWorkout(title: string, gender?: Gender): string {
   const img = editorialImages(gender);
   const t = title.toLowerCase();
+
+  // Legacy women's titles while on a men's profile (until programme refreshes)
+  if (gender === "male") {
+    if (/glute strength|glute shape|legs & squat|legs & power|lower · squat|lower · hinge|squat focus|hinge/.test(t)) {
+      return img.glutesStrength;
+    }
+    if (/upper sculpt|upper strength|push power|push & pull|upper hypertrophy|upper · volume|upper · push/.test(t)) {
+      return img.upper;
+    }
+    if (/weighted abs|full body · athletic|core|athletic/.test(t)) {
+      return img.abs;
+    }
+    if (/pull strength|pull|full body · strength/.test(t)) {
+      return img.strength;
+    }
+    if (/full body · power|contour|figure/.test(t)) {
+      return img.fullbody;
+    }
+  }
+
   if (/rest|recover|mobility|stretch|align/.test(t)) return img.recovery;
   if (/abs|core|woodchop|crunch|pallof|athletic/.test(t)) return img.abs;
   // Men's push/pull/legs labels
-  if (/push power|push & pull|upper · push/.test(t)) return img.upper;
-  if (/pull strength|pull|upper · volume|upper hypertrophy/.test(t)) return img.upperSculpt;
+  if (/^push power|push & pull|upper · push/.test(t)) return img.upper;
+  if (/^pull strength|^pull day/.test(t)) return img.strength;
+  if (/upper hypertrophy|upper · volume/.test(t)) return img.upperSculpt;
   if (/legs & squat|legs & power|lower · squat|lower · hinge|full body · strength|full body · power/.test(t)) {
     return img.glutesStrength;
   }

@@ -54,6 +54,7 @@ import type { UserProfile } from "@/lib/user";
 import {
   generateProgram,
   PROGRAM_SCHEMA_VERSION,
+  programmeGenderMismatch,
   programmeNeedsUpgrade,
 } from "@/lib/programGenerator";
 import { ensureHayleyData, transferExerciseWeights } from "@/lib/hayleySeed";
@@ -282,9 +283,20 @@ export default function FormaApp() {
     const savedProfile = opts?.seedHayley === false ? loadProfile() : ensureHayleyData();
     let nextWorkouts = state.workouts;
 
-    // Rebuild when schema is behind OR workouts still use legacy titles (Full Body A/B).
-    const storedSchema = state.needsProgramRefresh ? 0 : PROGRAM_SCHEMA_VERSION;
-    if (savedProfile && programmeNeedsUpgrade(state.workouts, savedProfile, storedSchema)) {
+    // Use real stored schema — not always CURRENT (fixes missed gender upgrades).
+    let storedSchema = 1;
+    try {
+      const raw = window.localStorage.getItem(STORAGE.program);
+      if (raw) storedSchema = (JSON.parse(raw) as { schemaVersion?: number }).schemaVersion ?? 1;
+    } catch {
+      storedSchema = state.needsProgramRefresh ? 0 : 1;
+    }
+
+    if (
+      savedProfile &&
+      (programmeNeedsUpgrade(state.workouts, savedProfile, storedSchema) ||
+        programmeGenderMismatch(state.workouts, savedProfile))
+    ) {
       nextWorkouts = transferExerciseWeights(
         state.workouts,
         generateProgram(savedProfile, { week: state.week, alignActive: state.alignActive }),
@@ -329,7 +341,10 @@ export default function FormaApp() {
       const sourceWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
       let nextWorkouts = sourceWorkouts;
       let didUpgrade = false;
-      if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
+      if (
+        programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion) ||
+        programmeGenderMismatch(sourceWorkouts, cloud.profile)
+      ) {
         nextWorkouts = transferExerciseWeights(
           sourceWorkouts,
           generateProgram(cloud.profile, {
@@ -677,16 +692,35 @@ export default function FormaApp() {
     [history],
   );
   const latestSession = history.length ? history[history.length - 1] : null;
+  // Expected titles for this profile — covers stale cached women's labels on men's profiles.
+  const expectedWorkoutTitles = useMemo(
+    () =>
+      profile ? generateProgram(profile, { week, alignActive }).map((item) => item.title) : [],
+    [profile, week, alignActive],
+  );
+
+  const displayWorkoutTitle = (index: number, fallback: string) =>
+    expectedWorkoutTitles[index] ?? fallback;
+
+  const displayTitleForWorkout = (workout: Workout | null | undefined) => {
+    if (!workout) return "";
+    const index = workouts.findIndex((item) => item.id === workout.id);
+    return index >= 0 ? displayWorkoutTitle(index, workout.title) : workout.title;
+  };
+
   // The weekly schedule reflects the user's actual (personalised) plan.
   const weeklySchedule = useMemo(
     () =>
-      workouts.map((workout) => ({
-        day: workout.day,
-        short: workout.day.slice(0, 3),
-        focus: workout.title,
-        image: imageForWorkout(workout.title, profile?.gender),
-      })),
-    [workouts, profile?.gender],
+      workouts.map((workout, index) => {
+        const focus = displayWorkoutTitle(index, workout.title);
+        return {
+          day: workout.day,
+          short: workout.day.slice(0, 3),
+          focus,
+          image: imageForWorkout(focus, profile?.gender),
+        };
+      }),
+    [workouts, profile?.gender, expectedWorkoutTitles],
   );
 
   const phaseDef = resolveActivePhase(week, alignActive);
@@ -733,6 +767,22 @@ export default function FormaApp() {
     setPausedDraft(null);
     setSession(null);
   };
+
+  // Auto-apply men's / women's programme when profile and stored workouts disagree.
+  useEffect(() => {
+    if (!hydrated || !profile) return;
+    if (!programmeGenderMismatch(workouts, profile)) return;
+    applyGeneratedProgram(profile, { week, alignActive });
+    if (profile.gender === "male") {
+      setSyncNote("Men's training programme applied");
+    }
+  }, [
+    hydrated,
+    profile,
+    workouts,
+    week,
+    alignActive,
+  ]);
 
   const advanceProgrammeWeek = () => {
     if (!profile || alignActive) return;
@@ -796,6 +846,7 @@ export default function FormaApp() {
   const handleProfileSave = (updated: UserProfile) => {
     const trainingChanged =
       !profile ||
+      profile.gender !== updated.gender ||
       profile.goal !== updated.goal ||
       profile.experienceLevel !== updated.experienceLevel ||
       profile.trainingDays !== updated.trainingDays ||
@@ -1312,7 +1363,7 @@ export default function FormaApp() {
             <header className="session-top">
               <button className="ghost-btn" onClick={exitSession}>‹ Exit</button>
               <div className="session-count">
-                <span className="eyebrow">{activeWorkout.title}</span>
+                <span className="eyebrow">{displayTitleForWorkout(activeWorkout)}</span>
                 <strong>{session.exerciseIndex + 1} / {activeWorkout.exercises.length}</strong>
               </div>
               <button className="ghost-btn strong" onClick={finishWorkout}>Finish</button>
@@ -1320,7 +1371,7 @@ export default function FormaApp() {
 
             <section
               className="session-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(activeWorkout.title, profile.gender)})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(displayTitleForWorkout(activeWorkout), profile.gender)})` }}
             >
               <span className="eyebrow light">{season} · Primary target</span>
               <h1>{exercise.name}</h1>
@@ -1673,7 +1724,7 @@ export default function FormaApp() {
                 <div className="hero-tags">
                   <span className="hero-chip">{season} · Week {weekInCycle}/{CYCLE_WEEKS}</span>
                   <span className="hero-chip subtle">
-                    Today · {todaysWorkout ? todaysWorkout.title : "Rest"}
+                    Today · {todaysWorkout ? displayTitleForWorkout(todaysWorkout) : "Rest"}
                   </span>
                   {profile.club ? (
                     <span className="hero-chip subtle">{CLUB_LABELS[profile.club]}</span>
@@ -1820,11 +1871,11 @@ export default function FormaApp() {
 
             {todaysWorkout && todaysWorkout.exercises.length > 0 ? (
               <>
-                <SectionHeading eyebrow="Today's workout" title={todaysWorkout.title} />
+                <SectionHeading eyebrow="Today's workout" title={displayTitleForWorkout(todaysWorkout)} />
                 <article className="card workout-today">
                   <div
                     className="workout-today-media"
-                    style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title, profile.gender)})` }}
+                    style={{ backgroundImage: `url(${imageForWorkout(displayTitleForWorkout(todaysWorkout), profile.gender)})` }}
                   >
                     <span className="media-chip">{todaysWorkout.duration} min</span>
                     <button
@@ -2387,8 +2438,9 @@ export default function FormaApp() {
             <WeeklySchedule schedule={weeklySchedule} todayName={todayName} />
 
             <div className="workout-list">
-              {workouts.map((workout) => {
+              {workouts.map((workout, workoutIndex) => {
                 const isEditing = editingWorkoutId === workout.id;
+                const displayTitle = displayWorkoutTitle(workoutIndex, workout.title);
                 return (
                   <article className="card workout-card" key={workout.id}>
                     <div className="workout-card-head">
@@ -2401,7 +2453,7 @@ export default function FormaApp() {
                         ) : (
                           <>
                             <span className="eyebrow">{workout.day}</span>
-                            <h3>{workout.title}</h3>
+                            <h3>{displayTitle}</h3>
                           </>
                         )}
                       </div>
