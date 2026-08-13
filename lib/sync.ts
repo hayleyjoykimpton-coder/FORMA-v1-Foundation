@@ -56,6 +56,7 @@ type ProfileRow = {
   daily_steps: number | null;
   nutrition_goal: string;
   created_at: string;
+  is_admin?: boolean;
 };
 
 type StateRow = {
@@ -100,6 +101,7 @@ function rowToProfile(row: ProfileRow): UserProfile {
     dailySteps: row.daily_steps,
     nutritionGoal: row.nutrition_goal as UserProfile["nutritionGoal"],
     createdAt: row.created_at,
+    isAdmin: Boolean(row.is_admin),
   });
 }
 

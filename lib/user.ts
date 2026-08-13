@@ -38,6 +38,8 @@ export type UserProfile = {
   dailySteps: number | null;
   nutritionGoal: NutritionGoal;
   createdAt: string;
+  /** Cloud-only — set in Supabase profiles.is_admin */
+  isAdmin?: boolean;
 };
 
 export const PROFILE_STORAGE = "forma-profile-v1";
@@ -102,7 +104,7 @@ export function createProfile(input: Partial<UserProfile> & { firstName: string 
     age: input.age ?? null,
     height: input.height ?? null,
     weight: input.weight ?? null,
-    gender: input.gender ?? "female",
+    gender: input.gender ?? "unspecified",
     goal: input.goal ?? "sculpt",
     experienceLevel: input.experienceLevel ?? "beginner",
     trainingDays: input.trainingDays ?? 3,

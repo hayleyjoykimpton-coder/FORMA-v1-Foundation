@@ -107,6 +107,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { BreathworkSession } from "@/components/Breathwork";
 
 import { ActionMenu } from "@/components/ActionMenu";
+import { CommunityPanel } from "@/components/CommunityPanel";
 import { CollapsibleSection, ScoreExplainer } from "@/components/Collapsible";
 import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
@@ -176,7 +177,7 @@ import {
   WeeklySchedule,
 } from "@/components/ui";
 
-type Tab = "today" | "training" | "progress" | "recovery";
+type Tab = "today" | "training" | "progress" | "recovery" | "community";
 type ProgressSubTab = "overview" | "strength" | "body" | "inbody" | "photos";
 type SessionDraft = {
   workoutId: string;
@@ -191,9 +192,10 @@ const PROGRESS_SUBTAB_KEY = "forma-progress-subtab-v1";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "today", label: "Home" },
-  { key: "training", label: "Training" },
+  { key: "training", label: "Train" },
   { key: "progress", label: "Progress" },
   { key: "recovery", label: "Recovery" },
+  { key: "community", label: "Board" },
 ];
 
 const PROGRESS_SUBTABS: { key: ProgressSubTab; label: string }[] = [
@@ -3169,6 +3171,14 @@ export default function FormaApp() {
               </div>
             </article>
           </div>
+        )}
+
+        {tab === "community" && profile && (
+          <CommunityPanel
+            profile={profile}
+            userEmail={profile.email || null}
+            signedIn={authMode === "cloud"}
+          />
         )}
 
         <nav className="tabbar">

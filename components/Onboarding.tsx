@@ -15,12 +15,14 @@ import {
 import type {
   EquipmentAccess,
   ExperienceLevel,
+  Gender,
   Goal,
   NutritionGoal,
   TrainingDays,
   UserProfile,
   WorkoutLocation,
 } from "@/lib/user";
+import { GENDER_LABELS } from "@/lib/user";
 import type { InBodyDraft } from "@/lib/inbody";
 
 type Choice<T> = { value: T; label: string; hint?: string };
@@ -45,8 +47,14 @@ const NUTRITION: Choice<NutritionGoal>[] = [
   { value: "recomp", label: NUTRITION_LABELS.recomp, hint: "High protein, near maintenance" },
 ];
 
-/** Welcome + 8 content steps (name → … → lifestyle). */
-const TOTAL_STEPS = 9;
+const GENDERS: Choice<Gender>[] = [
+  { value: "female", label: GENDER_LABELS.female, hint: "Personalised nutrition targets" },
+  { value: "male", label: GENDER_LABELS.male, hint: "Personalised nutrition targets" },
+  { value: "unspecified", label: GENDER_LABELS.unspecified, hint: "Skip for now" },
+];
+
+/** Welcome + 9 content steps (name → gender → … → lifestyle). */
+const TOTAL_STEPS = 10;
 
 export type OnboardingResult = {
   profile: UserProfile;
@@ -57,6 +65,7 @@ export type OnboardingResult = {
 export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResult) => void }) {
   const [step, setStep] = useState(0);
   const [firstName, setFirstName] = useState("");
+  const [gender, setGender] = useState<Gender>("unspecified");
   const [goal, setGoal] = useState<Goal>("sculpt");
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>("beginner");
   const [trainingDays, setTrainingDays] = useState<TrainingDays>(3);
@@ -88,6 +97,7 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
     onComplete({
       profile: createProfile({
         firstName: firstName || "Friend",
+        gender,
         goal,
         experienceLevel,
         trainingDays,
@@ -157,6 +167,18 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
           {step === 2 && (
             <StepChoice
               eyebrow="Step 2"
+              title="Which best describes you?"
+              lead="Helps us personalise nutrition and coaching for men and women in the challenge."
+              options={GENDERS}
+              selected={gender}
+              onSelect={setGender}
+              onNext={next}
+            />
+          )}
+
+          {step === 3 && (
+            <StepChoice
+              eyebrow="Step 3"
               title="What's your main goal?"
               options={GOALS}
               selected={goal}
@@ -165,9 +187,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <StepChoice
-              eyebrow="Step 3"
+              eyebrow="Step 4"
               title="Your experience level"
               options={EXPERIENCE}
               selected={experienceLevel}
@@ -176,9 +198,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <StepChoice
-              eyebrow="Step 4"
+              eyebrow="Step 5"
               title="How many days a week?"
               options={DAYS}
               selected={trainingDays}
@@ -187,9 +209,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <StepChoice
-              eyebrow="Step 5"
+              eyebrow="Step 6"
               title="Where will you train?"
               options={LOCATIONS}
               selected={workoutLocation}
@@ -198,9 +220,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 6 && (
+          {step === 7 && (
             <StepChoice
-              eyebrow="Step 6"
+              eyebrow="Step 7"
               title="What equipment do you have?"
               options={EQUIPMENT}
               selected={equipmentAccess}
@@ -209,9 +231,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 7 && (
+          {step === 8 && (
             <StepChoice
-              eyebrow="Step 7"
+              eyebrow="Step 8"
               title="What's your nutrition goal?"
               lead="This sets your daily calorie and macro targets from day one."
               options={NUTRITION}
@@ -221,9 +243,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             />
           )}
 
-          {step === 8 && (
+          {step === 9 && (
             <div className="onboard-body">
-              <span className="eyebrow">Step 8 · Optional</span>
+              <span className="eyebrow">Step 9 · Optional</span>
               <h1>Got a recent InBody?</h1>
               <p className="onboard-lead">
                 Log a baseline now so Progress has somewhere to grow from. Skip if you don&rsquo;t have numbers yet.
@@ -252,9 +274,9 @@ export function Onboarding({ onComplete }: { onComplete: (result: OnboardingResu
             </div>
           )}
 
-          {step === 9 && (
+          {step === 10 && (
             <div className="onboard-body">
-              <span className="eyebrow">Step 9 · Optional</span>
+              <span className="eyebrow">Step 10 · Optional</span>
               <h1>A little about your lifestyle</h1>
               <p className="onboard-lead">This helps {BRAND.name} balance training and recovery. You can skip it.</p>
               <div className="onboard-input field">

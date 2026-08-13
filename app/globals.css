@@ -1065,7 +1065,7 @@ input, textarea {
   transform: translateX(-50%);
   width: min(100% - 32px, 436px);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 4px;
   padding: 10px 8px;
   border-radius: 22px;
@@ -1076,10 +1076,10 @@ input, textarea {
   z-index: 20;
 }
 .tabbar button {
-  padding: 8px 4px;
+  padding: 8px 2px;
   border-radius: 14px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   transition: color 0.2s ease, background 0.2s ease;
 }
@@ -1857,3 +1857,92 @@ button.avatar { padding: 0; }
 .collapsible-section.pinned .collapsible-head {
   border-color: color-mix(in srgb, var(--mocha, #8b6b4a) 35%, transparent);
 }
+
+/* Community — notice board & challenge messages */
+.community-screen { padding-bottom: 12px; }
+.community-topbar { align-items: flex-start; }
+.community-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 500;
+}
+.community-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.community-post.is-pinned {
+  border-color: color-mix(in srgb, var(--cta) 25%, var(--line));
+  box-shadow: var(--shadow-xs);
+}
+.community-post-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.community-post-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.community-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.community-post-body {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+.community-pin-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cta);
+  background: color-mix(in srgb, var(--cta) 10%, var(--card));
+  padding: 4px 8px;
+  border-radius: var(--r-pill);
+  margin-bottom: 6px;
+}
+.community-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.community-textarea {
+  width: 100%;
+  min-height: 88px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  font: inherit;
+  resize: vertical;
+  background: var(--card);
+  color: var(--text);
+}
+.community-post-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.community-action {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.community-error {
+  color: #8a4b3a;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.community-empty p { margin: 0; }
+
