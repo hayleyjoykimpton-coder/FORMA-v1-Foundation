@@ -1873,6 +1873,10 @@ button.avatar { padding: 0; }
   font-size: 28px;
   font-weight: 500;
 }
+.community-dates {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
 .community-list {
   display: flex;
   flex-direction: column;

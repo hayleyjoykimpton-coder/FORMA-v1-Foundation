@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
+import { challengeStatusLabel, formatChallengeRange, isChallengeActive } from "@/lib/challenge";
 import {
   HYDRATION_GOAL,
   editorialImages,
@@ -1722,7 +1723,11 @@ export default function FormaApp() {
                 <span className="eyebrow light">{greeting},</span>
                 <h1 className="hero-name">{profile.firstName}</h1>
                 <div className="hero-tags">
-                  <span className="hero-chip">{season} · Week {weekInCycle}/{CYCLE_WEEKS}</span>
+                  {isChallengeActive() ? (
+                    <span className="hero-chip">{challengeStatusLabel()}</span>
+                  ) : (
+                    <span className="hero-chip">{season} · Week {weekInCycle}/{CYCLE_WEEKS}</span>
+                  )}
                   <span className="hero-chip subtle">
                     Today · {todaysWorkout ? displayTitleForWorkout(todaysWorkout) : "Rest"}
                   </span>
@@ -2671,10 +2676,10 @@ export default function FormaApp() {
             <article className="card progress-export-card">
               <div className="workout-card-head">
                 <div>
-                  <span className="eyebrow">6-week challenge</span>
+                  <span className="eyebrow">{BRAND.challengeName}</span>
                   <strong>Export your results</strong>
                   <p className="muted">
-                    Download a summary CSV to email your coach — includes club, sessions, weight change, and InBody.
+                    {formatChallengeRange()} — download a summary CSV for your coach (club, sessions, weight, InBody).
                   </p>
                 </div>
                 <button

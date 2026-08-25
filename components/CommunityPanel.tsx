@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { isAdminUser } from "@/lib/admin";
 import { BRAND } from "@/lib/brand";
+import { challengeStatusLabel, formatChallengeRange } from "@/lib/challenge";
 import {
   communitySetupMessage,
   deleteCommunityPost,
@@ -128,8 +129,9 @@ export function CommunityPanel({
       <div className="screen community-screen">
         <header className="topbar community-topbar">
           <div>
-            <span className="eyebrow">6-week challenge</span>
+            <span className="eyebrow">{BRAND.challengeName}</span>
             <h1 className="community-title">Community</h1>
+            <p className="muted community-dates">{formatChallengeRange()}</p>
           </div>
         </header>
         <article className="card">
@@ -146,8 +148,9 @@ export function CommunityPanel({
     <div className="screen community-screen">
       <header className="topbar community-topbar">
         <div>
-          <span className="eyebrow">6-week challenge{clubLabel ? ` · ${clubLabel}` : ""}</span>
+          <span className="eyebrow">{challengeStatusLabel()}{clubLabel ? ` · ${clubLabel}` : ""}</span>
           <h1 className="community-title">Community</h1>
+          <p className="muted community-dates">{formatChallengeRange()}</p>
         </div>
       </header>
 
