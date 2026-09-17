@@ -465,6 +465,7 @@ textarea::placeholder {
   font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 400;
+  margin: 0;
 }
 .cracker-method-list {
   margin: 0;
@@ -476,6 +477,101 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.cracker-nutrition-hub .cracker-wellness-heading strong {
+  font-size: 24px;
+}
+.cracker-nutrition-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cracker-nutrition-intro strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.cracker-nutrition-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cracker-recipe-rows {
+  display: grid;
+  gap: 8px;
+}
+.cracker-recipe-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 1px solid rgba(196, 18, 24, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: inherit;
+  cursor: pointer;
+}
+.cracker-recipe-row:active {
+  transform: translateY(1px);
+}
+.cracker-recipe-row-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cracker-recipe-row-copy small {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c41218;
+  font-weight: 700;
+}
+.cracker-recipe-row-copy strong {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+.cracker-recipe-chevron {
+  flex: 0 0 16px;
+  font-size: 22px;
+  color: #8a8078;
+}
+.cracker-nutrition-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cracker-nutrition-back {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #7a6a5c;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+.cracker-emergency-list {
+  display: grid;
+  gap: 8px;
+}
+.cracker-emergency-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.05);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-emergency-card p {
+  margin: 0;
 }
 
 /* ---------- Top bar ------------------------------------------------------ */

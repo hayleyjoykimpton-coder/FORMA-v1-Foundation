@@ -1985,10 +1985,6 @@ export default function FormaApp() {
               <CrackerWellnessPanel weekInCycle={crackerWeek(weekInCycle)} />
             ) : null}
 
-            {challengeMode === "cracker" ? (
-              <CrackerRecipesPanel weekInCycle={crackerWeek(weekInCycle)} />
-            ) : null}
-
             <section
               className="home-hero"
               style={{
@@ -2361,14 +2357,26 @@ export default function FormaApp() {
             {homePrefs.modules.some((m) => m.id === "fuel" && m.visible) ? (
               <div className="home-module" style={{ order: homeModuleOrderIndex("fuel") }}>
             <CollapsibleSection
-              eyebrow="Fuel"
-              title="Nutrition & meals"
-              summary="Log meals and track macros against your goal"
-              open={homeModuleOpen("fuel", nextAction.kind === "meal")}
+              eyebrow={challengeMode === "cracker" ? "Nutrition" : "Fuel"}
+              title={challengeMode === "cracker" ? "Recipe & food guide" : "Nutrition & meals"}
+              summary={
+                challengeMode === "cracker"
+                  ? "Weekly meals, serves, snacks, emergency options + meal log"
+                  : "Log meals and track macros against your goal"
+              }
+              open={homeModuleOpen("fuel", nextAction.kind === "meal" || challengeMode === "cracker")}
               onOpenChange={(open) => setModuleOpen("fuel", open)}
               pinned={modulePinned("fuel")}
             >
-<SectionHeading eyebrow="Nutrition" title="Fuel your day" />
+{challengeMode === "cracker" ? (
+              <>
+                <SectionHeading eyebrow="Nutrition" title="Recipe & Food Guide" />
+                <CrackerRecipesPanel weekInCycle={crackerWeek(weekInCycle)} />
+                <SectionHeading eyebrow="Meal log" title="Track today" />
+              </>
+            ) : (
+              <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
+            )}
             {(() => {
               const nutritionTargets = targetsForProfile(profile);
               const eaten = dayMacroTotals(meals, todayISO);
