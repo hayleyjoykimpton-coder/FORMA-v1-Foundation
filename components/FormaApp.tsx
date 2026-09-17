@@ -131,10 +131,7 @@ import {
   buildCrackerWorkouts,
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
-import { CrackerFitnessPanel } from "@/components/CrackerFitnessPanel";
-import { CrackerPillars } from "@/components/CrackerPillars";
-import { CrackerWellnessPanel } from "@/components/CrackerWellnessPanel";
-import { NourishCard } from "@/components/NourishCard";
+import { CrackerShell } from "@/components/cracker/CrackerShell";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -304,7 +301,6 @@ export default function FormaApp() {
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
-  const wellnessRef = useRef<HTMLDivElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
 
@@ -1331,7 +1327,7 @@ export default function FormaApp() {
 
   if (!hydrated || authMode === "booting") {
     return (
-      <div className="app">
+      <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
         <div className="shell">
           <div className="loading">
             {challengeMode === "cracker" ? (
@@ -1479,7 +1475,7 @@ export default function FormaApp() {
 
   if (sessionCelebration) {
     return (
-      <div className="app">
+      <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
         <div className="shell">
           <div className="screen session-done-screen">
             <span className="eyebrow">Session done</span>
@@ -1559,7 +1555,7 @@ export default function FormaApp() {
     };
 
     return (
-      <div className="app">
+      <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
         <div className="shell">
           <div className="screen session-screen">
             <header className="session-top">
@@ -1950,17 +1946,32 @@ export default function FormaApp() {
     (challengeMode !== "cracker" && meals.entries.length === 0) ||
     inbody.scans.length === 0;
 
+  if (challengeMode === "cracker" && profile) {
+    return (
+      <div className="app challenge-cracker cracker-v2">
+        <CrackerShell
+          week={crackerWeek(weekInCycle)}
+          sessionsDone={sessionsThisWeek}
+          sessionsTarget={sessionsTarget}
+          experience={profile.experienceLevel}
+          workouts={workouts}
+          completedIds={completedThisWeek}
+          profileInitial={profile.firstName.charAt(0)}
+          profilePhoto={profile.profilePhoto}
+          onOpenProfile={() => setProfileOpen(true)}
+          onStartWorkout={startWorkout}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`app${challengeMode === "cracker" ? " challenge-cracker" : ""}`}>
       <div className="shell">
         {tab === "today" && (
           <div className="screen home-screen">
             <header className="topbar">
-              {challengeMode === "cracker" ? (
-                <BrandLogo variant="duo" size="header" />
-              ) : (
-                <span className="wordmark">FORMA</span>
-              )}
+              <span className="wordmark">FORMA</span>
               <button
                 className={`avatar ${profile.profilePhoto ? "has-photo" : ""}`}
                 onClick={() => setProfileOpen(true)}
@@ -1971,46 +1982,7 @@ export default function FormaApp() {
               </button>
             </header>
 
-            {challengeMode === "cracker" ? (
-              <article className="card challenge-banner">
-                <BrandLogo size="hero" />
-                <div className="challenge-banner-copy">
-                  <span className="eyebrow">
-                    {profile.club && profile.club in CLUB_LABELS
-                      ? `${CLUB_LABELS[profile.club as keyof typeof CLUB_LABELS]} · Life & Soul`
-                      : "Life & Soul"}
-                  </span>
-                  <strong>{brand.challengeName}</strong>
-                  <p className="muted">
-                    {weekLabel} · {brand.tagline}
-                  </p>
-                  <p className="challenge-pillars-inline" aria-label="Challenge pillars">
-                    MOVE · NOURISH · CONNECT
-                  </p>
-                </div>
-              </article>
-            ) : null}
-
-            {challengeMode === "cracker" ? (
-              <CrackerPillars
-                onMove={() => setTab("training")}
-                onConnect={() => {
-                  wellnessRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              />
-            ) : null}
-
-            {challengeMode === "cracker" ? <NourishCard variant="section" /> : null}
-
-            {challengeMode === "cracker" ? (
-              <CrackerFitnessPanel weekInCycle={crackerWeek(weekInCycle)} />
-            ) : null}
-
-            {challengeMode === "cracker" ? (
-              <div ref={wellnessRef} id="cracker-connect">
-                <CrackerWellnessPanel weekInCycle={crackerWeek(weekInCycle)} />
-              </div>
-            ) : null}
+            {/* cracker home blocks removed — see CrackerShell */}
 
             <section
               className="home-hero"

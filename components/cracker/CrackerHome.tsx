@@ -1,0 +1,108 @@
+"use client";
+
+import { BrandLogo } from "@/components/BrandLogo";
+import { IMAGES } from "@/lib/content";
+import { crackerMotivationalLine } from "@/lib/crackerUi";
+import type { CrackerTab } from "@/components/cracker/types";
+
+type Props = {
+  week: number;
+  totalWeeks?: number;
+  sessionsDone: number;
+  sessionsTarget: number;
+  profileInitial: string;
+  profilePhoto?: string;
+  onOpenProfile: () => void;
+  onNavigate: (tab: CrackerTab) => void;
+};
+
+const PILLARS: {
+  key: CrackerTab;
+  title: string;
+  line: string;
+  cta: string;
+  image: string;
+}[] = [
+  {
+    key: "move",
+    title: "MOVE",
+    line: "Your training for the week.",
+    cta: "VIEW TRAINING",
+    image: IMAGES.strength,
+  },
+  {
+    key: "nourish",
+    title: "NOURISH",
+    line: "Your full six-week nutrition program.",
+    cta: "OPEN NUTRITION",
+    image: IMAGES.nutrition,
+  },
+  {
+    key: "connect",
+    title: "CONNECT",
+    line: "Events, updates and community.",
+    cta: "VIEW COMMUNITY",
+    image: IMAGES.running,
+  },
+];
+
+export function CrackerHome({
+  week,
+  totalWeeks = 6,
+  sessionsDone,
+  sessionsTarget,
+  profileInitial,
+  profilePhoto,
+  onOpenProfile,
+  onNavigate,
+}: Props) {
+  const progress =
+    sessionsTarget > 0 ? Math.min(100, Math.round((sessionsDone / sessionsTarget) * 100)) : 0;
+
+  return (
+    <div className="screen cracker-screen cracker-home">
+      <header className="cracker-topbar">
+        <BrandLogo variant="duo" size="header" />
+        <button
+          type="button"
+          className={`avatar cracker-avatar${profilePhoto ? " has-photo" : ""}`}
+          onClick={onOpenProfile}
+          aria-label="Open profile"
+          style={profilePhoto ? { backgroundImage: `url(${profilePhoto})` } : undefined}
+        >
+          {profilePhoto ? "" : profileInitial}
+        </button>
+      </header>
+
+      <section className="cracker-week-hero">
+        <p className="cracker-week-kicker">WEEK {week} OF {totalWeeks}</p>
+        <h1 className="cracker-week-line">{crackerMotivationalLine(week)}</h1>
+        <div className="cracker-progress" aria-label={`Week progress ${progress}%`}>
+          <span style={{ width: `${progress}%` }} />
+        </div>
+        <p className="cracker-progress-meta">
+          {sessionsDone}/{sessionsTarget || "—"} sessions this week
+        </p>
+      </section>
+
+      <div className="cracker-pillar-stack">
+        {PILLARS.map((pillar) => (
+          <article key={pillar.key} className="cracker-pillar-card">
+            <div
+              className="cracker-pillar-media"
+              style={{ backgroundImage: `url(${pillar.image})` }}
+              aria-hidden="true"
+            />
+            <div className="cracker-pillar-body">
+              <h2>{pillar.title}</h2>
+              <p>{pillar.line}</p>
+              <button type="button" className="cta-btn" onClick={() => onNavigate(pillar.key)}>
+                {pillar.cta}
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}

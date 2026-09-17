@@ -271,21 +271,30 @@ textarea::placeholder {
 }
 .challenge-banner .muted { color: rgba(247, 241, 234, 0.78); }
 .app.challenge-cracker {
-  --cta: #c41218;
+  --cta: #243f82;
   --cta-text: #ffffff;
-  --wash-mocha: #1a0a0a;
+  --wash-mocha: #e8eef6;
+  --cracker-blue: #243f82;
+  --cracker-navy: #000c4f;
+  --cracker-accent: #9c3b3b;
+  --cracker-gold: #c3a866;
+  --cracker-cream: #f4f0e8;
+  --bg: var(--cracker-cream);
+  --card: #ffffff;
+  --text: #1a1c22;
+  --text-2: #5a5f6b;
 }
 .app.challenge-cracker .cta-btn {
-  background: #c41218;
+  background: var(--cracker-blue);
   color: #fff;
 }
 .app.challenge-cracker .tabbar .active {
-  background: #c41218;
+  background: var(--cracker-blue);
   color: #fff;
 }
 .app.challenge-cracker .schedule-card.today {
-  border-color: #c41218;
-  box-shadow: 0 10px 24px rgba(196, 18, 24, 0.22);
+  border-color: var(--cracker-blue);
+  box-shadow: 0 10px 24px rgba(36, 63, 130, 0.22);
 }
 .cracker-nutrition-card {
   display: flex;
@@ -907,6 +916,311 @@ textarea::placeholder {
   }
 }
 
+
+
+/* ---------- Cracker v2 shell (HOME / MOVE / NOURISH / CONNECT) ------------ */
+
+.app.cracker-v2 {
+  background:
+    radial-gradient(circle at 10% -10%, rgba(36, 63, 130, 0.1) 0%, transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(195, 168, 102, 0.12) 0%, transparent 38%),
+    var(--cracker-cream);
+}
+
+.cracker-shell {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+.cracker-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 12px;
+}
+
+.cracker-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px 0;
+}
+
+.cracker-avatar { flex-shrink: 0; }
+
+.cracker-screen-kicker,
+.cracker-week-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cracker-blue);
+}
+
+.cracker-screen-title,
+.cracker-week-line {
+  margin: 6px 0 0;
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--cracker-navy);
+}
+
+.cracker-week-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 2px 4px;
+}
+
+.cracker-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(36, 63, 130, 0.12);
+  overflow: hidden;
+}
+
+.cracker-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cracker-blue), #3d6ec9);
+}
+
+.cracker-progress-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.cracker-pillar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cracker-pillar-card {
+  display: grid;
+  grid-template-rows: 140px auto;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.08);
+}
+
+.cracker-pillar-media {
+  background-size: cover;
+  background-position: center;
+  min-height: 140px;
+}
+
+.cracker-pillar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px 16px 18px;
+}
+
+.cracker-pillar-body h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--cracker-blue);
+}
+
+.cracker-pillar-body p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.cracker-pillar-body .cta-btn {
+  margin-top: 4px;
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cracker-week-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+}
+.cracker-week-chips::-webkit-scrollbar { display: none; }
+
+.cracker-week-chip {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 63, 130, 0.18);
+  background: #fff;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cracker-week-chip.active {
+  background: var(--cracker-blue);
+  border-color: var(--cracker-blue);
+  color: #fff;
+}
+
+.cracker-week-chip.is-programme:not(.active) {
+  border-color: var(--cracker-gold);
+  color: var(--cracker-navy);
+}
+
+.cracker-workout-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cracker-workout-card {
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.08);
+}
+
+.cracker-workout-media {
+  position: relative;
+  min-height: 120px;
+  background-size: cover;
+  background-position: center;
+}
+
+.cracker-workout-chip,
+.cracker-workout-done {
+  position: absolute;
+  top: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--cracker-navy);
+}
+
+.cracker-workout-chip { left: 12px; }
+.cracker-workout-done {
+  right: 12px;
+  background: var(--cracker-blue);
+  color: #fff;
+}
+
+.cracker-workout-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 16px;
+}
+
+.cracker-workout-body h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.cracker-workout-body .cta-btn {
+  margin-top: 8px;
+  width: 100%;
+  min-height: 52px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cracker-hero-media {
+  min-height: 200px;
+  border-radius: 22px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.1);
+}
+
+.cracker-gateway {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 2px 8px;
+}
+
+.cracker-gateway h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--cracker-navy);
+}
+
+.cracker-external-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.cracker-tabbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(100% - 24px, 436px);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(36, 63, 130, 0.1);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 14px 36px rgba(26, 28, 34, 0.12);
+  z-index: 30;
+}
+
+.cracker-tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 16px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cracker-tabbar button.active {
+  color: #fff;
+  background: var(--cracker-blue);
+}
+
+@media (max-width: 430px) {
+  .cracker-screen-title,
+  .cracker-week-line { font-size: 28px; }
+  .cracker-pillar-card { grid-template-rows: 120px auto; }
+}
 
 /* ---------- Top bar ------------------------------------------------------ */
 
