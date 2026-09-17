@@ -133,7 +133,7 @@ import {
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
 import { CrackerFitnessPanel } from "@/components/CrackerFitnessPanel";
-import { CrackerRecipesPanel } from "@/components/CrackerRecipesPanel";
+import { NutritionHub } from "@/components/NutritionHub";
 import { CrackerWellnessPanel } from "@/components/CrackerWellnessPanel";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
@@ -2365,10 +2365,10 @@ export default function FormaApp() {
               <div className="home-module" style={{ order: homeModuleOrderIndex("fuel") }}>
             <CollapsibleSection
               eyebrow={challengeMode === "cracker" ? "Nutrition" : "Fuel"}
-              title={challengeMode === "cracker" ? "Recipe & food guide" : "Nutrition & meals"}
+              title={challengeMode === "cracker" ? "Fuel your six weeks" : "Nutrition & meals"}
               summary={
                 challengeMode === "cracker"
-                  ? "Weekly meals, serves, snacks, emergency options + meal log"
+                  ? "This week, meal plan, recipes, learn, shopping list + meal log"
                   : "Log meals and track macros against your goal"
               }
               open={homeModuleOpen("fuel", nextAction.kind === "meal" || challengeMode === "cracker")}
@@ -2377,8 +2377,7 @@ export default function FormaApp() {
             >
 {challengeMode === "cracker" ? (
               <>
-                <SectionHeading eyebrow="Nutrition" title="Recipe & Food Guide" />
-                <CrackerRecipesPanel weekInCycle={crackerWeek(weekInCycle)} />
+                <NutritionHub weekInCycle={crackerWeek(weekInCycle)} />
                 <SectionHeading eyebrow="Meal log" title="Track today" />
               </>
             ) : (
