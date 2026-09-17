@@ -2079,7 +2079,7 @@ export default function FormaApp() {
                       Start workout
                     </button>
                   ) : null}
-                  {meals.entries.length === 0 ? (
+                  {challengeMode !== "cracker" && meals.entries.length === 0 ? (
                     <button type="button" className="secondary-btn" onClick={jumpToLogMeal}>
                       Log meal
                     </button>
@@ -3110,7 +3110,7 @@ export default function FormaApp() {
                       Start workout
                     </button>
                   ) : null}
-                  {meals.entries.length === 0 ? (
+                  {challengeMode !== "cracker" && meals.entries.length === 0 ? (
                     <button type="button" className="secondary-btn" onClick={jumpToLogMeal}>
                       Log meal
                     </button>
