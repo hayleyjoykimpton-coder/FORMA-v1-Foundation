@@ -127,14 +127,14 @@ import {
   nextCrackerWeek,
   saveChallengeMode,
 } from "@/lib/challengeMode";
-import { CRACKER_FUEL_HINT, CRACKER_NUTRITION_GUIDE } from "@/lib/crackerGuide";
 import {
   buildCrackerWorkouts,
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
 import { CrackerFitnessPanel } from "@/components/CrackerFitnessPanel";
-import { NutritionHub } from "@/components/NutritionHub";
+import { CrackerPillars } from "@/components/CrackerPillars";
 import { CrackerWellnessPanel } from "@/components/CrackerWellnessPanel";
+import { NourishCard } from "@/components/NourishCard";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -304,6 +304,7 @@ export default function FormaApp() {
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
+  const wellnessRef = useRef<HTMLDivElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
 
@@ -1879,6 +1880,7 @@ export default function FormaApp() {
     meals,
     water,
     todayISO,
+    skipMealLogging: challengeMode === "cracker",
   });
 
   const homeModuleOrder = visibleHomeModules(homePrefs);
@@ -1944,7 +1946,9 @@ export default function FormaApp() {
   };
 
   const showDayOneCtas =
-    history.length === 0 || meals.entries.length === 0 || inbody.scans.length === 0;
+    history.length === 0 ||
+    (challengeMode !== "cracker" && meals.entries.length === 0) ||
+    inbody.scans.length === 0;
 
   return (
     <div className={`app${challengeMode === "cracker" ? " challenge-cracker" : ""}`}>
@@ -1980,16 +1984,32 @@ export default function FormaApp() {
                   <p className="muted">
                     {weekLabel} · {brand.tagline}
                   </p>
+                  <p className="challenge-pillars-inline" aria-label="Challenge pillars">
+                    MOVE · NOURISH · CONNECT
+                  </p>
                 </div>
               </article>
             ) : null}
+
+            {challengeMode === "cracker" ? (
+              <CrackerPillars
+                onMove={() => setTab("training")}
+                onConnect={() => {
+                  wellnessRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              />
+            ) : null}
+
+            {challengeMode === "cracker" ? <NourishCard variant="section" /> : null}
 
             {challengeMode === "cracker" ? (
               <CrackerFitnessPanel weekInCycle={crackerWeek(weekInCycle)} />
             ) : null}
 
             {challengeMode === "cracker" ? (
-              <CrackerWellnessPanel weekInCycle={crackerWeek(weekInCycle)} />
+              <div ref={wellnessRef} id="cracker-connect">
+                <CrackerWellnessPanel weekInCycle={crackerWeek(weekInCycle)} />
+              </div>
             ) : null}
 
             <section
@@ -2185,21 +2205,6 @@ export default function FormaApp() {
               ) : null}
             </article>
 
-            {challengeMode === "cracker" ? (
-              <article className="card cracker-nutrition-card">
-                <span className="eyebrow">Nutrition guide</span>
-                <strong>{CRACKER_NUTRITION_GUIDE.title}</strong>
-                <p className="muted">{CRACKER_NUTRITION_GUIDE.lead}</p>
-                <ul className="cracker-nutrition-list">
-                  {CRACKER_NUTRITION_GUIDE.bullets.map((bullet) => (
-                    <li key={bullet}>{bullet}</li>
-                  ))}
-                </ul>
-                <p className="muted">{CRACKER_FUEL_HINT}</p>
-                <small className="muted">{CRACKER_NUTRITION_GUIDE.note}</small>
-              </article>
-            ) : null}
-
             {todaysWorkout && todaysWorkout.exercises.length > 0 ? (
               <>
                 <SectionHeading eyebrow="Today's workout" title={todaysWorkout.title} />
@@ -2301,7 +2306,9 @@ export default function FormaApp() {
                   Show, hide, reorder or pin favourites. Pinned sections float to the top. Open/closed is remembered.
                 </p>
                 <div className="home-customise-list">
-                  {homePrefs.modules.map((module) => {
+                  {homePrefs.modules
+                    .filter((module) => !(challengeMode === "cracker" && module.id === "fuel"))
+                    .map((module) => {
                     const meta = HOME_MODULE_META[module.id];
                     const pinned = homePrefs.pinned.includes(module.id);
                     return (
@@ -2361,28 +2368,17 @@ export default function FormaApp() {
             ) : null}
 
             <div className="home-modules">
-            {homePrefs.modules.some((m) => m.id === "fuel" && m.visible) ? (
+            {challengeMode === "cracker" ? null : homePrefs.modules.some((m) => m.id === "fuel" && m.visible) ? (
               <div className="home-module" style={{ order: homeModuleOrderIndex("fuel") }}>
             <CollapsibleSection
-              eyebrow={challengeMode === "cracker" ? "Nutrition" : "Fuel"}
-              title={challengeMode === "cracker" ? "Fuel your six weeks" : "Nutrition & meals"}
-              summary={
-                challengeMode === "cracker"
-                  ? "This week, meal plan, recipes, learn, shopping list + meal log"
-                  : "Log meals and track macros against your goal"
-              }
-              open={homeModuleOpen("fuel", nextAction.kind === "meal" || challengeMode === "cracker")}
+              eyebrow="Fuel"
+              title="Nutrition & meals"
+              summary="Log meals and track macros against your goal"
+              open={homeModuleOpen("fuel", nextAction.kind === "meal")}
               onOpenChange={(open) => setModuleOpen("fuel", open)}
               pinned={modulePinned("fuel")}
             >
-{challengeMode === "cracker" ? (
-              <>
-                <NutritionHub weekInCycle={crackerWeek(weekInCycle)} />
-                <SectionHeading eyebrow="Meal log" title="Track today" />
-              </>
-            ) : (
               <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
-            )}
             {(() => {
               const nutritionTargets = targetsForProfile(profile);
               const eaten = dayMacroTotals(meals, todayISO);
@@ -3739,6 +3735,11 @@ export default function FormaApp() {
         ) : null}
 
         <nav className="tabbar">
+          {challengeMode === "cracker" ? (
+            <p className="tabbar-pillars" aria-hidden="true">
+              MOVE · NOURISH · CONNECT
+            </p>
+          ) : null}
           {TABS.map((item) => (
             <button key={item.key} className={tab === item.key ? "active" : ""} onClick={() => setTab(item.key)}>
               {item.label}
