@@ -115,6 +115,14 @@ import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
 import type { OnboardingResult } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
+import { BrandLogo } from "@/components/BrandLogo";
+import { brandFor, type BrandMode } from "@/lib/brand";
+import {
+  challengeWeekLabel,
+  loadChallengeMode,
+  saveChallengeMode,
+} from "@/lib/challengeMode";
+import { CRACKER_FUEL_HINT, CRACKER_NUTRITION_GUIDE } from "@/lib/crackerGuide";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -282,6 +290,7 @@ export default function FormaApp() {
   const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
+  const [challengeMode, setChallengeMode] = useState<BrandMode>("forma");
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
@@ -315,6 +324,7 @@ export default function FormaApp() {
     setReminderPrefs(loadReminderPrefs());
     setHomePrefs(loadHomePrefs());
     setProgressSubTab(loadProgressSubTab());
+    setChallengeMode(loadChallengeMode());
 
     const today = pickTodaysWorkout(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
     setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? INITIAL_WORKOUTS[0]?.id ?? "");
@@ -1269,7 +1279,11 @@ export default function FormaApp() {
       <div className="app">
         <div className="shell">
           <div className="loading">
-            <span className="wordmark">FORMA</span>
+            {challengeMode === "cracker" ? (
+              <BrandLogo />
+            ) : (
+              <span className="wordmark">FORMA</span>
+            )}
             <p>Preparing your practice…</p>
           </div>
         </div>
@@ -1311,6 +1325,17 @@ export default function FormaApp() {
           setProfileOpen(false);
           setTab("training");
           setSyncNote("Programme rebuilt");
+        }}
+        challengeMode={challengeMode}
+        onChallengeModeChange={(mode) => {
+          saveChallengeMode(mode);
+          setChallengeMode(mode);
+          if (mode === "cracker") {
+            applyGeneratedProgram(profile, { week: 1, alignActive: false });
+            setSyncNote("Cracker Challenge on · week 1 of 6");
+          } else {
+            setSyncNote("Back to FORMA");
+          }
         }}
         reminderPrefs={{
           enabled: reminderPrefs.enabled,
@@ -1772,12 +1797,20 @@ export default function FormaApp() {
   const focusRec = focusExercise ? getRecommendation(focusExercise, history, phaseDef) : null;
   const goalLabel = GOAL_LABELS[profile.goal];
   const goalLower = goalLabel.toLowerCase();
+  const brand = brandFor(challengeMode);
+  const weekLabel = challengeWeekLabel(weekInCycle, challengeMode);
   const encouragement =
-    history.length === 0
-      ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is ready — start gently.`
-      : streak >= 3
-        ? `${streak} days moving, ${profile.firstName}. Soft consistency toward ${goalLower}.`
-        : `Today is another quiet step toward ${goalLower}.`;
+    challengeMode === "cracker"
+      ? history.length === 0
+        ? `${brand.challengeName} starts now, ${profile.firstName}. Six weeks — keep it steady.`
+        : streak >= 3
+          ? `${streak} days in on Cracker. Quiet consistency wins.`
+          : `Another Cracker day toward the finish line.`
+      : history.length === 0
+        ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is ready — start gently.`
+        : streak >= 3
+          ? `${streak} days moving, ${profile.firstName}. Soft consistency toward ${goalLower}.`
+          : `Today is another quiet step toward ${goalLower}.`;
 
   const pausedTitle = pausedDraft
     ? workouts.find((workout) => workout.id === pausedDraft.workoutId)?.title ?? "Workout"
@@ -1860,12 +1893,16 @@ export default function FormaApp() {
     history.length === 0 || meals.entries.length === 0 || inbody.scans.length === 0;
 
   return (
-    <div className="app">
+    <div className={`app${challengeMode === "cracker" ? " challenge-cracker" : ""}`}>
       <div className="shell">
         {tab === "today" && (
           <div className="screen home-screen">
             <header className="topbar">
-              <span className="wordmark">FORMA</span>
+              {challengeMode === "cracker" ? (
+                <BrandLogo />
+              ) : (
+                <span className="wordmark">FORMA</span>
+              )}
               <button
                 className={`avatar ${profile.profilePhoto ? "has-photo" : ""}`}
                 onClick={() => setProfileOpen(true)}
@@ -1875,6 +1912,14 @@ export default function FormaApp() {
                 {profile.profilePhoto ? "" : profile.firstName.charAt(0)}
               </button>
             </header>
+
+            {challengeMode === "cracker" ? (
+              <article className="card challenge-banner">
+                <span className="eyebrow">{brand.challengeName}</span>
+                <strong>{weekLabel}</strong>
+                <p className="muted">{brand.tagline}</p>
+              </article>
+            ) : null}
 
             <section
               className="home-hero"
@@ -2047,10 +2092,14 @@ export default function FormaApp() {
 
             <article className="card coach-brief">
               <div className="coach-top">
-                <div className="coach-avatar">F</div>
+                <div className="coach-avatar">{challengeMode === "cracker" ? "LS" : "F"}</div>
                 <div>
-                  <strong>Today’s brief</strong>
-                  <small>{goalLabel} · {season} · {streak} day streak</small>
+                  <strong>{challengeMode === "cracker" ? "Today’s brief" : "Today’s brief"}</strong>
+                  <small>
+                    {challengeMode === "cracker"
+                      ? `${brand.challengeName} · ${weekLabel}`
+                      : `${goalLabel} · ${season} · ${streak} day streak`}
+                  </small>
                 </div>
               </div>
               <p className="coach-message">{encouragement}</p>
@@ -2060,6 +2109,21 @@ export default function FormaApp() {
                 </p>
               ) : null}
             </article>
+
+            {challengeMode === "cracker" ? (
+              <article className="card cracker-nutrition-card">
+                <span className="eyebrow">Nutrition guide</span>
+                <strong>{CRACKER_NUTRITION_GUIDE.title}</strong>
+                <p className="muted">{CRACKER_NUTRITION_GUIDE.lead}</p>
+                <ul className="cracker-nutrition-list">
+                  {CRACKER_NUTRITION_GUIDE.bullets.map((bullet) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+                <p className="muted">{CRACKER_FUEL_HINT}</p>
+                <small className="muted">{CRACKER_NUTRITION_GUIDE.note}</small>
+              </article>
+            ) : null}
 
             {todaysWorkout && todaysWorkout.exercises.length > 0 ? (
               <>

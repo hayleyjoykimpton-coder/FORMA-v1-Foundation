@@ -125,6 +125,39 @@ textarea::placeholder {
   color: var(--text);
   padding-left: 0.32em;
 }
+.brand-logo {
+  display: block;
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+.challenge-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: linear-gradient(160deg, #1a1410, #3a2820);
+  color: #f7f1ea;
+  border-color: transparent;
+}
+.challenge-banner .eyebrow { color: rgba(247, 241, 234, 0.7); }
+.challenge-banner strong {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 400;
+}
+.challenge-banner .muted { color: rgba(247, 241, 234, 0.78); }
+.cracker-nutrition-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cracker-nutrition-list {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+}
 
 /* ---------- Top bar ------------------------------------------------------ */
 
