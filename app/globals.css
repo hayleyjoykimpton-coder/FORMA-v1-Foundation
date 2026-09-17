@@ -340,6 +340,143 @@ textarea::placeholder {
 .cracker-phase-card .phase-actions {
   margin-top: 12px;
 }
+.cracker-wellness-card,
+.cracker-recipes-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-color: rgba(196, 18, 24, 0.28);
+  padding: 0;
+  overflow: hidden;
+}
+.cracker-wellness-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.cracker-wellness-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cracker-wellness-heading strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.cracker-wellness-chevron {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted, #7a6a5c);
+  padding-top: 2px;
+}
+.cracker-wellness-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(196, 18, 24, 0.14);
+  padding-top: 14px;
+}
+.cracker-week-pills,
+.cracker-day-pills,
+.cracker-meal-pills,
+.cracker-serve-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cracker-week-pills button,
+.cracker-day-pills button,
+.cracker-meal-pills button,
+.cracker-serve-pills button {
+  border: 1px solid rgba(196, 18, 24, 0.28);
+  background: transparent;
+  color: inherit;
+  border-radius: 10px;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.cracker-week-pills button.active,
+.cracker-day-pills button.active,
+.cracker-meal-pills button.active,
+.cracker-serve-pills button.active {
+  background: #c41218;
+  border-color: #c41218;
+  color: #fff;
+}
+.cracker-week-pills button.overview {
+  margin-left: auto;
+}
+.cracker-wellness-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cracker-wellness-list {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 6px;
+}
+.cracker-wellness-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.06);
+}
+.cracker-wellness-callout p,
+.cracker-plan-grid p,
+.cracker-recipe-why {
+  margin: 0;
+}
+.cracker-plan-grid {
+  display: grid;
+  gap: 10px;
+}
+.cracker-plan-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.05);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cracker-recipe-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 400;
+}
+.cracker-method-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+}
+.cracker-wellness-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 /* ---------- Top bar ------------------------------------------------------ */
 

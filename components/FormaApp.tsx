@@ -132,6 +132,8 @@ import {
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
 import { CrackerFitnessPanel } from "@/components/CrackerFitnessPanel";
+import { CrackerRecipesPanel } from "@/components/CrackerRecipesPanel";
+import { CrackerWellnessPanel } from "@/components/CrackerWellnessPanel";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -1977,6 +1979,14 @@ export default function FormaApp() {
 
             {challengeMode === "cracker" ? (
               <CrackerFitnessPanel weekInCycle={crackerWeek(weekInCycle)} />
+            ) : null}
+
+            {challengeMode === "cracker" ? (
+              <CrackerWellnessPanel weekInCycle={crackerWeek(weekInCycle)} />
+            ) : null}
+
+            {challengeMode === "cracker" ? (
+              <CrackerRecipesPanel weekInCycle={crackerWeek(weekInCycle)} />
             ) : null}
 
             <section

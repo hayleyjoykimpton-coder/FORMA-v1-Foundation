@@ -1,6 +1,7 @@
 /**
- * Cracker Challenge nutrition guide (temporary in-app copy).
- * Replace bullets when Hayley pastes the real guide — no PDF pipeline needed yet.
+ * Cracker Challenge nutrition pointer.
+ * Full Recipe & Food Guide lives in `crackerRecipes.ts`;
+ * Wellness education lives in `crackerWellness.ts`.
  */
 
 export type CrackerNutritionGuide = {
@@ -11,17 +12,16 @@ export type CrackerNutritionGuide = {
 };
 
 export const CRACKER_NUTRITION_GUIDE: CrackerNutritionGuide = {
-  title: "Christmas Cracker fuel",
-  lead: "Six-week challenge nutrition — keep it simple and consistent through the season.",
+  title: "Recipe & Wellness guides",
+  lead: "Two guides for the six weeks — cook from the food plan, learn the why in wellness.",
   bullets: [
-    "Protein at most meals (hand-sized portion).",
-    "Veg / colour on the plate twice a day.",
-    "Hydrate — water before coffee if you can.",
-    "One flexible meal a week is fine; don’t spiral.",
+    "Recipe & Food Guide — breakfast, lunch and dinner with Base, Training and Family of 4 serves.",
+    "Wellness Guide — energy, stress, nervous system, gut, sleep and making it last.",
+    "Plan A / B / C — organised day, busy shortcut, or the minimum.",
+    "Log meals as usual — one imperfect meal does not undo the week.",
   ],
-  note: "Swap these bullets for your real Christmas Cracker nutrition guide anytime — Profile → Challenge mode stays on.",
+  note: "Open the Recipe and Wellness cards on Home in Christmas Cracker mode.",
 };
 
-/** Soft calorie / protein framing shown under the guide (not a hard prescription). */
 export const CRACKER_FUEL_HINT =
-  "Use your meal log as usual — targets still follow your nutrition goal until we lock Cracker macros from the guide.";
+  "Meal log targets still follow your nutrition goal. Use Base or Training serves from the food guide to match your day.";
