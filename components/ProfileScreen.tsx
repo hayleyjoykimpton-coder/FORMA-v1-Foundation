@@ -133,8 +133,8 @@ export function ProfileScreen({
             <article className="card profile-section">
               <span className="eyebrow">Challenge mode</span>
               <p className="muted">
-                Temporary Life & Soul · Cracker Challenge skin inside FORMA — same account and data, no new database.
-                Turn off anytime to return to FORMA branding.
+                Temporary Life & Soul · Christmas Cracker skin inside FORMA — same account and data, no new
+                database. Turn off anytime to return to FORMA branding.
               </p>
               <button
                 type="button"
@@ -144,8 +144,8 @@ export function ProfileScreen({
                 }
               >
                 {challengeMode === "cracker"
-                  ? "Cracker Challenge is on · tap to exit"
-                  : "Start Cracker Challenge (6 weeks)"}
+                  ? "Christmas Cracker is on · tap to exit"
+                  : "Start Christmas Cracker (6 weeks)"}
               </button>
             </article>
           ) : null}

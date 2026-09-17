@@ -1332,7 +1332,7 @@ export default function FormaApp() {
           setChallengeMode(mode);
           if (mode === "cracker") {
             applyGeneratedProgram(profile, { week: 1, alignActive: false });
-            setSyncNote("Cracker Challenge on · week 1 of 6");
+            setSyncNote("Christmas Cracker on · week 1 of 6");
           } else {
             setSyncNote("Back to FORMA");
           }
@@ -1804,8 +1804,8 @@ export default function FormaApp() {
       ? history.length === 0
         ? `${brand.challengeName} starts now, ${profile.firstName}. Six weeks — keep it steady.`
         : streak >= 3
-          ? `${streak} days in on Cracker. Quiet consistency wins.`
-          : `Another Cracker day toward the finish line.`
+          ? `${streak} days in on Christmas Cracker. Quiet consistency wins.`
+          : `Another Christmas Cracker day toward the finish line.`
       : history.length === 0
         ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is ready — start gently.`
         : streak >= 3
@@ -1915,9 +1915,12 @@ export default function FormaApp() {
 
             {challengeMode === "cracker" ? (
               <article className="card challenge-banner">
-                <span className="eyebrow">{brand.challengeName}</span>
-                <strong>{weekLabel}</strong>
-                <p className="muted">{brand.tagline}</p>
+                <BrandLogo size="hero" />
+                <div className="challenge-banner-copy">
+                  <span className="eyebrow">Life & Soul · {brand.challengeName}</span>
+                  <strong>{weekLabel}</strong>
+                  <p className="muted">{brand.tagline}</p>
+                </div>
               </article>
             ) : null}
 

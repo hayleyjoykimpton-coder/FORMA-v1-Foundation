@@ -127,29 +127,69 @@ textarea::placeholder {
 }
 .brand-logo {
   display: block;
-  height: 28px;
-  width: auto;
+  height: 44px;
+  width: 44px;
   object-fit: contain;
+  border-radius: 50%;
+  background: #000;
+}
+.brand-logo-hero {
+  height: 96px;
+  width: 96px;
+}
+.brand-logo-mark {
+  height: 40px;
+  width: 40px;
 }
 .challenge-banner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  background: #000;
+  color: #f7f1ea;
+  border: 1px solid #c41218;
+  box-shadow: 0 12px 28px rgba(196, 18, 24, 0.22);
+}
+.challenge-banner-copy {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: linear-gradient(160deg, #1a1410, #3a2820);
-  color: #f7f1ea;
-  border-color: transparent;
+  gap: 4px;
+  min-width: 0;
 }
-.challenge-banner .eyebrow { color: rgba(247, 241, 234, 0.7); }
+.challenge-banner .eyebrow {
+  color: rgba(247, 241, 234, 0.72);
+  letter-spacing: 0.16em;
+}
 .challenge-banner strong {
   font-family: var(--font-heading);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 400;
+  color: #fff;
 }
 .challenge-banner .muted { color: rgba(247, 241, 234, 0.78); }
+.app.challenge-cracker {
+  --cta: #c41218;
+  --cta-text: #ffffff;
+  --wash-mocha: #1a0a0a;
+}
+.app.challenge-cracker .cta-btn {
+  background: #c41218;
+  color: #fff;
+}
+.app.challenge-cracker .tabbar .active {
+  background: #c41218;
+  color: #fff;
+}
+.app.challenge-cracker .schedule-card.today {
+  border-color: #c41218;
+  box-shadow: 0 10px 24px rgba(196, 18, 24, 0.22);
+}
 .cracker-nutrition-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  border-color: rgba(196, 18, 24, 0.28);
 }
 .cracker-nutrition-list {
   margin: 0;
