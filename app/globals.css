@@ -191,12 +191,154 @@ textarea::placeholder {
   gap: 8px;
   border-color: rgba(196, 18, 24, 0.28);
 }
+.cracker-fitness-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-color: rgba(196, 18, 24, 0.35);
+  padding: 0;
+  overflow: hidden;
+}
+.cracker-fitness-card.is-test-week {
+  box-shadow: 0 10px 24px rgba(196, 18, 24, 0.16);
+}
+.cracker-fitness-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.cracker-fitness-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cracker-fitness-heading strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.cracker-fitness-chevron {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted, #7a6a5c);
+  padding-top: 2px;
+}
+.cracker-fitness-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(196, 18, 24, 0.14);
+  padding-top: 14px;
+}
+.cracker-fitness-phase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.cracker-fitness-phase button {
+  border: 1px solid rgba(196, 18, 24, 0.28);
+  background: transparent;
+  color: inherit;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.cracker-fitness-phase button.active {
+  background: #c41218;
+  border-color: #c41218;
+  color: #fff;
+}
+.cracker-fitness-meta {
+  margin: 0;
+}
+.cracker-fitness-stations {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 8px;
+}
+.cracker-fitness-stations li {
+  display: grid;
+  gap: 2px;
+}
+.cracker-fitness-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+.cracker-fitness-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted, #7a6a5c);
+}
+.cracker-fitness-form input {
+  width: 100%;
+  border: 1px solid rgba(74, 55, 44, 0.18);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--surface, #fff);
+  color: inherit;
+}
+.cracker-fitness-note {
+  grid-column: 1 / -1;
+}
+.cracker-fitness-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.cracker-fitness-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.06);
+}
+.cracker-fitness-compare ul {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 4px;
+}
+@media (max-width: 520px) {
+  .cracker-fitness-form {
+    grid-template-columns: 1fr;
+  }
+}
 .cracker-nutrition-list {
   margin: 0;
   padding-left: 1.1em;
   display: grid;
   gap: 6px;
   color: var(--text);
+}
+.cracker-fitness-stations li {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.05);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-fitness-stations strong {
+  font-size: 14px;
+}
+.cracker-phase-card .phase-actions {
+  margin-top: 12px;
 }
 
 /* ---------- Top bar ------------------------------------------------------ */
