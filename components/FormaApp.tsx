@@ -478,8 +478,11 @@ export default function FormaApp() {
     const boot = async () => {
       try {
         if (!isSupabaseConfigured()) {
-          applyLocalBundle({ seedHayley: true });
-          if (!cancelled) setAuthMode("local");
+          // Cracker season: never auto-seed demo data — show onboarding when no profile.
+          applyLocalBundle({ seedHayley: false });
+          if (!cancelled) {
+            setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
+          }
           return;
         }
 
@@ -501,8 +504,8 @@ export default function FormaApp() {
         applyLocalBundle({ seedHayley: false });
         setAuthMode("gate");
       } catch {
-        applyLocalBundle({ seedHayley: true });
-        if (!cancelled) setAuthMode("local");
+        applyLocalBundle({ seedHayley: false });
+        if (!cancelled) setAuthMode("gate");
       } finally {
         if (!cancelled) setHydrated(true);
       }
@@ -1329,7 +1332,7 @@ export default function FormaApp() {
         <div className="shell">
           <div className="loading">
             {challengeMode === "cracker" ? (
-              <BrandLogo />
+              <BrandLogo variant="duo" size="hero" />
             ) : (
               <span className="wordmark">FORMA</span>
             )}
