@@ -133,6 +133,28 @@ textarea::placeholder {
   border-radius: 50%;
   background: #000;
 }
+.brand-logo-wordmark {
+  width: auto;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+}
+.brand-logo-duo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-logo-duo-hero {
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+.brand-logo-duo .brand-logo-cracker {
+  border-radius: 50%;
+  background: #000;
+  object-fit: contain;
+}
 .brand-logo-hero {
   height: 96px;
   width: 96px;
@@ -140,6 +162,86 @@ textarea::placeholder {
 .brand-logo-mark {
   height: 40px;
   width: 40px;
+}
+.cracker-auth-app,
+.cracker-onboard-app {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(196, 18, 24, 0.16), transparent 55%),
+    linear-gradient(180deg, #f7f1ea 0%, #efe6dc 100%);
+}
+.cracker-auth-screen,
+.cracker-onboard-screen {
+  gap: 12px;
+}
+.cracker-auth-kicker,
+.cracker-welcome-kicker {
+  margin: 4px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #c41218;
+  font-weight: 700;
+  text-align: center;
+}
+.cracker-auth-screen h1,
+.cracker-welcome h1 {
+  text-align: center;
+}
+.cracker-auth-screen > .muted,
+.cracker-welcome > .onboard-lead {
+  text-align: center;
+}
+.cracker-welcome {
+  align-items: center;
+  text-align: center;
+}
+.cracker-welcome-points {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+.cracker-welcome-points li {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(196, 18, 24, 0.14);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.cracker-club-grid {
+  grid-template-columns: 1fr 1fr;
+}
+.cracker-challenge-pick {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  border-color: rgba(196, 18, 24, 0.28);
+  background: #111;
+  color: #f7f1ea;
+}
+.cracker-challenge-pick .muted {
+  color: rgba(247, 241, 234, 0.78);
+}
+.cracker-challenge-pick strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  color: #fff;
+}
+.cracker-onboard-app .choice.selected,
+.cracker-auth-app .cta-btn {
+  background: #c41218;
+  color: #fff;
+  border-color: #c41218;
+}
+.cracker-onboard-app .onboard-progress span.done {
+  background: #c41218;
 }
 .challenge-banner {
   display: grid;

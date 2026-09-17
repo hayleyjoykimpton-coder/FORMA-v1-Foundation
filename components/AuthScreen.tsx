@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { signIn, signUp } from "@/lib/sync";
 
@@ -54,13 +55,15 @@ export function AuthScreen({
   };
 
   return (
-    <div className="app">
+    <div className="app challenge-cracker cracker-auth-app">
       <div className="shell">
-        <div className="screen auth-screen">
-          <span className="wordmark">FORMA</span>
+        <div className="screen auth-screen cracker-auth-screen">
+          <BrandLogo variant="duo" size="hero" />
+          <p className="cracker-auth-kicker">Life & Soul · Christmas Cracker 2026</p>
           <h1>{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
           <p className="muted">
-            Your programme, weights, history and photos stay private to your account — and sync across devices.
+            Sign in to save your Cracker programme, fitness test scores, meals and progress across
+            devices.
           </p>
 
           {!configured && (
@@ -68,9 +71,8 @@ export function AuthScreen({
               <span className="eyebrow">Setup needed</span>
               <p className="muted">
                 Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-                <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> (or{" "}
-                <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>) to enable accounts.
-                You can keep using FORMA on this device meanwhile.
+                <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> to enable accounts. You can still
+                continue on this device for now.
               </p>
             </article>
           )}
@@ -78,7 +80,11 @@ export function AuthScreen({
           {mode === "signup" && (
             <label className="field">
               <span>First name</span>
-              <input value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="Hayley" />
+              <input
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                placeholder="Jess"
+              />
             </label>
           )}
 
@@ -127,7 +133,7 @@ export function AuthScreen({
           </button>
 
           <p className="muted centered auth-note">
-            Each account is private. Unlimited people can sign up; your data never mixes with anyone else&apos;s.
+            Next you’ll choose your club and join the 6-week Christmas Cracker.
           </p>
         </div>
       </div>

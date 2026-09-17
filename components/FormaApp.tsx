@@ -47,7 +47,7 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
-import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS } from "@/lib/user";
+import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS, CLUB_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import {
   generateProgram,
@@ -112,8 +112,8 @@ import { BreathworkSession } from "@/components/Breathwork";
 import { ActionMenu } from "@/components/ActionMenu";
 import { CollapsibleSection, ScoreExplainer } from "@/components/Collapsible";
 import { MealLogSheet } from "@/components/MealLog";
-import { Onboarding } from "@/components/Onboarding";
-import type { OnboardingResult } from "@/components/Onboarding";
+import { CrackerOnboarding } from "@/components/CrackerOnboarding";
+import type { CrackerOnboardingResult } from "@/components/CrackerOnboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { BrandLogo } from "@/components/BrandLogo";
 import { brandFor, type BrandMode } from "@/lib/brand";
@@ -877,23 +877,24 @@ export default function FormaApp() {
     setSyncNote(next ? "Early Align recovery on" : "Back to your main phase");
   };
 
-  const handleOnboardingComplete = (result: OnboardingResult) => {
-    const { profile: nextProfile, inbodyDraft } = result;
+  const handleOnboardingComplete = (result: CrackerOnboardingResult) => {
+    const { profile: nextProfile } = result;
     saveProfile(nextProfile);
     setProfile(nextProfile);
-    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false });
-    if (inbodyDraft) {
-      setInBody((current) => {
-        const next = addInBodyScan(current, inbodyDraft);
-        saveInBody(next);
-        return next;
-      });
-    }
+    saveChallengeMode("cracker");
+    setChallengeMode("cracker");
+    setWeek(1);
+    setAlignActive(false);
+    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false, mode: "cracker" });
     setTab("today");
+    const clubLabel =
+      nextProfile.club && nextProfile.club in CLUB_LABELS
+        ? CLUB_LABELS[nextProfile.club as keyof typeof CLUB_LABELS]
+        : "";
     setSyncNote(
-      inbodyDraft
-        ? "Plan ready · nutrition goal set · InBody logged"
-        : "Plan ready · nutrition goal set",
+      clubLabel
+        ? `Christmas Cracker on · ${clubLabel} · Week 1 of 6`
+        : "Christmas Cracker on · Week 1 of 6",
     );
   };
 
@@ -1358,7 +1359,13 @@ export default function FormaApp() {
   }
 
   if (!profile) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return (
+      <CrackerOnboarding
+        onComplete={(result: CrackerOnboardingResult) => {
+          handleOnboardingComplete(result);
+        }}
+      />
+    );
   }
 
   if (profileOpen) {
@@ -1952,7 +1959,7 @@ export default function FormaApp() {
           <div className="screen home-screen">
             <header className="topbar">
               {challengeMode === "cracker" ? (
-                <BrandLogo />
+                <BrandLogo variant="duo" size="header" />
               ) : (
                 <span className="wordmark">FORMA</span>
               )}
@@ -1970,9 +1977,15 @@ export default function FormaApp() {
               <article className="card challenge-banner">
                 <BrandLogo size="hero" />
                 <div className="challenge-banner-copy">
-                  <span className="eyebrow">Life & Soul · {brand.challengeName}</span>
-                  <strong>{weekLabel}</strong>
-                  <p className="muted">{brand.tagline}</p>
+                  <span className="eyebrow">
+                    {profile.club && profile.club in CLUB_LABELS
+                      ? `${CLUB_LABELS[profile.club as keyof typeof CLUB_LABELS]} · Life & Soul`
+                      : "Life & Soul"}
+                  </span>
+                  <strong>{brand.challengeName}</strong>
+                  <p className="muted">
+                    {weekLabel} · {brand.tagline}
+                  </p>
                 </div>
               </article>
             ) : null}

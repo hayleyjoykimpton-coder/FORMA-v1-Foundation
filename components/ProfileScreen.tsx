@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import {
+  CLUB_LABELS,
   EQUIPMENT_LABELS,
   EXPERIENCE_LABELS,
   GENDER_LABELS,
   GOAL_LABELS,
+  LIFE_SOUL_CLUBS,
   LOCATION_LABELS,
   NUTRITION_LABELS,
   STYLE_LABELS,
@@ -15,6 +17,7 @@ import type {
   ExperienceLevel,
   Gender,
   Goal,
+  LifeSoulClub,
   NutritionGoal,
   TrainingDays,
   TrainingStyle,
@@ -176,6 +179,15 @@ export function ProfileScreen({
               <span>Email (optional)</span>
               <input value={draft.email} onChange={(event) => set("email", event.target.value)} placeholder="you@example.com" />
             </label>
+          </article>
+
+          <article className="card profile-section">
+            <span className="eyebrow">Life & Soul club</span>
+            <ChoiceRow
+              options={LIFE_SOUL_CLUBS.map((v) => ({ value: v, label: CLUB_LABELS[v] }))}
+              selected={(draft.club || "fremantle") as Exclude<LifeSoulClub, "">}
+              onSelect={(v) => set("club", v)}
+            />
           </article>
 
           <article className="card profile-section">

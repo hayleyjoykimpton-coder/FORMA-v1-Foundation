@@ -25,9 +25,13 @@ create table if not exists public.profiles (
   sleep_average numeric,
   daily_steps integer,
   nutrition_goal text not null default 'maintain',
+  club text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Existing projects: add club if missing
+alter table public.profiles add column if not exists club text not null default '';
 
 -- App blob state (workouts, history, programme meta, progress, photos, session draft)
 create table if not exists public.user_state (
