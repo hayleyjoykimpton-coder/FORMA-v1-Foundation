@@ -130,8 +130,8 @@ textarea::placeholder {
   height: 44px;
   width: 44px;
   object-fit: contain;
-  border-radius: 50%;
-  background: #000;
+  border-radius: 0;
+  background: transparent;
 }
 .brand-logo-wordmark {
   width: auto;
@@ -151,8 +151,8 @@ textarea::placeholder {
   text-align: center;
 }
 .brand-logo-duo .brand-logo-cracker {
-  border-radius: 50%;
-  background: #000;
+  border-radius: 0;
+  background: transparent;
   object-fit: contain;
 }
 .brand-logo-hero {
