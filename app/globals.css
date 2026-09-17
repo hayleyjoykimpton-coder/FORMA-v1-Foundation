@@ -648,6 +648,34 @@ textarea::placeholder {
   flex-direction: column;
   gap: 12px;
 }
+.cracker-recipe-hero {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 16px;
+  background: rgba(196, 18, 24, 0.06);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: rgba(196, 18, 24, 0.06);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-thumb-empty {
+  display: inline-block;
+  background: linear-gradient(
+    135deg,
+    rgba(196, 18, 24, 0.08),
+    rgba(196, 18, 24, 0.02)
+  );
+}
+.cracker-recipe-row {
+  padding-left: 10px;
+}
 .cracker-nutrition-back {
   border: 0;
   background: transparent;

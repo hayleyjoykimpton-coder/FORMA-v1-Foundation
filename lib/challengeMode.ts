@@ -1,15 +1,22 @@
 /**
  * Temporary Life & Soul · Cracker Challenge mode inside FORMA.
  * Same localStorage + Supabase — no separate database.
+ *
+ * Seasonal lock: while CRACKER_SEASON_ACTIVE is true, FORMA programmes are
+ * disabled — only Christmas Cracker workouts are generated and shown.
  */
 
 import type { BrandMode } from "./brand";
 
 const KEY = "forma-challenge-mode-v1";
 
+/** Flip to false after the Christmas Cracker season to restore FORMA programmes. */
+export const CRACKER_SEASON_ACTIVE = true;
+
 export const CRACKER_WEEKS = 6;
 
 export function loadChallengeMode(): BrandMode {
+  if (CRACKER_SEASON_ACTIVE) return "cracker";
   if (typeof window === "undefined") return "forma";
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -22,6 +29,11 @@ export function loadChallengeMode(): BrandMode {
 export function saveChallengeMode(mode: BrandMode): void {
   if (typeof window === "undefined") return;
   try {
+    // Seasonal lock: keep storage on cracker so a stale "forma" preference cannot reopen FORMA programmes.
+    if (CRACKER_SEASON_ACTIVE) {
+      window.localStorage.setItem(KEY, "cracker");
+      return;
+    }
     if (mode === "forma") window.localStorage.removeItem(KEY);
     else window.localStorage.setItem(KEY, mode);
   } catch {

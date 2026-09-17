@@ -118,6 +118,7 @@ import { ProfileScreen } from "@/components/ProfileScreen";
 import { BrandLogo } from "@/components/BrandLogo";
 import { brandFor, type BrandMode } from "@/lib/brand";
 import {
+  CRACKER_SEASON_ACTIVE,
   CRACKER_WEEKS,
   challengeWeekLabel,
   crackerWeek,
@@ -301,7 +302,7 @@ export default function FormaApp() {
   const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
-  const [challengeMode, setChallengeMode] = useState<BrandMode>("forma");
+  const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
@@ -799,7 +800,8 @@ export default function FormaApp() {
     nextProfile: UserProfile,
     options?: { week?: number; alignActive?: boolean; phaseId?: PhaseId; mode?: BrandMode },
   ) => {
-    const mode = options?.mode ?? challengeMode;
+    // Seasonal lock: never generate FORMA programmes while Cracker season is active.
+    const mode = CRACKER_SEASON_ACTIVE ? "cracker" : (options?.mode ?? challengeMode);
     const nextAlign = mode === "cracker" ? false : (options?.alignActive ?? alignActive);
     const nextWeek =
       mode === "cracker"
@@ -1387,19 +1389,8 @@ export default function FormaApp() {
           );
         }}
         challengeMode={challengeMode}
-        onChallengeModeChange={(mode) => {
-          saveChallengeMode(mode);
-          setChallengeMode(mode);
-          if (mode === "cracker") {
-            setWeek(1);
-            setAlignActive(false);
-            applyGeneratedProgram(profile, { week: 1, alignActive: false, mode: "cracker" });
-            setSyncNote("Christmas Cracker on · Week 1 fitness test + Lower/Upper/Full Body");
-          } else {
-            applyGeneratedProgram(profile, { week: weekInCycle, alignActive, mode: "forma" });
-            setSyncNote("Back to FORMA");
-          }
-        }}
+        // Seasonal lock: FORMA programmes disabled — no toggle back to FORMA workouts.
+        onChallengeModeChange={undefined}
         reminderPrefs={{
           enabled: reminderPrefs.enabled,
           browserNotify: reminderPrefs.browserNotify,

@@ -7,6 +7,7 @@ import {
   type CrackerDessert,
   type CrackerRecipe,
 } from "@/lib/crackerRecipes";
+import { crackerRecipeImage } from "@/lib/crackerRecipeImages";
 
 type Props = {
   weekInCycle: number;
@@ -23,6 +24,29 @@ const SERVE_LABEL: Record<ServeTab, string> = {
   training: "Training serve",
   family: "Family of 4",
 };
+
+function RecipeImage({
+  title,
+  className,
+  priority,
+}: {
+  title: string;
+  className: string;
+  priority?: boolean;
+}) {
+  const src = crackerRecipeImage(title);
+  if (!src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={title}
+      className={className}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+    />
+  );
+}
 
 function ServeDetail({
   title,
@@ -54,6 +78,7 @@ function ServeDetail({
       <button type="button" className="cracker-nutrition-back" onClick={onBack}>
         ← Recipes
       </button>
+      <RecipeImage title={title} className="cracker-recipe-hero" priority />
       {mealLabel ? <span className="eyebrow">{mealLabel}</span> : null}
       <h3 className="cracker-recipe-title">{title}</h3>
 
@@ -70,22 +95,25 @@ function ServeDetail({
         ))}
       </div>
 
-      {ingredients.length ? (
-        <ul className="cracker-wellness-list">
-          {ingredients.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      ) : (
-        <p className="muted">Use the Base serve for this option.</p>
-      )}
+      <div className="cracker-wellness-section">
+        <strong>Ingredients</strong>
+        {ingredients.length ? (
+          <ul className="cracker-wellness-list">
+            {ingredients.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">Use the Base serve for this option.</p>
+        )}
+      </div>
 
       {method.length ? (
         <div className="cracker-wellness-section">
           <strong>Method</strong>
           <ol className="cracker-method-list">
-            {method.map((step) => (
-              <li key={step.slice(0, 48)}>{step}</li>
+            {method.map((step, index) => (
+              <li key={`${index}-${step.slice(0, 40)}`}>{step}</li>
             ))}
           </ol>
         </div>
@@ -135,8 +163,8 @@ export function CrackerRecipesPanel({ weekInCycle }: Props) {
             Week {week} · {weekTitle}
           </strong>
           <p className="muted">
-            Open Day 1–7 meals below — Base, Training and Family of 4 serves, plus dessert,
-            snacks and emergency meals.
+            Open Day 1–7 meals below — photo, ingredients and numbered steps for each recipe,
+            with Base, Training and Family of 4 serves.
           </p>
         </div>
         <span className="cracker-wellness-chevron">{open ? "−" : "+"}</span>
@@ -212,24 +240,39 @@ export function CrackerRecipesPanel({ weekInCycle }: Props) {
               <div className="cracker-nutrition-list-block">
                 <span className="eyebrow">Recipes</span>
                 <div className="cracker-recipe-rows">
-                  {weekData.recipes.map((recipe) => (
-                    <button
-                      key={`${recipe.day}-${recipe.meal}`}
-                      type="button"
-                      className="cracker-recipe-row"
-                      onClick={() => setDetail({ kind: "recipe", recipe })}
-                    >
-                      <span className="cracker-recipe-row-copy">
-                        <small>
-                          Day {recipe.day} · {recipe.meal}
-                        </small>
-                        <strong>{recipe.title}</strong>
-                      </span>
-                      <span className="cracker-recipe-chevron" aria-hidden>
-                        ›
-                      </span>
-                    </button>
-                  ))}
+                  {weekData.recipes.map((recipe) => {
+                    const image = crackerRecipeImage(recipe.title);
+                    return (
+                      <button
+                        key={`${recipe.day}-${recipe.meal}`}
+                        type="button"
+                        className="cracker-recipe-row"
+                        onClick={() => setDetail({ kind: "recipe", recipe })}
+                      >
+                        {image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={image}
+                            alt=""
+                            className="cracker-recipe-thumb"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <span className="cracker-recipe-thumb cracker-recipe-thumb-empty" aria-hidden />
+                        )}
+                        <span className="cracker-recipe-row-copy">
+                          <small>
+                            Day {recipe.day} · {recipe.meal}
+                          </small>
+                          <strong>{recipe.title}</strong>
+                        </span>
+                        <span className="cracker-recipe-chevron" aria-hidden>
+                          ›
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -243,6 +286,18 @@ export function CrackerRecipesPanel({ weekInCycle }: Props) {
                       setDetail({ kind: "dessert", dessert: weekData.dessert! })
                     }
                   >
+                    {crackerRecipeImage(weekData.dessert.title) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={crackerRecipeImage(weekData.dessert.title)}
+                        alt=""
+                        className="cracker-recipe-thumb"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span className="cracker-recipe-thumb cracker-recipe-thumb-empty" aria-hidden />
+                    )}
                     <span className="cracker-recipe-row-copy">
                       <small>Optional</small>
                       <strong>{weekData.dessert.title}</strong>
