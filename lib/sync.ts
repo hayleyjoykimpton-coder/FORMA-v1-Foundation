@@ -55,6 +55,7 @@ type ProfileRow = {
   sleep_average: number | null;
   daily_steps: number | null;
   nutrition_goal: string;
+  club: string;
   created_at: string;
 };
 
@@ -99,6 +100,7 @@ function rowToProfile(row: ProfileRow): UserProfile {
     sleepAverage: row.sleep_average == null ? null : Number(row.sleep_average),
     dailySteps: row.daily_steps,
     nutritionGoal: row.nutrition_goal as UserProfile["nutritionGoal"],
+    club: (row.club as UserProfile["club"]) || "",
     createdAt: row.created_at,
   });
 }
@@ -125,6 +127,7 @@ function profileToRow(profile: UserProfile) {
     sleep_average: profile.sleepAverage,
     daily_steps: profile.dailySteps,
     nutrition_goal: profile.nutritionGoal,
+    club: profile.club || "",
     created_at: profile.createdAt,
     updated_at: new Date().toISOString(),
   };

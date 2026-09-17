@@ -133,6 +133,28 @@ textarea::placeholder {
   border-radius: 50%;
   background: #000;
 }
+.brand-logo-wordmark {
+  width: auto;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+}
+.brand-logo-duo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-logo-duo-hero {
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+.brand-logo-duo .brand-logo-cracker {
+  border-radius: 50%;
+  background: #000;
+  object-fit: contain;
+}
 .brand-logo-hero {
   height: 96px;
   width: 96px;
@@ -140,6 +162,86 @@ textarea::placeholder {
 .brand-logo-mark {
   height: 40px;
   width: 40px;
+}
+.cracker-auth-app,
+.cracker-onboard-app {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(196, 18, 24, 0.16), transparent 55%),
+    linear-gradient(180deg, #f7f1ea 0%, #efe6dc 100%);
+}
+.cracker-auth-screen,
+.cracker-onboard-screen {
+  gap: 12px;
+}
+.cracker-auth-kicker,
+.cracker-welcome-kicker {
+  margin: 4px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #c41218;
+  font-weight: 700;
+  text-align: center;
+}
+.cracker-auth-screen h1,
+.cracker-welcome h1 {
+  text-align: center;
+}
+.cracker-auth-screen > .muted,
+.cracker-welcome > .onboard-lead {
+  text-align: center;
+}
+.cracker-welcome {
+  align-items: center;
+  text-align: center;
+}
+.cracker-welcome-points {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+.cracker-welcome-points li {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(196, 18, 24, 0.14);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.cracker-club-grid {
+  grid-template-columns: 1fr 1fr;
+}
+.cracker-challenge-pick {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  border-color: rgba(196, 18, 24, 0.28);
+  background: #111;
+  color: #f7f1ea;
+}
+.cracker-challenge-pick .muted {
+  color: rgba(247, 241, 234, 0.78);
+}
+.cracker-challenge-pick strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  color: #fff;
+}
+.cracker-onboard-app .choice.selected,
+.cracker-auth-app .cta-btn {
+  background: #c41218;
+  color: #fff;
+  border-color: #c41218;
+}
+.cracker-onboard-app .onboard-progress span.done {
+  background: #c41218;
 }
 .challenge-banner {
   display: grid;
@@ -339,6 +441,613 @@ textarea::placeholder {
 }
 .cracker-phase-card .phase-actions {
   margin-top: 12px;
+}
+.cracker-wellness-card,
+.cracker-recipes-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-color: rgba(196, 18, 24, 0.28);
+  padding: 0;
+  overflow: hidden;
+}
+.cracker-wellness-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.cracker-wellness-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cracker-wellness-heading strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.cracker-wellness-chevron {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted, #7a6a5c);
+  padding-top: 2px;
+}
+.cracker-wellness-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(196, 18, 24, 0.14);
+  padding-top: 14px;
+}
+.cracker-week-pills,
+.cracker-day-pills,
+.cracker-meal-pills,
+.cracker-serve-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cracker-week-pills button,
+.cracker-day-pills button,
+.cracker-meal-pills button,
+.cracker-serve-pills button {
+  border: 1px solid rgba(196, 18, 24, 0.28);
+  background: transparent;
+  color: inherit;
+  border-radius: 10px;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.cracker-week-pills button.active,
+.cracker-day-pills button.active,
+.cracker-meal-pills button.active,
+.cracker-serve-pills button.active {
+  background: #c41218;
+  border-color: #c41218;
+  color: #fff;
+}
+.cracker-week-pills button.overview {
+  margin-left: auto;
+}
+.cracker-wellness-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cracker-wellness-list {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 6px;
+}
+.cracker-wellness-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.06);
+}
+.cracker-wellness-callout p,
+.cracker-plan-grid p,
+.cracker-recipe-why {
+  margin: 0;
+}
+.cracker-plan-grid {
+  display: grid;
+  gap: 10px;
+}
+.cracker-plan-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.05);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cracker-recipe-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0;
+}
+.cracker-method-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+}
+.cracker-wellness-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cracker-nutrition-hub .cracker-wellness-heading strong {
+  font-size: 24px;
+}
+.cracker-nutrition-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cracker-nutrition-intro strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.cracker-nutrition-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cracker-recipe-rows {
+  display: grid;
+  gap: 8px;
+}
+.cracker-recipe-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 1px solid rgba(196, 18, 24, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: inherit;
+  cursor: pointer;
+}
+.cracker-recipe-row:active {
+  transform: translateY(1px);
+}
+.cracker-recipe-row-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cracker-recipe-row-copy small {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c41218;
+  font-weight: 700;
+}
+.cracker-recipe-row-copy strong {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+.cracker-recipe-chevron {
+  flex: 0 0 16px;
+  font-size: 22px;
+  color: #8a8078;
+}
+.cracker-nutrition-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cracker-recipe-hero {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 16px;
+  background: rgba(196, 18, 24, 0.06);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: rgba(196, 18, 24, 0.06);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-thumb-empty {
+  display: inline-block;
+  background: linear-gradient(
+    135deg,
+    rgba(196, 18, 24, 0.08),
+    rgba(196, 18, 24, 0.02)
+  );
+}
+.cracker-recipe-row {
+  padding-left: 10px;
+}
+.cracker-nutrition-back {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #7a6a5c;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+.cracker-emergency-list {
+  display: grid;
+  gap: 8px;
+}
+.cracker-emergency-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.05);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-emergency-card p {
+  margin: 0;
+}
+
+
+/* ---------- Nutrition hub (Cracker) --------------------------------------- */
+
+.nutrition-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.nutrition-hub-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 2px 8px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(196, 18, 24, 0.1), transparent 55%),
+    linear-gradient(180deg, rgba(196, 18, 24, 0.04), transparent 70%);
+  border-radius: 0 0 18px 18px;
+}
+.nutrition-hub-title {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.nutrition-hub-lead {
+  margin: 0;
+  max-width: 36rem;
+}
+.nutrition-hub-credit {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8a8078;
+}
+.nutrition-hub-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.nutrition-hub-nav::-webkit-scrollbar { display: none; }
+.nutrition-hub-nav button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #7a6a5c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nutrition-hub-nav button.active {
+  color: #c41218;
+  border-bottom-color: #c41218;
+}
+.nutrition-dash {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.nutrition-dash-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 14px 14px 16px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(196, 18, 24, 0.08), rgba(36, 25, 19, 0.03));
+  color: inherit;
+  cursor: pointer;
+  min-height: 88px;
+}
+.nutrition-dash-tile strong {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 400;
+}
+.nutrition-panel,
+.nutrition-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.nutrition-week-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(196, 18, 24, 0.14), rgba(196, 18, 24, 0.03));
+}
+.nutrition-week-banner h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 400;
+}
+.nutrition-status {
+  display: inline-flex;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 0;
+  color: #c41218;
+}
+.nutrition-soft-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nutrition-soft-block ul {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 4px;
+}
+.nutrition-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.nutrition-progress-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nutrition-week-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.nutrition-week-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(36, 25, 19, 0.04);
+}
+.nutrition-week-chip-done {
+  background: rgba(196, 18, 24, 0.1);
+}
+.nutrition-week-chip-in-progress {
+  background: rgba(196, 18, 24, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(196, 18, 24, 0.35);
+}
+.nutrition-week-chip-locked {
+  opacity: 0.55;
+}
+.nutrition-week-chip strong {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 400;
+}
+.nutrition-week-chip small,
+.nutrition-progress-note {
+  color: #7a6a5c;
+}
+.nutrition-day-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nutrition-meal-cards {
+  display: grid;
+  gap: 10px;
+}
+.nutrition-meal-card {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+.nutrition-meal-card-img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 14px;
+  background: rgba(196, 18, 24, 0.08);
+}
+.nutrition-meal-card-img-empty {
+  display: block;
+  background: linear-gradient(145deg, rgba(196, 18, 24, 0.14), rgba(36, 25, 19, 0.04));
+}
+.nutrition-meal-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 0;
+}
+.nutrition-meal-card-copy strong {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+.nutrition-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.nutrition-tag-row small {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c41218;
+  font-weight: 700;
+}
+.nutrition-emergency-grid {
+  display: grid;
+  gap: 8px;
+}
+.nutrition-emergency {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 10px;
+  border-bottom: 1px solid rgba(36, 25, 19, 0.08);
+}
+.nutrition-emergency p { margin: 0; }
+.nutrition-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nutrition-search input,
+.nutrition-shop-add input {
+  width: 100%;
+  border: 1px solid rgba(74, 55, 44, 0.18);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  background: transparent;
+  color: inherit;
+}
+.nutrition-learn-grid {
+  display: grid;
+  gap: 10px;
+}
+.nutrition-learn-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 14px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(36, 25, 19, 0.1);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.nutrition-learn-card strong {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 400;
+}
+.nutrition-learn-card.done strong::after {
+  content: " ✓";
+  color: #c41218;
+  font-size: 14px;
+}
+.nutrition-learn-body {
+  display: grid;
+  gap: 10px;
+}
+.nutrition-learn-body p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.45;
+}
+.nutrition-shop-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.nutrition-shop-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nutrition-shop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.nutrition-shop-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(36, 25, 19, 0.06);
+}
+.nutrition-shop-list li.checked span {
+  text-decoration: line-through;
+  color: #8a8078;
+}
+.nutrition-shop-list label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.nutrition-shop-list button {
+  border: 0;
+  background: transparent;
+  color: #8a8078;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+.nutrition-saved-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(36, 25, 19, 0.08);
+}
+@media (max-width: 520px) {
+  .nutrition-hub-title { font-size: 26px; }
+  .nutrition-dash { grid-template-columns: 1fr; }
 }
 
 /* ---------- Top bar ------------------------------------------------------ */

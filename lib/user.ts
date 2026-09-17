@@ -15,6 +15,7 @@ export type EquipmentAccess = "full_gym" | "dumbbells" | "bands" | "bodyweight";
 export type TrainingStyle = "strength" | "hypertrophy" | "pilates" | "mixed";
 export type Gender = "female" | "male" | "other" | "unspecified";
 export type NutritionGoal = "maintain" | "lose" | "gain" | "recomp";
+export type LifeSoulClub = "fremantle" | "broome" | "port_hedland" | "karratha" | "";
 
 export type UserProfile = {
   id: string;
@@ -37,6 +38,8 @@ export type UserProfile = {
   sleepAverage: number | null;
   dailySteps: number | null;
   nutritionGoal: NutritionGoal;
+  /** Life & Soul club for Christmas Cracker members. */
+  club: LifeSoulClub;
   createdAt: string;
 };
 
@@ -90,7 +93,23 @@ export const NUTRITION_LABELS: Record<NutritionGoal, string> = {
   recomp: "Recomposition",
 };
 
+export const CLUB_LABELS: Record<Exclude<LifeSoulClub, "">, string> = {
+  fremantle: "Fremantle",
+  broome: "Broome",
+  port_hedland: "Port Hedland",
+  karratha: "Karratha",
+};
+
+export const LIFE_SOUL_CLUBS = Object.keys(CLUB_LABELS) as Exclude<LifeSoulClub, "">[];
+
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+function normalizeClub(value: unknown): LifeSoulClub {
+  if (value === "fremantle" || value === "broome" || value === "port_hedland" || value === "karratha") {
+    return value;
+  }
+  return "";
+}
 
 /** Build a complete profile from partial input, filling sensible defaults. */
 export function createProfile(input: Partial<UserProfile> & { firstName: string }): UserProfile {
@@ -115,6 +134,7 @@ export function createProfile(input: Partial<UserProfile> & { firstName: string 
     sleepAverage: input.sleepAverage ?? null,
     dailySteps: input.dailySteps ?? null,
     nutritionGoal: input.nutritionGoal ?? "maintain",
+    club: normalizeClub(input.club),
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
 }

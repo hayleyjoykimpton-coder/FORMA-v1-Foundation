@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import {
+  CLUB_LABELS,
   EQUIPMENT_LABELS,
   EXPERIENCE_LABELS,
   GENDER_LABELS,
   GOAL_LABELS,
+  LIFE_SOUL_CLUBS,
   LOCATION_LABELS,
   NUTRITION_LABELS,
   STYLE_LABELS,
@@ -15,6 +17,7 @@ import type {
   ExperienceLevel,
   Gender,
   Goal,
+  LifeSoulClub,
   NutritionGoal,
   TrainingDays,
   TrainingStyle,
@@ -129,7 +132,16 @@ export function ProfileScreen({
 
           <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
 
-          {onChallengeModeChange ? (
+          {challengeMode === "cracker" ? (
+            <article className="card profile-section">
+              <span className="eyebrow">Challenge mode</span>
+              <p className="muted">
+                Christmas Cracker season is active — only Cracker workouts and programmes are available
+                for now. FORMA programme generation is paused until the challenge ends.
+              </p>
+              <p className="auth-info">Life & Soul · Christmas Cracker · 6 weeks</p>
+            </article>
+          ) : onChallengeModeChange ? (
             <article className="card profile-section">
               <span className="eyebrow">Challenge mode</span>
               <p className="muted">
@@ -138,14 +150,10 @@ export function ProfileScreen({
               </p>
               <button
                 type="button"
-                className={challengeMode === "cracker" ? "cta-btn" : "secondary-btn"}
-                onClick={() =>
-                  onChallengeModeChange(challengeMode === "cracker" ? "forma" : "cracker")
-                }
+                className="secondary-btn"
+                onClick={() => onChallengeModeChange("cracker")}
               >
-                {challengeMode === "cracker"
-                  ? "Christmas Cracker is on · tap to exit"
-                  : "Start Christmas Cracker (6 weeks)"}
+                Start Christmas Cracker (6 weeks)
               </button>
             </article>
           ) : null}
@@ -176,6 +184,15 @@ export function ProfileScreen({
               <span>Email (optional)</span>
               <input value={draft.email} onChange={(event) => set("email", event.target.value)} placeholder="you@example.com" />
             </label>
+          </article>
+
+          <article className="card profile-section">
+            <span className="eyebrow">Life & Soul club</span>
+            <ChoiceRow
+              options={LIFE_SOUL_CLUBS.map((v) => ({ value: v, label: CLUB_LABELS[v] }))}
+              selected={(draft.club || "fremantle") as Exclude<LifeSoulClub, "">}
+              onSelect={(v) => set("club", v)}
+            />
           </article>
 
           <article className="card profile-section">

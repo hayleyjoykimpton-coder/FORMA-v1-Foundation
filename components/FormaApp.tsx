@@ -47,7 +47,7 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
-import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS } from "@/lib/user";
+import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS, CLUB_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import {
   generateProgram,
@@ -112,12 +112,13 @@ import { BreathworkSession } from "@/components/Breathwork";
 import { ActionMenu } from "@/components/ActionMenu";
 import { CollapsibleSection, ScoreExplainer } from "@/components/Collapsible";
 import { MealLogSheet } from "@/components/MealLog";
-import { Onboarding } from "@/components/Onboarding";
-import type { OnboardingResult } from "@/components/Onboarding";
+import { CrackerOnboarding } from "@/components/CrackerOnboarding";
+import type { CrackerOnboardingResult } from "@/components/CrackerOnboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { BrandLogo } from "@/components/BrandLogo";
 import { brandFor, type BrandMode } from "@/lib/brand";
 import {
+  CRACKER_SEASON_ACTIVE,
   CRACKER_WEEKS,
   challengeWeekLabel,
   crackerWeek,
@@ -132,6 +133,8 @@ import {
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
 import { CrackerFitnessPanel } from "@/components/CrackerFitnessPanel";
+import { NutritionHub } from "@/components/NutritionHub";
+import { CrackerWellnessPanel } from "@/components/CrackerWellnessPanel";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -299,7 +302,7 @@ export default function FormaApp() {
   const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
-  const [challengeMode, setChallengeMode] = useState<BrandMode>("forma");
+  const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
@@ -476,8 +479,11 @@ export default function FormaApp() {
     const boot = async () => {
       try {
         if (!isSupabaseConfigured()) {
-          applyLocalBundle({ seedHayley: true });
-          if (!cancelled) setAuthMode("local");
+          // Cracker season: never auto-seed demo data — show onboarding when no profile.
+          applyLocalBundle({ seedHayley: false });
+          if (!cancelled) {
+            setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
+          }
           return;
         }
 
@@ -499,8 +505,8 @@ export default function FormaApp() {
         applyLocalBundle({ seedHayley: false });
         setAuthMode("gate");
       } catch {
-        applyLocalBundle({ seedHayley: true });
-        if (!cancelled) setAuthMode("local");
+        applyLocalBundle({ seedHayley: false });
+        if (!cancelled) setAuthMode("gate");
       } finally {
         if (!cancelled) setHydrated(true);
       }
@@ -794,7 +800,8 @@ export default function FormaApp() {
     nextProfile: UserProfile,
     options?: { week?: number; alignActive?: boolean; phaseId?: PhaseId; mode?: BrandMode },
   ) => {
-    const mode = options?.mode ?? challengeMode;
+    // Seasonal lock: never generate FORMA programmes while Cracker season is active.
+    const mode = CRACKER_SEASON_ACTIVE ? "cracker" : (options?.mode ?? challengeMode);
     const nextAlign = mode === "cracker" ? false : (options?.alignActive ?? alignActive);
     const nextWeek =
       mode === "cracker"
@@ -875,23 +882,24 @@ export default function FormaApp() {
     setSyncNote(next ? "Early Align recovery on" : "Back to your main phase");
   };
 
-  const handleOnboardingComplete = (result: OnboardingResult) => {
-    const { profile: nextProfile, inbodyDraft } = result;
+  const handleOnboardingComplete = (result: CrackerOnboardingResult) => {
+    const { profile: nextProfile } = result;
     saveProfile(nextProfile);
     setProfile(nextProfile);
-    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false });
-    if (inbodyDraft) {
-      setInBody((current) => {
-        const next = addInBodyScan(current, inbodyDraft);
-        saveInBody(next);
-        return next;
-      });
-    }
+    saveChallengeMode("cracker");
+    setChallengeMode("cracker");
+    setWeek(1);
+    setAlignActive(false);
+    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false, mode: "cracker" });
     setTab("today");
+    const clubLabel =
+      nextProfile.club && nextProfile.club in CLUB_LABELS
+        ? CLUB_LABELS[nextProfile.club as keyof typeof CLUB_LABELS]
+        : "";
     setSyncNote(
-      inbodyDraft
-        ? "Plan ready · nutrition goal set · InBody logged"
-        : "Plan ready · nutrition goal set",
+      clubLabel
+        ? `Christmas Cracker on · ${clubLabel} · Week 1 of 6`
+        : "Christmas Cracker on · Week 1 of 6",
     );
   };
 
@@ -1326,7 +1334,7 @@ export default function FormaApp() {
         <div className="shell">
           <div className="loading">
             {challengeMode === "cracker" ? (
-              <BrandLogo />
+              <BrandLogo variant="duo" size="hero" />
             ) : (
               <span className="wordmark">FORMA</span>
             )}
@@ -1356,7 +1364,13 @@ export default function FormaApp() {
   }
 
   if (!profile) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return (
+      <CrackerOnboarding
+        onComplete={(result: CrackerOnboardingResult) => {
+          handleOnboardingComplete(result);
+        }}
+      />
+    );
   }
 
   if (profileOpen) {
@@ -1375,19 +1389,8 @@ export default function FormaApp() {
           );
         }}
         challengeMode={challengeMode}
-        onChallengeModeChange={(mode) => {
-          saveChallengeMode(mode);
-          setChallengeMode(mode);
-          if (mode === "cracker") {
-            setWeek(1);
-            setAlignActive(false);
-            applyGeneratedProgram(profile, { week: 1, alignActive: false, mode: "cracker" });
-            setSyncNote("Christmas Cracker on · Week 1 fitness test + Lower/Upper/Full Body");
-          } else {
-            applyGeneratedProgram(profile, { week: weekInCycle, alignActive, mode: "forma" });
-            setSyncNote("Back to FORMA");
-          }
-        }}
+        // Seasonal lock: FORMA programmes disabled — no toggle back to FORMA workouts.
+        onChallengeModeChange={undefined}
         reminderPrefs={{
           enabled: reminderPrefs.enabled,
           browserNotify: reminderPrefs.browserNotify,
@@ -1950,7 +1953,7 @@ export default function FormaApp() {
           <div className="screen home-screen">
             <header className="topbar">
               {challengeMode === "cracker" ? (
-                <BrandLogo />
+                <BrandLogo variant="duo" size="header" />
               ) : (
                 <span className="wordmark">FORMA</span>
               )}
@@ -1968,15 +1971,25 @@ export default function FormaApp() {
               <article className="card challenge-banner">
                 <BrandLogo size="hero" />
                 <div className="challenge-banner-copy">
-                  <span className="eyebrow">Life & Soul · {brand.challengeName}</span>
-                  <strong>{weekLabel}</strong>
-                  <p className="muted">{brand.tagline}</p>
+                  <span className="eyebrow">
+                    {profile.club && profile.club in CLUB_LABELS
+                      ? `${CLUB_LABELS[profile.club as keyof typeof CLUB_LABELS]} · Life & Soul`
+                      : "Life & Soul"}
+                  </span>
+                  <strong>{brand.challengeName}</strong>
+                  <p className="muted">
+                    {weekLabel} · {brand.tagline}
+                  </p>
                 </div>
               </article>
             ) : null}
 
             {challengeMode === "cracker" ? (
               <CrackerFitnessPanel weekInCycle={crackerWeek(weekInCycle)} />
+            ) : null}
+
+            {challengeMode === "cracker" ? (
+              <CrackerWellnessPanel weekInCycle={crackerWeek(weekInCycle)} />
             ) : null}
 
             <section
@@ -2351,14 +2364,25 @@ export default function FormaApp() {
             {homePrefs.modules.some((m) => m.id === "fuel" && m.visible) ? (
               <div className="home-module" style={{ order: homeModuleOrderIndex("fuel") }}>
             <CollapsibleSection
-              eyebrow="Fuel"
-              title="Nutrition & meals"
-              summary="Log meals and track macros against your goal"
-              open={homeModuleOpen("fuel", nextAction.kind === "meal")}
+              eyebrow={challengeMode === "cracker" ? "Nutrition" : "Fuel"}
+              title={challengeMode === "cracker" ? "Fuel your six weeks" : "Nutrition & meals"}
+              summary={
+                challengeMode === "cracker"
+                  ? "This week, meal plan, recipes, learn, shopping list + meal log"
+                  : "Log meals and track macros against your goal"
+              }
+              open={homeModuleOpen("fuel", nextAction.kind === "meal" || challengeMode === "cracker")}
               onOpenChange={(open) => setModuleOpen("fuel", open)}
               pinned={modulePinned("fuel")}
             >
-<SectionHeading eyebrow="Nutrition" title="Fuel your day" />
+{challengeMode === "cracker" ? (
+              <>
+                <NutritionHub weekInCycle={crackerWeek(weekInCycle)} />
+                <SectionHeading eyebrow="Meal log" title="Track today" />
+              </>
+            ) : (
+              <SectionHeading eyebrow="Nutrition" title="Fuel your day" />
+            )}
             {(() => {
               const nutritionTargets = targetsForProfile(profile);
               const eaten = dayMacroTotals(meals, todayISO);
