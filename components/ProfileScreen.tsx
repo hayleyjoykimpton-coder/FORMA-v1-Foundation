@@ -37,6 +37,8 @@ export function ProfileScreen({
   onRebuildProgramme,
   reminderPrefs,
   onReminderPrefsChange,
+  challengeMode = "forma",
+  onChallengeModeChange,
   accountMode = "local",
   syncNote = null,
   onSignOut,
@@ -57,6 +59,8 @@ export function ProfileScreen({
     browserNotify: boolean;
     preferredWindow?: "anytime" | "morning" | "afternoon" | "evening";
   }) => void;
+  challengeMode?: "forma" | "cracker";
+  onChallengeModeChange?: (mode: "forma" | "cracker") => void;
   accountMode?: "local" | "cloud" | "gate" | "booting";
   syncNote?: string | null;
   onSignOut?: () => void | Promise<void>;
@@ -124,6 +128,27 @@ export function ProfileScreen({
           </div>
 
           <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
+
+          {onChallengeModeChange ? (
+            <article className="card profile-section">
+              <span className="eyebrow">Challenge mode</span>
+              <p className="muted">
+                Temporary Life & Soul · Christmas Cracker skin inside FORMA — same account and data, no new
+                database. Turn off anytime to return to FORMA branding.
+              </p>
+              <button
+                type="button"
+                className={challengeMode === "cracker" ? "cta-btn" : "secondary-btn"}
+                onClick={() =>
+                  onChallengeModeChange(challengeMode === "cracker" ? "forma" : "cracker")
+                }
+              >
+                {challengeMode === "cracker"
+                  ? "Christmas Cracker is on · tap to exit"
+                  : "Start Christmas Cracker (6 weeks)"}
+              </button>
+            </article>
+          ) : null}
 
           <article className="card profile-section">
             <span className="eyebrow">Account</span>

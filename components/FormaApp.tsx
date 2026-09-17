@@ -115,6 +115,23 @@ import { MealLogSheet } from "@/components/MealLog";
 import { Onboarding } from "@/components/Onboarding";
 import type { OnboardingResult } from "@/components/Onboarding";
 import { ProfileScreen } from "@/components/ProfileScreen";
+import { BrandLogo } from "@/components/BrandLogo";
+import { brandFor, type BrandMode } from "@/lib/brand";
+import {
+  CRACKER_WEEKS,
+  challengeWeekLabel,
+  crackerWeek,
+  isCrackerFitnessTestWeek,
+  loadChallengeMode,
+  nextCrackerWeek,
+  saveChallengeMode,
+} from "@/lib/challengeMode";
+import { CRACKER_FUEL_HINT, CRACKER_NUTRITION_GUIDE } from "@/lib/crackerGuide";
+import {
+  buildCrackerWorkouts,
+  crackerLevelFromExperience,
+} from "@/lib/crackerProgram";
+import { CrackerFitnessPanel } from "@/components/CrackerFitnessPanel";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -282,6 +299,7 @@ export default function FormaApp() {
   const [progressSubTab, setProgressSubTab] = useState<ProgressSubTab>("overview");
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
+  const [challengeMode, setChallengeMode] = useState<BrandMode>("forma");
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
@@ -289,11 +307,23 @@ export default function FormaApp() {
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
     const state = loadForma();
     const savedProfile = opts?.seedHayley === false ? loadProfile() : ensureHayleyData();
+    const mode = loadChallengeMode();
     let nextWorkouts = state.workouts;
+    const weekForMode =
+      mode === "cracker" ? crackerWeek(state.week) : cycleWeek(state.week);
 
     // Rebuild when schema is behind OR workouts still use legacy titles (Full Body A/B).
+    // In Cracker mode always rebuild from the 6-week challenge plan.
     const storedSchema = state.needsProgramRefresh ? 0 : PROGRAM_SCHEMA_VERSION;
-    if (savedProfile && programmeNeedsUpgrade(state.workouts, savedProfile, storedSchema)) {
+    if (savedProfile && mode === "cracker") {
+      nextWorkouts = transferExerciseWeights(
+        state.workouts,
+        buildCrackerWorkouts(
+          crackerLevelFromExperience(savedProfile.experienceLevel),
+          weekForMode,
+        ),
+      );
+    } else if (savedProfile && programmeNeedsUpgrade(state.workouts, savedProfile, storedSchema)) {
       nextWorkouts = transferExerciseWeights(
         state.workouts,
         generateProgram(savedProfile, { week: state.week, alignActive: state.alignActive }),
@@ -302,8 +332,8 @@ export default function FormaApp() {
 
     setWorkouts(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
     setHistory(state.history);
-    setWeek(cycleWeek(state.week));
-    setAlignActive(state.alignActive);
+    setWeek(weekForMode);
+    setAlignActive(mode === "cracker" ? false : state.alignActive);
     setWater(state.water);
     setJournal(state.journal);
     setWellness(state.wellness);
@@ -315,6 +345,7 @@ export default function FormaApp() {
     setReminderPrefs(loadReminderPrefs());
     setHomePrefs(loadHomePrefs());
     setProgressSubTab(loadProgressSubTab());
+    setChallengeMode(mode);
 
     const today = pickTodaysWorkout(nextWorkouts.length ? nextWorkouts : INITIAL_WORKOUTS);
     setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? INITIAL_WORKOUTS[0]?.id ?? "");
@@ -742,8 +773,10 @@ export default function FormaApp() {
   const journeyStatuses = phaseJourneyStatuses(weekInCycle, alignActive);
   const upcomingPhase = nextLinearPhase(linearPhase.id);
   const sessionsThisWeek = history.filter((entry) => cycleWeek(entry.week ?? 1) === weekInCycle).length;
+  const sessionsTarget =
+    challengeMode === "cracker" ? Math.max(1, workouts.length) : profile?.trainingDays ?? 3;
   const weekComplete =
-    !!profile && !alignActive && sessionsThisWeek >= profile.trainingDays;
+    !!profile && !alignActive && sessionsThisWeek >= sessionsTarget;
 
   const progressionCues = useMemo(() => {
     if (!latestSession) return [];
@@ -759,18 +792,26 @@ export default function FormaApp() {
 
   const applyGeneratedProgram = (
     nextProfile: UserProfile,
-    options?: { week?: number; alignActive?: boolean; phaseId?: PhaseId },
+    options?: { week?: number; alignActive?: boolean; phaseId?: PhaseId; mode?: BrandMode },
   ) => {
-    const nextWeek = cycleWeek(options?.week ?? week);
-    const nextAlign = options?.alignActive ?? alignActive;
-    const generated = transferExerciseWeights(
-      workouts,
-      generateProgram(nextProfile, {
-        week: nextWeek,
-        alignActive: nextAlign,
-        phaseId: options?.phaseId,
-      }),
-    );
+    const mode = options?.mode ?? challengeMode;
+    const nextAlign = mode === "cracker" ? false : (options?.alignActive ?? alignActive);
+    const nextWeek =
+      mode === "cracker"
+        ? crackerWeek(options?.week ?? week)
+        : cycleWeek(options?.week ?? week);
+    const nextPlan =
+      mode === "cracker"
+        ? buildCrackerWorkouts(
+            crackerLevelFromExperience(nextProfile.experienceLevel),
+            nextWeek,
+          )
+        : generateProgram(nextProfile, {
+            week: nextWeek,
+            alignActive: nextAlign,
+            phaseId: options?.phaseId,
+          });
+    const generated = transferExerciseWeights(workouts, nextPlan);
     setWorkouts(generated);
     const today = pickTodaysWorkout(generated);
     setActiveWorkoutId(today?.id ?? generated[0]?.id ?? "");
@@ -781,7 +822,22 @@ export default function FormaApp() {
   };
 
   const advanceProgrammeWeek = () => {
-    if (!profile || alignActive) return;
+    if (!profile) return;
+    if (challengeMode === "cracker") {
+      const { week: nextWeek, rolled } = nextCrackerWeek(weekInCycle);
+      setWeek(nextWeek);
+      setAlignActive(false);
+      applyGeneratedProgram(profile, { week: nextWeek, alignActive: false, mode: "cracker" });
+      setSyncNote(
+        rolled
+          ? "Cracker complete · back to Week 1 (re-test anytime)"
+          : nextWeek === 6
+            ? "Week 6 of 6 · fitness re-test week"
+            : `Advanced to week ${nextWeek} of ${CRACKER_WEEKS}`,
+      );
+      return;
+    }
+    if (alignActive) return;
     const { week: nextWeek, rolled } = nextProgrammeWeek(weekInCycle);
     const crossedPhase = getPhaseForWeek(nextWeek).id !== getPhaseForWeek(weekInCycle).id;
     setWeek(nextWeek);
@@ -849,7 +905,7 @@ export default function FormaApp() {
     const weightChanged = !!profile && profile.weight !== updated.weight && typeof updated.weight === "number";
     saveProfile(updated);
     setProfile(updated);
-    if (trainingChanged) applyGeneratedProgram(updated);
+    if (trainingChanged) applyGeneratedProgram(updated, { mode: challengeMode });
     // Keep the progress log in sync so profile weight edits appear in Progress.
     if (weightChanged) {
       const last = progressEntries[progressEntries.length - 1];
@@ -1269,7 +1325,11 @@ export default function FormaApp() {
       <div className="app">
         <div className="shell">
           <div className="loading">
-            <span className="wordmark">FORMA</span>
+            {challengeMode === "cracker" ? (
+              <BrandLogo />
+            ) : (
+              <span className="wordmark">FORMA</span>
+            )}
             <p>Preparing your practice…</p>
           </div>
         </div>
@@ -1307,10 +1367,26 @@ export default function FormaApp() {
         onClose={() => setProfileOpen(false)}
         onViewProgress={() => { setProfileOpen(false); setTab("progress"); }}
         onRebuildProgramme={() => {
-          applyGeneratedProgram(profile);
+          applyGeneratedProgram(profile, { mode: challengeMode });
           setProfileOpen(false);
           setTab("training");
-          setSyncNote("Programme rebuilt");
+          setSyncNote(
+            challengeMode === "cracker" ? "Cracker programme rebuilt" : "Programme rebuilt",
+          );
+        }}
+        challengeMode={challengeMode}
+        onChallengeModeChange={(mode) => {
+          saveChallengeMode(mode);
+          setChallengeMode(mode);
+          if (mode === "cracker") {
+            setWeek(1);
+            setAlignActive(false);
+            applyGeneratedProgram(profile, { week: 1, alignActive: false, mode: "cracker" });
+            setSyncNote("Christmas Cracker on · Week 1 fitness test + Lower/Upper/Full Body");
+          } else {
+            applyGeneratedProgram(profile, { week: weekInCycle, alignActive, mode: "forma" });
+            setSyncNote("Back to FORMA");
+          }
         }}
         reminderPrefs={{
           enabled: reminderPrefs.enabled,
@@ -1772,12 +1848,20 @@ export default function FormaApp() {
   const focusRec = focusExercise ? getRecommendation(focusExercise, history, phaseDef) : null;
   const goalLabel = GOAL_LABELS[profile.goal];
   const goalLower = goalLabel.toLowerCase();
+  const brand = brandFor(challengeMode);
+  const weekLabel = challengeWeekLabel(weekInCycle, challengeMode);
   const encouragement =
-    history.length === 0
-      ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is ready — start gently.`
-      : streak >= 3
-        ? `${streak} days moving, ${profile.firstName}. Soft consistency toward ${goalLower}.`
-        : `Today is another quiet step toward ${goalLower}.`;
+    challengeMode === "cracker"
+      ? history.length === 0
+        ? `${brand.challengeName} starts now, ${profile.firstName}. Six weeks — keep it steady.`
+        : streak >= 3
+          ? `${streak} days in on Christmas Cracker. Quiet consistency wins.`
+          : `Another Christmas Cracker day toward the finish line.`
+      : history.length === 0
+        ? `Welcome to ${season}, ${profile.firstName}. Your ${profile.trainingDays}-day plan is ready — start gently.`
+        : streak >= 3
+          ? `${streak} days moving, ${profile.firstName}. Soft consistency toward ${goalLower}.`
+          : `Today is another quiet step toward ${goalLower}.`;
 
   const pausedTitle = pausedDraft
     ? workouts.find((workout) => workout.id === pausedDraft.workoutId)?.title ?? "Workout"
@@ -1860,12 +1944,16 @@ export default function FormaApp() {
     history.length === 0 || meals.entries.length === 0 || inbody.scans.length === 0;
 
   return (
-    <div className="app">
+    <div className={`app${challengeMode === "cracker" ? " challenge-cracker" : ""}`}>
       <div className="shell">
         {tab === "today" && (
           <div className="screen home-screen">
             <header className="topbar">
-              <span className="wordmark">FORMA</span>
+              {challengeMode === "cracker" ? (
+                <BrandLogo />
+              ) : (
+                <span className="wordmark">FORMA</span>
+              )}
               <button
                 className={`avatar ${profile.profilePhoto ? "has-photo" : ""}`}
                 onClick={() => setProfileOpen(true)}
@@ -1875,6 +1963,21 @@ export default function FormaApp() {
                 {profile.profilePhoto ? "" : profile.firstName.charAt(0)}
               </button>
             </header>
+
+            {challengeMode === "cracker" ? (
+              <article className="card challenge-banner">
+                <BrandLogo size="hero" />
+                <div className="challenge-banner-copy">
+                  <span className="eyebrow">Life & Soul · {brand.challengeName}</span>
+                  <strong>{weekLabel}</strong>
+                  <p className="muted">{brand.tagline}</p>
+                </div>
+              </article>
+            ) : null}
+
+            {challengeMode === "cracker" ? (
+              <CrackerFitnessPanel weekInCycle={crackerWeek(weekInCycle)} />
+            ) : null}
 
             <section
               className="home-hero"
@@ -1910,7 +2013,11 @@ export default function FormaApp() {
                 <span className="eyebrow light">{greeting},</span>
                 <h1 className="hero-name">{profile.firstName}</h1>
                 <div className="hero-tags">
-                  <span className="hero-chip">{season} · Week {weekInCycle}/{CYCLE_WEEKS}</span>
+                  <span className="hero-chip">
+                    {challengeMode === "cracker"
+                      ? `${brand.challengeName} · ${weekLabel}`
+                      : `${season} · Week ${weekInCycle}/${CYCLE_WEEKS}`}
+                  </span>
                   <span className="hero-chip subtle">
                     Today · {todaysWorkout ? todaysWorkout.title : "Rest"}
                   </span>
@@ -2047,10 +2154,14 @@ export default function FormaApp() {
 
             <article className="card coach-brief">
               <div className="coach-top">
-                <div className="coach-avatar">F</div>
+                <div className="coach-avatar">{challengeMode === "cracker" ? "LS" : "F"}</div>
                 <div>
-                  <strong>Today’s brief</strong>
-                  <small>{goalLabel} · {season} · {streak} day streak</small>
+                  <strong>{challengeMode === "cracker" ? "Today’s brief" : "Today’s brief"}</strong>
+                  <small>
+                    {challengeMode === "cracker"
+                      ? `${brand.challengeName} · ${weekLabel}`
+                      : `${goalLabel} · ${season} · ${streak} day streak`}
+                  </small>
                 </div>
               </div>
               <p className="coach-message">{encouragement}</p>
@@ -2060,6 +2171,21 @@ export default function FormaApp() {
                 </p>
               ) : null}
             </article>
+
+            {challengeMode === "cracker" ? (
+              <article className="card cracker-nutrition-card">
+                <span className="eyebrow">Nutrition guide</span>
+                <strong>{CRACKER_NUTRITION_GUIDE.title}</strong>
+                <p className="muted">{CRACKER_NUTRITION_GUIDE.lead}</p>
+                <ul className="cracker-nutrition-list">
+                  {CRACKER_NUTRITION_GUIDE.bullets.map((bullet) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+                <p className="muted">{CRACKER_FUEL_HINT}</p>
+                <small className="muted">{CRACKER_NUTRITION_GUIDE.note}</small>
+              </article>
+            ) : null}
 
             {todaysWorkout && todaysWorkout.exercises.length > 0 ? (
               <>
@@ -2528,12 +2654,40 @@ export default function FormaApp() {
               <div className="home-module" style={{ order: homeModuleOrderIndex("programme") }}>
             <CollapsibleSection
               eyebrow="Programme"
-              title="Your phase"
-              summary={`${season} · Week ${weekInCycle} of ${CYCLE_WEEKS}`}
+              title={challengeMode === "cracker" ? brand.challengeName : "Your phase"}
+              summary={
+                challengeMode === "cracker"
+                  ? weekLabel
+                  : `${season} · Week ${weekInCycle} of ${CYCLE_WEEKS}`
+              }
               open={homeModuleOpen("programme", false)}
               onOpenChange={(open) => setModuleOpen("programme", open)}
               pinned={modulePinned("programme")}
             >
+            {challengeMode === "cracker" ? (
+              <>
+                <SectionHeading eyebrow="Challenge" title={weekLabel} />
+                <article className="card phase-card cracker-phase-card">
+                  <p className="muted">
+                    Lower · Upper · Full Body each week, with a WOD finisher. Weeks 1 and 6 include the
+                    fitness test — log results in the Fitness test card on Home.
+                  </p>
+                  <p className="muted phase-week-meta">
+                    {weekLabel}
+                    {` · ${sessionsThisWeek}/${sessionsTarget} sessions this week`}
+                    {isCrackerFitnessTestWeek(weekInCycle) ? " · Fitness test week" : null}
+                  </p>
+                  <div className="phase-actions">
+                    <button type="button" className="secondary-btn" onClick={advanceProgrammeWeek}>
+                      {crackerWeek(weekInCycle) >= CRACKER_WEEKS
+                        ? "Restart Cracker · Week 1"
+                        : `Advance to week ${crackerWeek(weekInCycle) + 1} of ${CRACKER_WEEKS}`}
+                    </button>
+                  </div>
+                </article>
+              </>
+            ) : (
+              <>
 <SectionHeading eyebrow="Your phase" title={season} />
             <article className="card phase-card">
               <p className="muted">
@@ -2579,6 +2733,8 @@ export default function FormaApp() {
                 )}
               </div>
             </article>
+              </>
+            )}
 
                         </CollapsibleSection>
               </div>
