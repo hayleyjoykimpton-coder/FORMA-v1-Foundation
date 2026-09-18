@@ -33,6 +33,9 @@ export const JMK_TRAINING_IMAGE = "/cracker/jess-mckee-jmk-training.jpg";
 /** Jess in Life & Soul kit — gym portrait. */
 export const JESS_LAS_PORTRAIT = "/cracker/move/jess-life-and-soul-portrait.jpg";
 
+/** Jess coaching a client through a lower-body lift at Life & Soul. */
+export const JESS_COACHING_CLIENT = "/cracker/move/jess-coaching-client.jpg";
+
 /** Life & Soul Christmas Cracker badge — branded, no AI people. */
 export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
 
@@ -42,16 +45,16 @@ export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
  */
 export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   hero: JESS_LAS_PORTRAIT,
-  week1: JESS_LAS_PORTRAIT,
-  week2: JMK_TRAINING_IMAGE,
-  week3: JESS_LAS_PORTRAIT,
-  week4: JMK_TRAINING_IMAGE,
-  week5: JESS_LAS_PORTRAIT,
-  week6: JMK_TRAINING_IMAGE,
-  lower: "",
+  week1: JESS_COACHING_CLIENT,
+  week2: JESS_LAS_PORTRAIT,
+  week3: JESS_COACHING_CLIENT,
+  week4: JESS_LAS_PORTRAIT,
+  week5: JESS_COACHING_CLIENT,
+  week6: JESS_LAS_PORTRAIT,
+  lower: JESS_COACHING_CLIENT,
   upper: "",
   full: "",
-  learnWithJess: JESS_LAS_PORTRAIT,
+  learnWithJess: JESS_COACHING_CLIENT,
   fitnessCheckIn: JESS_LAS_PORTRAIT,
   scans: "",
   headTrainer: JESS_LAS_PORTRAIT,
@@ -60,6 +63,7 @@ export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
 /** Spare real photos available for rotation (not yet assigned). */
 export const MOVE_IMAGE_POOL: string[] = [
   JESS_LAS_PORTRAIT,
+  JESS_COACHING_CLIENT,
   JMK_TRAINING_IMAGE,
 ];
 
@@ -71,7 +75,7 @@ export function moveImage(slot: MoveImageSlot): string | null {
 export function moveWeekImage(week: number): string | null {
   const w = Math.min(6, Math.max(1, week)) as 1 | 2 | 3 | 4 | 5 | 6;
   const key = `week${w}` as MoveImageSlot;
-  return moveImage(key) ?? moveImage("hero");
+  return moveImage(key);
 }
 
 export function moveSessionImage(title: string): string | null {
