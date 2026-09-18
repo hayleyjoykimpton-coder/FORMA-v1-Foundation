@@ -1088,6 +1088,11 @@ textarea::placeholder {
   background-position: center 18%;
 }
 
+/* Home CONNECT hero: group + medicine balls sit left-center */
+.cracker-pillar-media--connect-hero {
+  background-position: 38% 42%;
+}
+
 .cracker-pillar-body {
   display: flex;
   flex-direction: column;
@@ -1504,6 +1509,11 @@ textarea::placeholder {
   background-size: cover;
   background-position: center;
   box-shadow: 0 12px 32px rgba(26, 28, 34, 0.1);
+}
+
+/* CONNECT gateway: keep Life + Soul group + balls in frame */
+.cracker-hero-media--connect {
+  background-position: 38% 42%;
 }
 
 .cracker-gateway {

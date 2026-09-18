@@ -1,8 +1,7 @@
 "use client";
 
 import { ExternalLinkIcon } from "@/components/cracker/icons";
-import { IMAGES } from "@/lib/content";
-import { CONNECT_COPY, CRACKER_FACEBOOK_URL } from "@/lib/connect";
+import { CONNECT_COPY, CONNECT_HERO_IMAGE, CRACKER_FACEBOOK_URL } from "@/lib/connect";
 
 type Props = {
   onOpenProfile: () => void;
@@ -30,10 +29,10 @@ export function CrackerConnect({ onOpenProfile, profileInitial, profilePhoto }: 
       </header>
 
       <div
-        className="cracker-hero-media"
-        style={{ backgroundImage: `url(${IMAGES.running})` }}
+        className="cracker-hero-media cracker-hero-media--connect"
+        style={{ backgroundImage: `url(${CONNECT_HERO_IMAGE})` }}
         role="img"
-        aria-label="Community"
+        aria-label="Life + Soul community throwing medicine balls"
       />
 
       <section className="cracker-gateway">

@@ -1,8 +1,8 @@
 "use client";
 
 import { BrandLogo } from "@/components/BrandLogo";
-import { IMAGES } from "@/lib/content";
 import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
+import { CONNECT_HERO_IMAGE } from "@/lib/connect";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
 import { JESS_LAS_PORTRAIT, moveImage } from "@/lib/moveImages";
 import { NOURISH_HERO_IMAGE } from "@/lib/nourish";
@@ -48,7 +48,8 @@ const PILLARS: {
     title: "CONNECT",
     line: "Events, updates and community.",
     cta: "VIEW COMMUNITY",
-    image: IMAGES.running,
+    image: CONNECT_HERO_IMAGE,
+    mediaClass: "cracker-pillar-media--connect-hero",
   },
 ];
 

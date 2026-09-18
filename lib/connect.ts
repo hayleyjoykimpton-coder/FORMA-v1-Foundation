@@ -3,6 +3,9 @@
 /** Christmas Cracker Facebook community group. */
 export const CRACKER_FACEBOOK_URL = "https://www.facebook.com/share/g/19T34j4bk8/";
 
+/** Life + Soul Mayfair community photo (medicine-ball group) for CONNECT hero. */
+export const CONNECT_HERO_IMAGE = "/cracker/connect/connect-hero-community.jpg";
+
 export const CONNECT_COPY = {
   title: "CONNECT",
   supporting: "Everything happening across Cracker.",
