@@ -215,58 +215,76 @@ textarea::placeholder {
 .cracker-club-grid {
   grid-template-columns: 1fr 1fr;
 }
+/* Challenge summary on cream/white onboarding — dark charcoal on white card */
 .cracker-challenge-pick {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  align-items: center;
-  text-align: left;
-  border: 1px solid rgba(196, 18, 24, 0.22);
-  background: #fff;
-  color: #222;
-}
-.cracker-challenge-pick .muted {
-  color: #444;
-}
-.cracker-challenge-pick strong {
-  font-family: var(--font-heading);
-  font-size: 22px;
-  font-weight: 400;
-  color: #222;
-}
-.cracker-pillar-list {
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 10px;
-  width: 100%;
-}
-.cracker-pillar-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
-  border-radius: 14px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 20px 18px;
+  text-align: center;
+  border: 1px solid rgba(196, 18, 24, 0.22);
   background: #fff;
-  border: 1px solid rgba(196, 18, 24, 0.16);
-  color: #222;
-  text-align: left;
+  color: #222222;
 }
-.cracker-pillar-card strong {
-  font-size: 13px;
-  letter-spacing: 0.14em;
-  color: #c41218;
+.cracker-challenge-pick .brand-logo,
+.cracker-challenge-pick .brand-logo-duo {
+  margin-bottom: 4px;
 }
-.cracker-pillar-card span {
+.cracker-challenge-pick-dates {
+  margin: 0;
   font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.35;
+  color: #222222;
+}
+.cracker-challenge-pick-pillars {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   line-height: 1.4;
-  color: #222;
+  color: #444444;
+}
+.cracker-challenge-pick-note {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: #555555;
 }
 .cracker-gateway-note {
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 1.45;
+}
+.cracker-onboard-app .choice:not(.selected) {
+  background: #fff;
+  color: #222222;
+  border-color: rgba(34, 34, 34, 0.14);
+}
+.cracker-onboard-app .choice:not(.selected) small {
+  color: #555555;
+}
+.cracker-onboard-app .choice.selected small {
+  color: rgba(255, 255, 255, 0.88);
+}
+.cracker-onboard-app .onboard-lead,
+.cracker-onboard-app .eyebrow,
+.cracker-onboard-app .ghost-btn {
+  color: #222222;
+}
+.cracker-onboard-app .onboard-lead {
+  color: #555555;
+}
+.cracker-onboard-app .eyebrow {
+  color: #c41218;
+}
+.cracker-auth-app .muted,
+.cracker-auth-app .auth-note {
+  color: #555555;
 }
 .cracker-onboard-app .choice.selected,
 .cracker-auth-app .cta-btn {
@@ -756,7 +774,7 @@ textarea::placeholder {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(247, 241, 234, 0.92);
+  color: #444444;
 }
 
 .cracker-pillars {
@@ -914,7 +932,7 @@ textarea::placeholder {
 .nourish-card-note {
   margin: 0;
   font-size: 12px;
-  color: rgba(247, 241, 234, 0.62) !important;
+  color: rgba(247, 241, 234, 0.78) !important;
 }
 
 .nourish-card--home .nourish-card-title {

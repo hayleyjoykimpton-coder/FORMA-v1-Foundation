@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
 import {
   CLUB_LABELS,
   createProfile,
@@ -31,11 +32,8 @@ const EXPERIENCE: Choice<"beginner" | "intermediate">[] = [
   },
 ];
 
-const PILLARS = [
-  { title: "MOVE", line: "Your training for the week." },
-  { title: "NOURISH", line: "Fuel your six weeks." },
-  { title: "CONNECT", line: "Events, updates and community." },
-] as const;
+/** Concise challenge summary dates for the ready-step white card. */
+const CHALLENGE_DATES_DISPLAY = CRACKER_DATES_LABEL.toUpperCase().replace("–", "—");
 
 /** Club → training level → ready */
 const TOTAL_STEPS = 3;
@@ -154,7 +152,6 @@ export function CrackerOnboarding({
 
           {step === 2 ? (
             <div className="onboard-body cracker-ready">
-              <BrandLogo variant="duo" size="hero" />
               <span className="eyebrow">Ready to go</span>
               <h1>Your Cracker is set</h1>
               <p className="onboard-lead">
@@ -162,14 +159,14 @@ export function CrackerOnboarding({
                 {EXPERIENCE_LABELS[experienceLevel === "advanced" ? "intermediate" : experienceLevel]}{" "}
                 programme. Training lives in FORMA — nutrition is on the CRACKER Nutrition platform.
               </p>
-              <ul className="cracker-pillar-list">
-                {PILLARS.map((pillar) => (
-                  <li key={pillar.title} className="cracker-pillar-card">
-                    <strong>{pillar.title}</strong>
-                    <span>{pillar.line}</span>
-                  </li>
-                ))}
-              </ul>
+              <article className="card cracker-challenge-pick">
+                <BrandLogo variant="cracker" size="mark" />
+                <p className="cracker-challenge-pick-dates">{CHALLENGE_DATES_DISPLAY}</p>
+                <p className="cracker-challenge-pick-pillars">MOVE · NOURISH · CONNECT</p>
+                <p className="cracker-challenge-pick-note">
+                  Beginner + Intermediate training available
+                </p>
+              </article>
               <div className="onboard-nav">
                 <button type="button" className="cta-btn" onClick={finish}>
                   Start Cracker
