@@ -17,6 +17,7 @@ import {
   setWeekChecklist,
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
+import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
 
@@ -199,6 +200,8 @@ export function CrackerMove({
           {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
         </button>
       </article>
+
+      <JessHeadTrainerCard week={viewWeek} />
 
       <div className="cracker-workout-stack">
         {ordered.map((workout) => {

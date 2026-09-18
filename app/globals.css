@@ -1183,6 +1183,88 @@ textarea::placeholder {
   margin: 0;
   color: var(--text-2);
 }
+
+.cracker-jess-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.08);
+}
+
+.cracker-jess-media {
+  background: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+}
+
+.cracker-jess-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.cracker-jess-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px 16px 18px;
+}
+
+.cracker-jess-body h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--cracker-navy);
+}
+
+.cracker-jess-tagline {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--cracker-navy);
+}
+
+.cracker-jess-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.cracker-jess-actions .cta-btn,
+.cracker-jess-actions .secondary-btn {
+  width: 100%;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.cracker-jess-actions .secondary-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.cracker-jess-video {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .cracker-workout-stack {
   display: flex;
   flex-direction: column;
