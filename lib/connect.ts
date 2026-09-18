@@ -1,7 +1,7 @@
 /** CONNECT pillar — community lives on Facebook (closed Cracker groups + public page). */
 
-/** Public Life & Soul Facebook page (closed Cracker groups are invite-only). */
-export const CRACKER_FACEBOOK_URL = "https://www.facebook.com/LifeandSoulHealthandFitness";
+/** Christmas Cracker Facebook community group. */
+export const CRACKER_FACEBOOK_URL = "https://www.facebook.com/share/g/19T34j4bk8/";
 
 export const CONNECT_COPY = {
   title: "CONNECT",
