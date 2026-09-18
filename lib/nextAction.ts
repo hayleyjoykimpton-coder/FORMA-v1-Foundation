@@ -44,6 +44,8 @@ export type NextActionInput = {
   meals: MealsState;
   water: number;
   todayISO: string;
+  /** When true, skip native meal-log nudges (external Nutrition platform). */
+  skipMealLogging?: boolean;
 };
 
 function trainedOnDate(history: WorkoutSession[], dayISO: string): boolean {
@@ -64,6 +66,7 @@ export function resolveNextAction(input: NextActionInput): NextAction {
     meals,
     water,
     todayISO,
+    skipMealLogging = false,
   } = input;
 
   const evening = hour >= 18;
@@ -106,7 +109,7 @@ export function resolveNextAction(input: NextActionInput): NextAction {
     };
   }
 
-  if (trained && mealCount === 0) {
+  if (trained && mealCount === 0 && !skipMealLogging) {
     return {
       kind: "meal",
       eyebrow: "After training",

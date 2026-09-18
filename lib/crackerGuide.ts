@@ -1,6 +1,6 @@
 /**
- * Cracker Challenge nutrition guide (temporary in-app copy).
- * Replace bullets when Hayley pastes the real guide — no PDF pipeline needed yet.
+ * Cracker Challenge nutrition pointer.
+ * Full program lives on the external CRACKER Nutrition platform.
  */
 
 export type CrackerNutritionGuide = {
@@ -11,17 +11,15 @@ export type CrackerNutritionGuide = {
 };
 
 export const CRACKER_NUTRITION_GUIDE: CrackerNutritionGuide = {
-  title: "Christmas Cracker fuel",
-  lead: "Six-week challenge nutrition — keep it simple and consistent through the season.",
+  title: "CRACKER Nutrition",
+  lead: "Fuel your six weeks with Naomi Gillespie’s complete CRACKER nutrition program.",
   bullets: [
-    "Protein at most meals (hand-sized portion).",
-    "Veg / colour on the plate twice a day.",
-    "Hydrate — water before coffee if you can.",
-    "One flexible meal a week is fine; don’t spiral.",
+    "Open the NOURISH tab for the full nutrition platform.",
+    "Recipes, weekly guidance and education live outside FORMA.",
+    "Training and wellness stay in MOVE and CONNECT.",
   ],
-  note: "Swap these bullets for your real Christmas Cracker nutrition guide anytime — Profile → Challenge mode stays on.",
+  note: "Your nutrition plan, recipes and education are managed through the separate CRACKER Nutrition platform.",
 };
 
-/** Soft calorie / protein framing shown under the guide (not a hard prescription). */
 export const CRACKER_FUEL_HINT =
-  "Use your meal log as usual — targets still follow your nutrition goal until we lock Cracker macros from the guide.";
+  "Open NOURISH for Naomi Gillespie’s CRACKER Nutrition program — recipes and education live on the separate platform.";

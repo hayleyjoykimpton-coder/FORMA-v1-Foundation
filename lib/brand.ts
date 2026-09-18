@@ -26,7 +26,7 @@ export const CRACKER_BRAND: BrandCopy = {
   name: "Life & Soul",
   shortName: "Life & Soul",
   wordmark: "Christmas Cracker",
-  tagline: "Six weeks of training, fuel and follow-through — Life & Soul Christmas Cracker.",
+  tagline: "12 Oct – 22 Nov 2026 · MOVE · NOURISH · CONNECT",
   programmeName: "Christmas Cracker",
   challengeName: "Christmas Cracker",
   coachName: "Life & Soul",

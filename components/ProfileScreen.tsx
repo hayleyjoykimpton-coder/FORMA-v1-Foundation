@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import {
+  CLUB_LABELS,
   EQUIPMENT_LABELS,
   EXPERIENCE_LABELS,
   GENDER_LABELS,
   GOAL_LABELS,
+  LIFE_SOUL_CLUBS,
   LOCATION_LABELS,
   NUTRITION_LABELS,
   STYLE_LABELS,
@@ -15,6 +17,7 @@ import type {
   ExperienceLevel,
   Gender,
   Goal,
+  LifeSoulClub,
   NutritionGoal,
   TrainingDays,
   TrainingStyle,
@@ -129,7 +132,23 @@ export function ProfileScreen({
 
           <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
 
-          {onChallengeModeChange ? (
+          {challengeMode === "cracker" ? (
+            <article className="card profile-section">
+              <span className="eyebrow">Training level</span>
+              <p className="muted">Controls which MOVE workouts you see — Beginner or Intermediate.</p>
+              <ChoiceRow
+                options={[
+                  { value: "beginner" as ExperienceLevel, label: "BEGINNER" },
+                  { value: "intermediate" as ExperienceLevel, label: "INTERMEDIATE" },
+                ]}
+                selected={
+                  draft.experienceLevel === "beginner" ? "beginner" : "intermediate"
+                }
+                onSelect={(v) => set("experienceLevel", v)}
+              />
+              <p className="auth-info">Christmas Cracker season · 12 Oct – 22 Nov 2026</p>
+            </article>
+          ) : onChallengeModeChange ? (
             <article className="card profile-section">
               <span className="eyebrow">Challenge mode</span>
               <p className="muted">
@@ -138,14 +157,10 @@ export function ProfileScreen({
               </p>
               <button
                 type="button"
-                className={challengeMode === "cracker" ? "cta-btn" : "secondary-btn"}
-                onClick={() =>
-                  onChallengeModeChange(challengeMode === "cracker" ? "forma" : "cracker")
-                }
+                className="secondary-btn"
+                onClick={() => onChallengeModeChange("cracker")}
               >
-                {challengeMode === "cracker"
-                  ? "Christmas Cracker is on · tap to exit"
-                  : "Start Christmas Cracker (6 weeks)"}
+                Start Christmas Cracker (6 weeks)
               </button>
             </article>
           ) : null}
@@ -179,6 +194,15 @@ export function ProfileScreen({
           </article>
 
           <article className="card profile-section">
+            <span className="eyebrow">Life & Soul club</span>
+            <ChoiceRow
+              options={LIFE_SOUL_CLUBS.map((v) => ({ value: v, label: CLUB_LABELS[v] }))}
+              selected={(draft.club || "fremantle") as Exclude<LifeSoulClub, "">}
+              onSelect={(v) => set("club", v)}
+            />
+          </article>
+
+          <article className="card profile-section">
             <span className="eyebrow">Goal</span>
             <ChoiceRow
               options={(Object.keys(GOAL_LABELS) as Goal[]).map((v) => ({ value: v, label: GOAL_LABELS[v] }))}
@@ -189,12 +213,19 @@ export function ProfileScreen({
 
           <article className="card profile-section">
             <span className="eyebrow">Training</span>
-            <label className="mini-label">Experience</label>
-            <ChoiceRow
-              options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({ value: v, label: EXPERIENCE_LABELS[v] }))}
-              selected={draft.experienceLevel}
-              onSelect={(v) => set("experienceLevel", v)}
-            />
+            {challengeMode !== "cracker" ? (
+              <>
+                <label className="mini-label">Experience</label>
+                <ChoiceRow
+                  options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({
+                    value: v,
+                    label: EXPERIENCE_LABELS[v],
+                  }))}
+                  selected={draft.experienceLevel}
+                  onSelect={(v) => set("experienceLevel", v)}
+                />
+              </>
+            ) : null}
             <label className="mini-label">Days per week</label>
             <ChoiceRow
               options={([3, 4, 5] as TrainingDays[]).map((v) => ({ value: v, label: `${v} days` }))}
@@ -257,12 +288,23 @@ export function ProfileScreen({
               selected={draft.preferredTrainingStyle}
               onSelect={(v) => set("preferredTrainingStyle", v)}
             />
-            <label className="mini-label">Nutrition goal</label>
-            <ChoiceRow
-              options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({ value: v, label: NUTRITION_LABELS[v] }))}
-              selected={draft.nutritionGoal}
-              onSelect={(v) => set("nutritionGoal", v)}
-            />
+            {challengeMode === "cracker" ? (
+              <p className="muted" style={{ fontSize: 13, marginTop: 8, marginBottom: 4 }}>
+                Nutrition goals are managed on the CRACKER Nutrition platform (NOURISH tab) — not in FORMA.
+              </p>
+            ) : (
+              <>
+                <label className="mini-label">Nutrition goal</label>
+                <ChoiceRow
+                  options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({
+                    value: v,
+                    label: NUTRITION_LABELS[v],
+                  }))}
+                  selected={draft.nutritionGoal}
+                  onSelect={(v) => set("nutritionGoal", v)}
+                />
+              </>
+            )}
             {reminderPrefs && onReminderPrefsChange ? (
               <>
                 <label className="mini-label">Reminders</label>

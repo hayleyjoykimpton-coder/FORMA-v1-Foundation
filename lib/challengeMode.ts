@@ -1,15 +1,44 @@
 /**
  * Temporary Life & Soul · Cracker Challenge mode inside FORMA.
  * Same localStorage + Supabase — no separate database.
+ *
+ * Seasonal lock: while CRACKER_SEASON_ACTIVE is true, FORMA programmes are
+ * disabled — only Christmas Cracker workouts are generated and shown.
  */
 
 import type { BrandMode } from "./brand";
 
 const KEY = "forma-challenge-mode-v1";
 
+/** Flip to false after the Christmas Cracker season to restore FORMA programmes. */
+export const CRACKER_SEASON_ACTIVE = true;
+
 export const CRACKER_WEEKS = 6;
 
+/** Official Christmas Cracker 2026 challenge window (local calendar dates). */
+export const CRACKER_START_ISO = "2026-10-12";
+export const CRACKER_END_ISO = "2026-11-22";
+
+export const CRACKER_DATES_LABEL = "12 Oct – 22 Nov 2026";
+
+function parseLocalISO(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Calendar week 1–6 from the official start date (Mon 12 Oct 2026). */
+export function crackerCalendarWeek(now = new Date()): number {
+  const start = parseLocalISO(CRACKER_START_ISO);
+  const end = parseLocalISO(CRACKER_END_ISO);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (today < start) return 1;
+  if (today > end) return CRACKER_WEEKS;
+  const diffDays = Math.floor((today.getTime() - start.getTime()) / 86_400_000);
+  return crackerWeek(Math.floor(diffDays / 7) + 1);
+}
+
 export function loadChallengeMode(): BrandMode {
+  if (CRACKER_SEASON_ACTIVE) return "cracker";
   if (typeof window === "undefined") return "forma";
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -22,6 +51,11 @@ export function loadChallengeMode(): BrandMode {
 export function saveChallengeMode(mode: BrandMode): void {
   if (typeof window === "undefined") return;
   try {
+    // Seasonal lock: keep storage on cracker so a stale "forma" preference cannot reopen FORMA programmes.
+    if (CRACKER_SEASON_ACTIVE) {
+      window.localStorage.setItem(KEY, "cracker");
+      return;
+    }
     if (mode === "forma") window.localStorage.removeItem(KEY);
     else window.localStorage.setItem(KEY, mode);
   } catch {

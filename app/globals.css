@@ -130,8 +130,30 @@ textarea::placeholder {
   height: 44px;
   width: 44px;
   object-fit: contain;
-  border-radius: 50%;
-  background: #000;
+  border-radius: 0;
+  background: transparent;
+}
+.brand-logo-wordmark {
+  width: auto;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+}
+.brand-logo-duo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-logo-duo-hero {
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+.brand-logo-duo .brand-logo-cracker {
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
 }
 .brand-logo-hero {
   height: 96px;
@@ -140,6 +162,138 @@ textarea::placeholder {
 .brand-logo-mark {
   height: 40px;
   width: 40px;
+}
+.cracker-auth-app,
+.cracker-onboard-app {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(196, 18, 24, 0.16), transparent 55%),
+    linear-gradient(180deg, #f7f1ea 0%, #efe6dc 100%);
+}
+.cracker-auth-screen,
+.cracker-onboard-screen {
+  gap: 12px;
+}
+.cracker-auth-kicker,
+.cracker-welcome-kicker {
+  margin: 4px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #c41218;
+  font-weight: 700;
+  text-align: center;
+}
+.cracker-auth-screen h1,
+.cracker-welcome h1 {
+  text-align: center;
+}
+.cracker-auth-screen > .muted,
+.cracker-welcome > .onboard-lead {
+  text-align: center;
+}
+.cracker-welcome {
+  align-items: center;
+  text-align: center;
+}
+.cracker-welcome-points {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+.cracker-welcome-points li {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(196, 18, 24, 0.14);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.cracker-club-grid {
+  grid-template-columns: 1fr 1fr;
+}
+/* Challenge summary on cream/white onboarding — dark charcoal on white card */
+.cracker-challenge-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 20px 18px;
+  text-align: center;
+  border: 1px solid rgba(196, 18, 24, 0.22);
+  background: #fff;
+  color: #222222;
+}
+.cracker-challenge-pick .brand-logo,
+.cracker-challenge-pick .brand-logo-duo {
+  margin-bottom: 4px;
+}
+.cracker-challenge-pick-dates {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.35;
+  color: #222222;
+}
+.cracker-challenge-pick-pillars {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  color: #444444;
+}
+.cracker-challenge-pick-note {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: #555555;
+}
+.cracker-gateway-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.cracker-onboard-app .choice:not(.selected) {
+  background: #fff;
+  color: #222222;
+  border-color: rgba(34, 34, 34, 0.14);
+}
+.cracker-onboard-app .choice:not(.selected) small {
+  color: #555555;
+}
+.cracker-onboard-app .choice.selected small {
+  color: rgba(255, 255, 255, 0.88);
+}
+.cracker-onboard-app .onboard-lead,
+.cracker-onboard-app .eyebrow,
+.cracker-onboard-app .ghost-btn {
+  color: #222222;
+}
+.cracker-onboard-app .onboard-lead {
+  color: #555555;
+}
+.cracker-onboard-app .eyebrow {
+  color: #c41218;
+}
+.cracker-auth-app .muted,
+.cracker-auth-app .auth-note {
+  color: #555555;
+}
+.cracker-onboard-app .choice.selected,
+.cracker-auth-app .cta-btn {
+  background: #c41218;
+  color: #fff;
+  border-color: #c41218;
+}
+.cracker-onboard-app .onboard-progress span.done {
+  background: #c41218;
 }
 .challenge-banner {
   display: grid;
@@ -169,21 +323,30 @@ textarea::placeholder {
 }
 .challenge-banner .muted { color: rgba(247, 241, 234, 0.78); }
 .app.challenge-cracker {
-  --cta: #c41218;
+  --cta: #243f82;
   --cta-text: #ffffff;
-  --wash-mocha: #1a0a0a;
+  --wash-mocha: #e8eef6;
+  --cracker-blue: #243f82;
+  --cracker-navy: #000c4f;
+  --cracker-accent: #9c3b3b;
+  --cracker-gold: #c3a866;
+  --cracker-cream: #f4f0e8;
+  --bg: var(--cracker-cream);
+  --card: #ffffff;
+  --text: #1a1c22;
+  --text-2: #5a5f6b;
 }
 .app.challenge-cracker .cta-btn {
-  background: #c41218;
+  background: var(--cracker-blue);
   color: #fff;
 }
 .app.challenge-cracker .tabbar .active {
-  background: #c41218;
+  background: var(--cracker-blue);
   color: #fff;
 }
 .app.challenge-cracker .schedule-card.today {
-  border-color: #c41218;
-  box-shadow: 0 10px 24px rgba(196, 18, 24, 0.22);
+  border-color: var(--cracker-blue);
+  box-shadow: 0 10px 24px rgba(36, 63, 130, 0.22);
 }
 .cracker-nutrition-card {
   display: flex;
@@ -339,6 +502,1094 @@ textarea::placeholder {
 }
 .cracker-phase-card .phase-actions {
   margin-top: 12px;
+}
+.cracker-wellness-card,
+.cracker-recipes-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-color: rgba(196, 18, 24, 0.28);
+  padding: 0;
+  overflow: hidden;
+}
+.cracker-wellness-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.cracker-wellness-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cracker-wellness-heading strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.cracker-wellness-chevron {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted, #7a6a5c);
+  padding-top: 2px;
+}
+.cracker-wellness-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(196, 18, 24, 0.14);
+  padding-top: 14px;
+}
+.cracker-week-pills,
+.cracker-day-pills,
+.cracker-meal-pills,
+.cracker-serve-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cracker-week-pills button,
+.cracker-day-pills button,
+.cracker-meal-pills button,
+.cracker-serve-pills button {
+  border: 1px solid rgba(196, 18, 24, 0.28);
+  background: transparent;
+  color: inherit;
+  border-radius: 10px;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.cracker-week-pills button.active,
+.cracker-day-pills button.active,
+.cracker-meal-pills button.active,
+.cracker-serve-pills button.active {
+  background: #c41218;
+  border-color: #c41218;
+  color: #fff;
+}
+.cracker-week-pills button.overview {
+  margin-left: auto;
+}
+.cracker-wellness-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cracker-wellness-list {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 6px;
+}
+.cracker-wellness-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.06);
+}
+.cracker-wellness-callout p,
+.cracker-plan-grid p,
+.cracker-recipe-why {
+  margin: 0;
+}
+.cracker-plan-grid {
+  display: grid;
+  gap: 10px;
+}
+.cracker-plan-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.05);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cracker-recipe-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0;
+}
+.cracker-method-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+}
+.cracker-wellness-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cracker-nutrition-hub .cracker-wellness-heading strong {
+  font-size: 24px;
+}
+.cracker-nutrition-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cracker-nutrition-intro strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.cracker-nutrition-list-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cracker-recipe-rows {
+  display: grid;
+  gap: 8px;
+}
+.cracker-recipe-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 1px solid rgba(196, 18, 24, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: inherit;
+  cursor: pointer;
+}
+.cracker-recipe-row:active {
+  transform: translateY(1px);
+}
+.cracker-recipe-row-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cracker-recipe-row-copy small {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c41218;
+  font-weight: 700;
+}
+.cracker-recipe-row-copy strong {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+.cracker-recipe-chevron {
+  flex: 0 0 16px;
+  font-size: 22px;
+  color: #8a8078;
+}
+.cracker-nutrition-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cracker-recipe-hero {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 16px;
+  background: rgba(196, 18, 24, 0.06);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: rgba(196, 18, 24, 0.06);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-recipe-thumb-empty {
+  display: inline-block;
+  background: linear-gradient(
+    135deg,
+    rgba(196, 18, 24, 0.08),
+    rgba(196, 18, 24, 0.02)
+  );
+}
+.cracker-recipe-row {
+  padding-left: 10px;
+}
+.cracker-nutrition-back {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #7a6a5c;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+.cracker-emergency-list {
+  display: grid;
+  gap: 8px;
+}
+.cracker-emergency-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(196, 18, 24, 0.05);
+  border: 1px solid rgba(196, 18, 24, 0.12);
+}
+.cracker-emergency-card p {
+  margin: 0;
+}
+
+
+/* ---------- NOURISH + Cracker pillars ------------------------------------ */
+
+.challenge-pillars-inline {
+  margin: 10px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #444444;
+}
+
+.cracker-pillars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cracker-pillars-label {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.cracker-pillars-label span[aria-hidden="true"] {
+  color: #c41218;
+  letter-spacing: 0;
+}
+
+.cracker-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cracker-pillar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 12px 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(196, 18, 24, 0.22);
+  background:
+    linear-gradient(160deg, rgba(196, 18, 24, 0.08), rgba(255, 255, 255, 0.92) 55%);
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  min-height: 96px;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cracker-pillar:hover,
+.cracker-pillar.is-active {
+  border-color: rgba(196, 18, 24, 0.55);
+  box-shadow: 0 10px 22px rgba(196, 18, 24, 0.12);
+  transform: translateY(-1px);
+}
+
+.cracker-pillar-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c41218;
+}
+
+.cracker-pillar-copy {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+.cracker-pillar-cta {
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.nourish-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(196, 18, 24, 0.28);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(196, 18, 24, 0.16), transparent 50%),
+    linear-gradient(165deg, #1a0a0a 0%, #3a1214 48%, #5c1818 100%);
+  color: #f7f1ea;
+  box-shadow: 0 14px 32px rgba(26, 10, 10, 0.28);
+}
+
+.nourish-card-glow {
+  position: absolute;
+  inset: auto -20% -40% 30%;
+  height: 70%;
+  background: radial-gradient(circle, rgba(196, 18, 24, 0.45), transparent 65%);
+  pointer-events: none;
+}
+
+.nourish-card-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 18px 18px;
+}
+
+.nourish-card .eyebrow {
+  color: rgba(247, 241, 234, 0.72);
+}
+
+.nourish-card-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.nourish-card-supporting {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.nourish-card-desc {
+  margin: 2px 0 4px;
+  max-width: 34rem;
+  color: rgba(247, 241, 234, 0.78) !important;
+}
+
+.nourish-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 6px;
+  text-decoration: none;
+}
+
+.nourish-external-icon {
+  flex-shrink: 0;
+}
+
+.nourish-card-note {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(247, 241, 234, 0.78) !important;
+}
+
+.nourish-card--home .nourish-card-title {
+  font-size: 28px;
+}
+
+.app.challenge-cracker .tabbar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto;
+  gap: 4px 4px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.app.challenge-cracker .tabbar-pillars {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c41218;
+}
+
+@media (max-width: 520px) {
+  .cracker-pillars-grid {
+    grid-template-columns: 1fr;
+  }
+  .nourish-card-title {
+    font-size: 30px;
+  }
+}
+
+
+
+/* ---------- Cracker v2 shell (HOME / MOVE / NOURISH / CONNECT) ------------ */
+
+.app.cracker-v2 {
+  background:
+    radial-gradient(circle at 10% -10%, rgba(36, 63, 130, 0.1) 0%, transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(195, 168, 102, 0.12) 0%, transparent 38%),
+    var(--cracker-cream);
+}
+
+.cracker-shell {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+.cracker-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 12px;
+}
+
+.cracker-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px 0;
+}
+
+.cracker-home-logo.brand-logo,
+.cracker-home .brand-logo-header {
+  height: 72px;
+  width: 72px;
+}
+
+.cracker-dates {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+}
+
+.cracker-avatar { flex-shrink: 0; }
+
+.cracker-screen-kicker,
+.cracker-week-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cracker-blue);
+}
+
+.cracker-screen-title,
+.cracker-week-line {
+  margin: 6px 0 0;
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--cracker-navy);
+}
+
+.cracker-week-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 2px 4px;
+}
+
+.cracker-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(36, 63, 130, 0.12);
+  overflow: hidden;
+}
+
+.cracker-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cracker-blue), #3d6ec9);
+}
+
+.cracker-progress-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.cracker-pillar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cracker-pillar-card {
+  display: grid;
+  grid-template-rows: 140px auto;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.08);
+}
+
+.cracker-pillar-media {
+  background-size: cover;
+  background-position: center;
+  min-height: 140px;
+}
+
+/* Home MOVE hero: Jess portrait — keep face in the 140px landscape crop */
+.cracker-pillar-media--move-hero {
+  background-position: center 18%;
+}
+
+/* Home CONNECT hero: group + medicine balls sit left-center */
+.cracker-pillar-media--connect-hero {
+  background-position: 38% 42%;
+}
+
+.cracker-pillar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px 16px 18px;
+}
+
+.cracker-pillar-body h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--cracker-blue);
+}
+
+.cracker-pillar-body p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.cracker-pillar-body .cta-btn {
+  margin-top: 4px;
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cracker-week-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+}
+.cracker-week-chips::-webkit-scrollbar { display: none; }
+
+.cracker-week-chip {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 63, 130, 0.18);
+  background: #fff;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cracker-week-chip.active {
+  background: var(--cracker-blue);
+  border-color: var(--cracker-blue);
+  color: #fff;
+}
+
+.cracker-week-chip.is-programme:not(.active) {
+  border-color: var(--cracker-gold);
+  color: var(--cracker-navy);
+}
+
+
+.cracker-level-pill {
+  margin: 8px 0 0;
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(36, 63, 130, 0.12);
+  color: var(--cracker-blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.cracker-edu-focus {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.cracker-this-week {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cracker-week-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cracker-week-checklist li,
+.cracker-week-checklist button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(36, 63, 130, 0.1);
+  color: inherit;
+}
+
+.cracker-week-checklist li.is-done,
+.cracker-week-checklist li.is-done button {
+  border-color: rgba(36, 63, 130, 0.35);
+  background: rgba(36, 63, 130, 0.06);
+}
+
+.cracker-week-checklist span:first-child {
+  font-weight: 700;
+  color: var(--cracker-blue);
+  min-width: 1.1em;
+}
+
+.cracker-week-checklist small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.cracker-learn-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(26, 28, 34, 0.06);
+}
+
+.cracker-learn-media {
+  background: #f4f4f4;
+  max-height: 160px;
+  overflow: hidden;
+}
+
+.cracker-learn-media img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  /* Tall Jess portraits in wide crops — keep face/upper body in frame */
+  object-position: center 32%;
+}
+
+.cracker-learn-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px;
+}
+
+.cracker-learn-card h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.cracker-learn-card p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.cracker-move-banner {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #1a1c22;
+  min-height: 140px;
+}
+
+.cracker-move-banner-image {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  /* Tall Jess coaching portraits: 18% framed ceiling/screens; 32% keeps face in frame */
+  object-position: center 32%;
+}
+
+.cracker-move-banner--neutral {
+  min-height: 120px;
+  background:
+    linear-gradient(135deg, #243f82 0%, #000c4f 55%, #3a1214 100%);
+}
+
+.cracker-move-banner-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: linear-gradient(180deg, transparent, rgba(0, 12, 79, 0.72));
+  color: #fff;
+}
+
+.cracker-move-banner-overlay span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.cracker-move-banner-overlay strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.cracker-workout-media--photo {
+  position: relative;
+  min-height: 120px;
+  background: #eee;
+}
+
+.cracker-workout-media--photo img {
+  display: block;
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+  /* Favour faces / coaching cue in tall Jess photos */
+  object-position: center 32%;
+}
+
+/* Full Body barbell coaching: Jess face ~15–32% down, slightly right of center */
+.cracker-workout-media--full img {
+  object-position: 62% 22%;
+}
+
+.cracker-workout-media--neutral {
+  position: relative;
+  min-height: 110px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(145deg, rgba(36, 63, 130, 0.92), rgba(0, 12, 79, 0.88));
+}
+
+.cracker-workout-media--neutral.accent-lower {
+  background: linear-gradient(145deg, #243f82, #1a2f5c);
+}
+
+.cracker-workout-media--neutral.accent-upper {
+  background: linear-gradient(145deg, #2f4a8c, #9c3b3b);
+}
+
+.cracker-workout-media--neutral.accent-full {
+  background: linear-gradient(145deg, #000c4f, #243f82);
+}
+
+.cracker-workout-neutral-label {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.cracker-jess-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.08);
+}
+
+.cracker-jess-media {
+  background: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+}
+
+.cracker-jess-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.cracker-jess-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px 16px 18px;
+}
+
+.cracker-jess-body h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--cracker-navy);
+}
+
+.cracker-jess-tagline {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--cracker-navy);
+}
+
+.cracker-jess-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.cracker-jess-actions .cta-btn,
+.cracker-jess-actions .secondary-btn {
+  width: 100%;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.cracker-jess-actions .secondary-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.cracker-jess-video {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cracker-workout-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cracker-workout-card {
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.08);
+}
+
+.cracker-workout-media {
+  position: relative;
+  min-height: 120px;
+  background-size: cover;
+  background-position: center;
+}
+
+.cracker-workout-chip,
+.cracker-workout-done {
+  position: absolute;
+  top: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--cracker-navy);
+}
+
+.cracker-workout-chip { left: 12px; }
+.cracker-workout-done {
+  right: 12px;
+  background: var(--cracker-blue);
+  color: #fff;
+}
+
+.cracker-workout-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 16px;
+}
+
+.cracker-workout-body h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.cracker-workout-body .cta-btn {
+  margin-top: 8px;
+  width: 100%;
+  min-height: 52px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cracker-hero-media {
+  min-height: 200px;
+  border-radius: 22px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 12px 32px rgba(26, 28, 34, 0.1);
+}
+
+/* CONNECT gateway: keep Life + Soul group + balls in frame */
+.cracker-hero-media--connect {
+  background-position: 38% 42%;
+}
+
+.cracker-gateway {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 2px 8px;
+}
+
+.cracker-gateway h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--cracker-navy);
+}
+
+.cracker-external-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.cracker-tabbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(100% - 24px, 436px);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(36, 63, 130, 0.1);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 14px 36px rgba(26, 28, 34, 0.12);
+  z-index: 30;
+}
+
+.cracker-tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 16px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cracker-tabbar button.active {
+  color: #fff;
+  background: var(--cracker-blue);
+}
+
+@media (max-width: 430px) {
+  .cracker-screen-title,
+  .cracker-week-line { font-size: 28px; }
+  .cracker-pillar-card { grid-template-rows: 120px auto; }
 }
 
 /* ---------- Top bar ------------------------------------------------------ */
