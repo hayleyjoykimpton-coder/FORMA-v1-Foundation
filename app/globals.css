@@ -1236,7 +1236,8 @@ textarea::placeholder {
   width: 100%;
   height: 160px;
   object-fit: cover;
-  object-position: center 20%;
+  /* Tall Jess portraits in wide crops — keep face/upper body in frame */
+  object-position: center 36%;
 }
 
 .cracker-learn-body {
@@ -1272,7 +1273,8 @@ textarea::placeholder {
   width: 100%;
   height: 160px;
   object-fit: cover;
-  object-position: center 18%;
+  /* Tall Jess coaching portraits: 18% framed ceiling/screens; 36% keeps face in frame */
+  object-position: center 36%;
 }
 
 .cracker-move-banner--neutral {
@@ -1316,7 +1318,7 @@ textarea::placeholder {
   height: 132px;
   object-fit: cover;
   /* Favour faces / coaching cue in tall Jess photos */
-  object-position: center 28%;
+  object-position: center 36%;
 }
 
 .cracker-workout-media--neutral {
