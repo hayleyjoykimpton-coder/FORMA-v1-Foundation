@@ -234,9 +234,16 @@ export function numericalChange(
 ): { text: string; direction: ChangeDirection } {
   if (initial == null || final == null) return { text: "—", direction: "none" };
   const diff = final - initial;
-  if (diff === 0) return { text: "0", direction: "same" };
+  if (Math.abs(diff) < 1e-9) return { text: "0", direction: "same" };
   const abs = Math.abs(diff);
-  const formatted = opts?.asTime ? formatSeconds(abs) : opts?.unit ? `${abs}${opts.unit}` : String(abs);
+  const rounded = Math.round(abs * 100) / 100;
+  const formatted = opts?.asTime
+    ? formatSeconds(abs)
+    : opts?.unit
+      ? `${Number.isInteger(rounded) ? String(rounded) : String(rounded)}${opts.unit}`
+      : Number.isInteger(rounded)
+        ? String(rounded)
+        : String(rounded);
   const sign = diff > 0 ? "+" : "−";
   return {
     text: `${sign}${formatted}`,
