@@ -7,6 +7,6 @@ export const CONNECT_COPY = {
   title: "CONNECT",
   supporting: "Everything happening across Cracker.",
   section: "STAY CONNECTED",
-  body: "Events, updates and community posts are shared on our Christmas Cracker Facebook page.",
+  body: "Events, updates and community posts are shared in our Christmas Cracker Facebook group.",
   cta: "OPEN CRACKER FACEBOOK",
 } as const;

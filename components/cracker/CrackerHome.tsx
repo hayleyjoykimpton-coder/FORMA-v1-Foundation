@@ -2,6 +2,7 @@
 
 import { BrandLogo } from "@/components/BrandLogo";
 import { IMAGES } from "@/lib/content";
+import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
 import type { CrackerTab } from "@/components/cracker/types";
 
@@ -62,7 +63,7 @@ export function CrackerHome({
   return (
     <div className="screen cracker-screen cracker-home">
       <header className="cracker-topbar">
-        <BrandLogo variant="duo" size="header" />
+        <BrandLogo variant="cracker" size="header" className="cracker-home-logo" />
         <button
           type="button"
           className={`avatar cracker-avatar${profilePhoto ? " has-photo" : ""}`}
@@ -76,6 +77,7 @@ export function CrackerHome({
 
       <section className="cracker-week-hero">
         <p className="cracker-week-kicker">WEEK {week} OF {totalWeeks}</p>
+        <p className="cracker-dates">{CRACKER_DATES_LABEL}</p>
         <h1 className="cracker-week-line">{crackerMotivationalLine(week)}</h1>
         <div className="cracker-progress" aria-label={`Week progress ${progress}%`}>
           <span style={{ width: `${progress}%` }} />
