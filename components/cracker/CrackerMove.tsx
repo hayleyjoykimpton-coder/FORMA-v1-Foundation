@@ -319,14 +319,15 @@ export function CrackerMove({
         <JessHeadTrainerCard week={viewWeek} />
 
         <div className="cracker-workout-stack">
-          {ordered.map((workout) => {
-            const idx = crackerSessionIndex(workout.title) || 1;
+          {ordered.map((workout, orderIdx) => {
+            const idx = crackerSessionIndex(workout.title) || orderIdx + 1;
             const done = doneMap.get(workout.id);
             const media = moveMediaForSession(workout.title);
             const startTarget =
               viewWeek === currentWeek
                 ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
                 : workout;
+            const cropMod = media.cropClass ? ` ${media.cropClass}` : "";
 
             return (
               <article
@@ -335,9 +336,7 @@ export function CrackerMove({
               >
                 {media.kind === "photo" && media.src ? (
                   <div
-                    className={`cracker-workout-media cracker-workout-media--photo${
-                      media.label === "FULL" ? " cracker-workout-media--full" : ""
-                    }`}
+                    className={`cracker-workout-media cracker-workout-media--photo${cropMod}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={media.src} alt="" />

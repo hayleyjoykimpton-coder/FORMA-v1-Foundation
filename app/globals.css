@@ -1336,6 +1336,16 @@ textarea::placeholder {
   object-position: 62% 22%;
 }
 
+/* Glute Shape — hinge coaching, keep faces mid-frame */
+.cracker-workout-media--glute-shape img {
+  object-position: center 28%;
+}
+
+/* Weighted Abs / core — lateral coaching, favour upper half */
+.cracker-workout-media--abs img {
+  object-position: center 24%;
+}
+
 .cracker-workout-media--neutral {
   position: relative;
   min-height: 110px;
