@@ -1,8 +1,7 @@
 "use client";
 
 import { ExternalLinkIcon } from "@/components/cracker/icons";
-import { IMAGES } from "@/lib/content";
-import { NOURISH_COPY, NOURISH_PROGRAM_URL } from "@/lib/nourish";
+import { NOURISH_COPY, NOURISH_HERO_IMAGE, NOURISH_PROGRAM_URL } from "@/lib/nourish";
 
 type Props = {
   onOpenProfile: () => void;
@@ -31,9 +30,9 @@ export function CrackerNourish({ onOpenProfile, profileInitial, profilePhoto }: 
 
       <div
         className="cracker-hero-media"
-        style={{ backgroundImage: `url(${IMAGES.nutrition})` }}
+        style={{ backgroundImage: `url(${NOURISH_HERO_IMAGE})` }}
         role="img"
-        aria-label="Nutrition"
+        aria-label="Fresh whole foods"
       />
 
       <section className="cracker-gateway">

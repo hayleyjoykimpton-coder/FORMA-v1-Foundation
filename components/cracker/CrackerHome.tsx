@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { IMAGES } from "@/lib/content";
 import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
+import { NOURISH_HERO_IMAGE } from "@/lib/nourish";
 import type { CrackerTab } from "@/components/cracker/types";
 
 type Props = {
@@ -36,7 +37,7 @@ const PILLARS: {
     title: "NOURISH",
     line: "Fuel your six weeks.",
     cta: "OPEN NUTRITION",
-    image: IMAGES.nutrition,
+    image: NOURISH_HERO_IMAGE,
   },
   {
     key: "connect",
