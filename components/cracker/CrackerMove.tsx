@@ -17,9 +17,32 @@ import {
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
 import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
+import { MoveFitnessTesting } from "@/components/cracker/MoveFitnessTesting";
+import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasurements";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
+
+export type MoveSubTab = "training" | "fitness" | "inbody";
+
+const MOVE_SUBTABS: { key: MoveSubTab; label: string }[] = [
+  { key: "training", label: "TRAINING" },
+  { key: "fitness", label: "FITNESS TESTING" },
+  { key: "inbody", label: "INBODY + MEASUREMENTS" },
+];
+
+const MOVE_SUBTAB_KEY = "forma-cracker-move-subtab-v1";
+
+function loadMoveSubTab(): MoveSubTab {
+  if (typeof window === "undefined") return "training";
+  try {
+    const raw = window.localStorage.getItem(MOVE_SUBTAB_KEY);
+    if (raw === "fitness" || raw === "inbody" || raw === "training") return raw;
+  } catch {
+    /* ignore */
+  }
+  return "training";
+}
 
 type Props = {
   currentWeek: number;
@@ -58,6 +81,31 @@ function isSessionDone(
   });
 }
 
+function MoveSubNav({
+  active,
+  onChange,
+}: {
+  active: MoveSubTab;
+  onChange: (tab: MoveSubTab) => void;
+}) {
+  return (
+    <nav className="move-subnav" aria-label="MOVE sections">
+      {MOVE_SUBTABS.map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          role="tab"
+          aria-selected={active === item.key}
+          className={`move-subnav-btn${active === item.key ? " active" : ""}`}
+          onClick={() => onChange(item.key)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 export function CrackerMove({
   currentWeek,
   experience,
@@ -68,6 +116,7 @@ export function CrackerMove({
   profileInitial,
   profilePhoto,
 }: Props) {
+  const [subTab, setSubTab] = useState<MoveSubTab>("training");
   const [viewWeek, setViewWeek] = useState(currentWeek);
   const [checklist, setChecklist] = useState<MoveChecklistState>({ weeks: {} });
   const level: CrackerLevel = crackerLevelFromExperience(experience);
@@ -79,11 +128,21 @@ export function CrackerMove({
 
   useEffect(() => {
     setChecklist(loadMoveChecklist());
+    setSubTab(loadMoveSubTab());
   }, []);
 
   useEffect(() => {
     setViewWeek(currentWeek);
   }, [currentWeek]);
+
+  const selectSubTab = (tab: MoveSubTab) => {
+    setSubTab(tab);
+    try {
+      window.localStorage.setItem(MOVE_SUBTAB_KEY, tab);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const workouts = useMemo(() => {
     if (viewWeek === currentWeek && liveWorkouts.length) return liveWorkouts;
@@ -112,171 +171,200 @@ export function CrackerMove({
     });
   };
 
-  return (
-    <div className="screen cracker-screen cracker-move">
-      <header className="cracker-topbar">
-        <div>
-          <p className="cracker-screen-kicker">MOVE</p>
-          <h1 className="cracker-screen-title">WEEK {viewWeek} OF 6</h1>
-          <p className="cracker-level-pill">
-            {level === "beginner" ? "BEGINNER PROGRAM" : "INTERMEDIATE PROGRAM"}
-          </p>
-          <p className="cracker-edu-focus">
-            {theme} · {education.title}
-          </p>
-        </div>
-        <button
-          type="button"
-          className={`avatar cracker-avatar${profilePhoto ? " has-photo" : ""}`}
-          onClick={onOpenProfile}
-          aria-label="Open profile"
-          style={profilePhoto ? { backgroundImage: `url(${profilePhoto})` } : undefined}
-        >
-          {profilePhoto ? "" : profileInitial}
-        </button>
-      </header>
-
-      <div className="cracker-week-chips" role="tablist" aria-label="Programme week">
-        {[1, 2, 3, 4, 5, 6].map((w) => (
-          <button
-            key={w}
-            type="button"
-            role="tab"
-            aria-selected={viewWeek === w}
-            className={`cracker-week-chip${viewWeek === w ? " active" : ""}${
-              w === currentWeek ? " is-programme" : ""
-            }`}
-            onClick={() => setViewWeek(w)}
-          >
-            W{w}
-          </button>
-        ))}
+  if (subTab === "fitness") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveFitnessTesting
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
       </div>
+    );
+  }
 
-      {weekBanner ? (
-        <div className="cracker-move-banner">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={weekBanner} alt="" className="cracker-move-banner-image" />
-          <div className="cracker-move-banner-overlay">
-            <span>WEEK {viewWeek}</span>
-            <strong>{theme}</strong>
-          </div>
-        </div>
-      ) : (
-        <div className="cracker-move-banner cracker-move-banner--neutral" aria-hidden="true">
-          <div className="cracker-move-banner-overlay">
-            <span>WEEK {viewWeek}</span>
-            <strong>{theme}</strong>
-          </div>
-        </div>
-      )}
+  if (subTab === "inbody") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveInBodyMeasurements
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
 
-      <section className="cracker-this-week" aria-label="This week">
-        <p className="eyebrow">THIS WEEK</p>
-        <ul className="cracker-week-checklist">
-          {ordered.map((workout) => {
-            const done = doneMap.get(workout.id);
-            const idx = crackerSessionIndex(workout.title) || ordered.indexOf(workout) + 1;
-            return (
-              <li key={workout.id} className={done ? "is-done" : undefined}>
-                <span aria-hidden="true">{done ? "✓" : "○"}</span>
+  return (
+    <div className="cracker-move-with-subnav">
+      <MoveSubNav active={subTab} onChange={selectSubTab} />
+      <div className="screen cracker-screen cracker-move">
+        <header className="cracker-topbar">
+          <div>
+            <p className="cracker-screen-kicker">MOVE</p>
+            <h1 className="cracker-screen-title">WEEK {viewWeek} OF 6</h1>
+            <p className="cracker-level-pill">
+              {level === "beginner" ? "BEGINNER PROGRAM" : "INTERMEDIATE PROGRAM"}
+            </p>
+            <p className="cracker-edu-focus">
+              {theme} · {education.title}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={`avatar cracker-avatar${profilePhoto ? " has-photo" : ""}`}
+            onClick={onOpenProfile}
+            aria-label="Open profile"
+            style={profilePhoto ? { backgroundImage: `url(${profilePhoto})` } : undefined}
+          >
+            {profilePhoto ? "" : profileInitial}
+          </button>
+        </header>
+
+        <div className="cracker-week-chips" role="tablist" aria-label="Programme week">
+          {[1, 2, 3, 4, 5, 6].map((w) => (
+            <button
+              key={w}
+              type="button"
+              role="tab"
+              aria-selected={viewWeek === w}
+              className={`cracker-week-chip${viewWeek === w ? " active" : ""}${
+                w === currentWeek ? " is-programme" : ""
+              }`}
+              onClick={() => setViewWeek(w)}
+            >
+              W{w}
+            </button>
+          ))}
+        </div>
+
+        {weekBanner ? (
+          <div className="cracker-move-banner">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={weekBanner} alt="" className="cracker-move-banner-image" />
+            <div className="cracker-move-banner-overlay">
+              <span>WEEK {viewWeek}</span>
+              <strong>{theme}</strong>
+            </div>
+          </div>
+        ) : (
+          <div className="cracker-move-banner cracker-move-banner--neutral" aria-hidden="true">
+            <div className="cracker-move-banner-overlay">
+              <span>WEEK {viewWeek}</span>
+              <strong>{theme}</strong>
+            </div>
+          </div>
+        )}
+
+        <section className="cracker-this-week" aria-label="This week">
+          <p className="eyebrow">THIS WEEK</p>
+          <ul className="cracker-week-checklist">
+            {ordered.map((workout) => {
+              const done = doneMap.get(workout.id);
+              const idx = crackerSessionIndex(workout.title) || ordered.indexOf(workout) + 1;
+              return (
+                <li key={workout.id} className={done ? "is-done" : undefined}>
+                  <span aria-hidden="true">{done ? "✓" : "○"}</span>
+                  <span>
+                    {workout.title}
+                    <small>Session {idx} of 3</small>
+                  </span>
+                </li>
+              );
+            })}
+            <li className={weekChecks.education ? "is-done" : undefined}>
+              <button type="button" onClick={() => patchChecklist({ education: !weekChecks.education })}>
+                <span aria-hidden="true">{weekChecks.education ? "✓" : "○"}</span>
                 <span>
-                  {workout.title}
-                  <small>Session {idx} of 3</small>
+                  Watch Jess&apos;s training education
+                  <small>{education.title}</small>
                 </span>
-              </li>
+              </button>
+            </li>
+            <li className={weekChecks.action ? "is-done" : undefined}>
+              <button type="button" onClick={() => patchChecklist({ action: !weekChecks.action })}>
+                <span aria-hidden="true">{weekChecks.action ? "✓" : "○"}</span>
+                <span>
+                  Complete this week&apos;s action
+                  <small>Mark when done</small>
+                </span>
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <article className="cracker-learn-card">
+          {learnImage ? (
+            <div className="cracker-learn-media">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={learnImage} alt="" />
+            </div>
+          ) : null}
+          <div className="cracker-learn-body">
+            <p className="eyebrow">LEARN WITH JESS</p>
+            <h2>{education.title}</h2>
+            <p>{education.summary}</p>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => patchChecklist({ education: true })}
+            >
+              {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
+            </button>
+          </div>
+        </article>
+
+        <JessHeadTrainerCard week={viewWeek} />
+
+        <div className="cracker-workout-stack">
+          {ordered.map((workout) => {
+            const idx = crackerSessionIndex(workout.title) || 1;
+            const done = doneMap.get(workout.id);
+            const media = moveMediaForSession(workout.title);
+            const startTarget =
+              viewWeek === currentWeek
+                ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
+                : workout;
+
+            return (
+              <article
+                key={workout.id}
+                className={`cracker-workout-card${done ? " is-done" : ""}`}
+              >
+                {media.kind === "photo" && media.src ? (
+                  <div
+                    className={`cracker-workout-media cracker-workout-media--photo${
+                      media.label === "FULL" ? " cracker-workout-media--full" : ""
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={media.src} alt="" />
+                    <span className="cracker-workout-chip">Session {idx} of 3</span>
+                    {done ? <span className="cracker-workout-done">Done</span> : null}
+                  </div>
+                ) : (
+                  <div
+                    className={`cracker-workout-media cracker-workout-media--neutral accent-${media.label.toLowerCase()}`}
+                  >
+                    <span className="cracker-workout-neutral-label">{media.label}</span>
+                    <span className="cracker-workout-chip">Session {idx} of 3</span>
+                    {done ? <span className="cracker-workout-done">Done</span> : null}
+                  </div>
+                )}
+                <div className="cracker-workout-body">
+                  <p className="eyebrow">{workout.day}</p>
+                  <h2>{workout.title.toUpperCase()}</h2>
+                  <p className="muted">{shortSummary(workout)}</p>
+                  <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
+                    {done ? "START AGAIN" : "START WORKOUT"}
+                  </button>
+                </div>
+              </article>
             );
           })}
-          <li className={weekChecks.education ? "is-done" : undefined}>
-            <button type="button" onClick={() => patchChecklist({ education: !weekChecks.education })}>
-              <span aria-hidden="true">{weekChecks.education ? "✓" : "○"}</span>
-              <span>
-                Watch Jess&apos;s training education
-                <small>{education.title}</small>
-              </span>
-            </button>
-          </li>
-          <li className={weekChecks.action ? "is-done" : undefined}>
-            <button type="button" onClick={() => patchChecklist({ action: !weekChecks.action })}>
-              <span aria-hidden="true">{weekChecks.action ? "✓" : "○"}</span>
-              <span>
-                Complete this week&apos;s action
-                <small>Mark when done</small>
-              </span>
-            </button>
-          </li>
-        </ul>
-      </section>
-
-      <article className="cracker-learn-card">
-        {learnImage ? (
-          <div className="cracker-learn-media">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={learnImage} alt="" />
-          </div>
-        ) : null}
-        <div className="cracker-learn-body">
-          <p className="eyebrow">LEARN WITH JESS</p>
-          <h2>{education.title}</h2>
-          <p>{education.summary}</p>
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={() => patchChecklist({ education: true })}
-          >
-            {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
-          </button>
         </div>
-      </article>
-
-      <JessHeadTrainerCard week={viewWeek} />
-
-      <div className="cracker-workout-stack">
-        {ordered.map((workout) => {
-          const idx = crackerSessionIndex(workout.title) || 1;
-          const done = doneMap.get(workout.id);
-          const media = moveMediaForSession(workout.title);
-          const startTarget =
-            viewWeek === currentWeek
-              ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
-              : workout;
-
-          return (
-            <article
-              key={workout.id}
-              className={`cracker-workout-card${done ? " is-done" : ""}`}
-            >
-              {media.kind === "photo" && media.src ? (
-                <div
-                  className={`cracker-workout-media cracker-workout-media--photo${
-                    media.label === "FULL" ? " cracker-workout-media--full" : ""
-                  }`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={media.src} alt="" />
-                  <span className="cracker-workout-chip">Session {idx} of 3</span>
-                  {done ? <span className="cracker-workout-done">Done</span> : null}
-                </div>
-              ) : (
-                <div
-                  className={`cracker-workout-media cracker-workout-media--neutral accent-${media.label.toLowerCase()}`}
-                >
-                  <span className="cracker-workout-neutral-label">{media.label}</span>
-                  <span className="cracker-workout-chip">Session {idx} of 3</span>
-                  {done ? <span className="cracker-workout-done">Done</span> : null}
-                </div>
-              )}
-              <div className="cracker-workout-body">
-                <p className="eyebrow">{workout.day}</p>
-                <h2>{workout.title.toUpperCase()}</h2>
-                <p className="muted">{shortSummary(workout)}</p>
-                <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
-                  {done ? "START AGAIN" : "START WORKOUT"}
-                </button>
-              </div>
-            </article>
-          );
-        })}
       </div>
     </div>
   );
