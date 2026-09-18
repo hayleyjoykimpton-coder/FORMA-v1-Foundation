@@ -1,7 +1,6 @@
 /**
  * Cracker Challenge nutrition pointer.
- * Full Recipe & Food Guide lives in `crackerRecipes.ts`;
- * Wellness education lives in `crackerWellness.ts`.
+ * Full program lives on the external CRACKER Nutrition platform.
  */
 
 export type CrackerNutritionGuide = {
@@ -12,16 +11,15 @@ export type CrackerNutritionGuide = {
 };
 
 export const CRACKER_NUTRITION_GUIDE: CrackerNutritionGuide = {
-  title: "Recipe & Wellness guides",
-  lead: "Two guides for the six weeks — cook from the food plan, learn the why in wellness.",
+  title: "CRACKER Nutrition",
+  lead: "Fuel your six weeks with Naomi Gillespie’s complete CRACKER nutrition program.",
   bullets: [
-    "Recipe & Food Guide — breakfast, lunch and dinner with Base, Training and Family of 4 serves.",
-    "Wellness Guide — energy, stress, nervous system, gut, sleep and making it last.",
-    "Plan A / B / C — organised day, busy shortcut, or the minimum.",
-    "Log meals as usual — one imperfect meal does not undo the week.",
+    "Open the NOURISH tab for the full nutrition platform.",
+    "Recipes, weekly guidance and education live outside FORMA.",
+    "Training and wellness stay in MOVE and CONNECT.",
   ],
-  note: "Open the Recipe and Wellness cards on Home in Christmas Cracker mode.",
+  note: "Your nutrition plan, recipes and education are managed through the separate CRACKER Nutrition platform.",
 };
 
 export const CRACKER_FUEL_HINT =
-  "Meal log targets still follow your nutrition goal. Use Base or Training serves from the food guide to match your day.";
+  "Open NOURISH for Naomi Gillespie’s CRACKER Nutrition program — recipes and education live on the separate platform.";

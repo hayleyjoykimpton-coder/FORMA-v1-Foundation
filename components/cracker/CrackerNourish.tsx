@@ -2,7 +2,7 @@
 
 import { ExternalLinkIcon } from "@/components/cracker/icons";
 import { IMAGES } from "@/lib/content";
-import { NOURISH_PROGRAM_URL } from "@/lib/nourish";
+import { NOURISH_COPY, NOURISH_PROGRAM_URL } from "@/lib/nourish";
 
 type Props = {
   onOpenProfile: () => void;
@@ -15,8 +15,8 @@ export function CrackerNourish({ onOpenProfile, profileInitial, profilePhoto }: 
     <div className="screen cracker-screen cracker-nourish">
       <header className="cracker-topbar">
         <div>
-          <p className="cracker-screen-kicker">NOURISH</p>
-          <h1 className="cracker-screen-title">Fuel your six weeks.</h1>
+          <p className="cracker-screen-kicker">{NOURISH_COPY.title}</p>
+          <h1 className="cracker-screen-title">{NOURISH_COPY.supporting}</h1>
         </div>
         <button
           type="button"
@@ -38,16 +38,17 @@ export function CrackerNourish({ onOpenProfile, profileInitial, profilePhoto }: 
 
       <section className="cracker-gateway">
         <p className="eyebrow">YOUR NUTRITION PROGRAM</p>
-        <h2>Recipes, weekly guidance and resources.</h2>
+        <h2>{NOURISH_COPY.description}</h2>
         <a
           className="cta-btn cracker-external-cta"
           href={NOURISH_PROGRAM_URL}
           target="_blank"
           rel="noopener noreferrer"
         >
-          <span>OPEN NUTRITION PROGRAM</span>
+          <span>{NOURISH_COPY.ctaPrimary}</span>
           <ExternalLinkIcon size={18} />
         </a>
+        <p className="muted cracker-gateway-note">{NOURISH_COPY.note}</p>
       </section>
     </div>
   );

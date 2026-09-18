@@ -288,12 +288,23 @@ export function ProfileScreen({
               selected={draft.preferredTrainingStyle}
               onSelect={(v) => set("preferredTrainingStyle", v)}
             />
-            <label className="mini-label">Nutrition goal</label>
-            <ChoiceRow
-              options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({ value: v, label: NUTRITION_LABELS[v] }))}
-              selected={draft.nutritionGoal}
-              onSelect={(v) => set("nutritionGoal", v)}
-            />
+            {challengeMode === "cracker" ? (
+              <p className="muted" style={{ fontSize: 13, marginTop: 8, marginBottom: 4 }}>
+                Nutrition goals are managed on the CRACKER Nutrition platform (NOURISH tab) — not in FORMA.
+              </p>
+            ) : (
+              <>
+                <label className="mini-label">Nutrition goal</label>
+                <ChoiceRow
+                  options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({
+                    value: v,
+                    label: NUTRITION_LABELS[v],
+                  }))}
+                  selected={draft.nutritionGoal}
+                  onSelect={(v) => set("nutritionGoal", v)}
+                />
+              </>
+            )}
             {reminderPrefs && onReminderPrefsChange ? (
               <>
                 <label className="mini-label">Reminders</label>

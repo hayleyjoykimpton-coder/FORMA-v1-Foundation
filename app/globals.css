@@ -221,18 +221,52 @@ textarea::placeholder {
   gap: 12px;
   align-items: center;
   text-align: left;
-  border-color: rgba(196, 18, 24, 0.28);
-  background: #111;
-  color: #f7f1ea;
+  border: 1px solid rgba(196, 18, 24, 0.22);
+  background: #fff;
+  color: #222;
 }
 .cracker-challenge-pick .muted {
-  color: rgba(247, 241, 234, 0.78);
+  color: #444;
 }
 .cracker-challenge-pick strong {
   font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 400;
-  color: #fff;
+  color: #222;
+}
+.cracker-pillar-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+.cracker-pillar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(196, 18, 24, 0.16);
+  color: #222;
+  text-align: left;
+}
+.cracker-pillar-card strong {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: #c41218;
+}
+.cracker-pillar-card span {
+  font-size: 15px;
+  line-height: 1.4;
+  color: #222;
+}
+.cracker-gateway-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
 }
 .cracker-onboard-app .choice.selected,
 .cracker-auth-app .cta-btn {

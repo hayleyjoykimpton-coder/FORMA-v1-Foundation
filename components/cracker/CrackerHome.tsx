@@ -34,7 +34,7 @@ const PILLARS: {
   {
     key: "nourish",
     title: "NOURISH",
-    line: "Your full six-week nutrition program.",
+    line: "Fuel your six weeks.",
     cta: "OPEN NUTRITION",
     image: IMAGES.nutrition,
   },
