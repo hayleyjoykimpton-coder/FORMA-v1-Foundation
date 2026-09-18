@@ -7,7 +7,7 @@ export const JESS_HEAD_TRAINER = {
   body: "Jess leads the CRACKER 2026 training program and weekly training education.",
   imageSrc: "/cracker/jess-mckee-jmk-training.jpg",
   imageAlt: "Jess McKee — JMK Training Club. Real Results START HERE.",
-  instagramUrl: "https://www.instagram.com/jmktraining/",
+  instagramUrl: "https://linktr.ee/JMKTrainingClub",
   followLabel: "FOLLOW JESS",
   watchLabel: "WATCH THIS WEEK'S TRAINING VIDEO",
   comingSoonLabel: "VIDEO COMING SOON",
