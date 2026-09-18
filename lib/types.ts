@@ -66,5 +66,7 @@ export type WorkoutSession = {
   notes?: string;
   /** Pre-workout readiness score (0–100) captured at the check-in. */
   readiness?: number;
+  /** Christmas Cracker training level when the session was completed. */
+  crackerLevel?: "beginner" | "intermediate";
   exercises: ExerciseResult[];
 };

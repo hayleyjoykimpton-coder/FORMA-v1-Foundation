@@ -1040,6 +1040,10 @@ export default function FormaApp() {
       season,
       week: weekInCycle,
       readiness: session.readiness,
+      crackerLevel:
+        challengeMode === "cracker" && profile
+          ? crackerLevelFromExperience(profile.experienceLevel)
+          : undefined,
       exercises,
     };
     const nextHistory = [...history, completed];
@@ -1955,6 +1959,7 @@ export default function FormaApp() {
           sessionsTarget={sessionsTarget}
           experience={profile.experienceLevel}
           workouts={workouts}
+          history={history}
           completedIds={completedThisWeek}
           profileInitial={profile.firstName.charAt(0)}
           profilePhoto={profile.profilePhoto}

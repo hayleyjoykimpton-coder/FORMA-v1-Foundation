@@ -9,6 +9,8 @@ import type { ExperienceLevel } from "./user";
 
 export type CrackerLevel = "beginner" | "intermediate";
 
+export type CrackerWeekNames = [string, string, string, string, string, string];
+
 export type CrackerSlot = {
   /** Pattern label shown in notes */
   pattern: string;
@@ -16,8 +18,8 @@ export type CrackerSlot = {
   early: { sets: number; repMin: number; repMax: number };
   /** Sets × reps for weeks 4–6 */
   late: { sets: number; repMin: number; repMax: number };
-  /** Exercise names for weeks 1, 2, 3 (reused as 4, 5, 6) */
-  names: [string, string, string];
+  /** Exact exercise name for each week 1–6 (DRAFT source of truth) */
+  names: CrackerWeekNames;
   /** Optional library id for the closest FORMA exercise (first name). */
   libraryId?: string;
   restSeconds?: number;
@@ -53,7 +55,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Squat",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["KB Goblet Squat", "Leg Press", "Smith Machine Squat"],
+        names: ["KB Goblet Squat", "Leg Press", "Smith Machine Squat", "Goblet Box/Bench Squat", "Leg Press", "Smith Machine Squat"],
         libraryId: "goblet_squat",
         restSeconds: 75,
       },
@@ -61,7 +63,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Hinge",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["DB Deadlift", "Trap Bar Deadlift", "DB Romanian Deadlift"],
+        names: ["DB Deadlift", "Trap Bar Deadlift", "DB Romanian Deadlift", "DB Deadlift", "Trap Bar Deadlift", "DB Romanian Deadlift"],
         libraryId: "romanian_deadlift",
         restSeconds: 75,
       },
@@ -69,7 +71,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Unilateral",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 10, repMax: 12 },
-        names: ["DB/BW Walking Lunge", "DB/BW Box Step Ups", "Bulgarian Split Squat"],
+        names: ["DB/BW Walking Lunge", "DB/BW Box Step Ups", "Bulgarian Split Squat", "DB/BW Walking Lunge", "DB/BW Box Step Ups", "Bulgarian Split Squat"],
         libraryId: "bulgarian_split_squat",
         note: "Reps per leg",
         restSeconds: 60,
@@ -78,7 +80,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Hams / Glutes / Calves",
         early: { sets: 3, repMin: 10, repMax: 12 },
         late: { sets: 3, repMin: 12, repMax: 15 },
-        names: ["DB Glute Bridge", "Lying Leg Curl", "Standing Calf Raise"],
+        names: ["DB Glute Bridge", "Lying Leg Curl", "Standing Calf Raise", "DB Glute Bridge", "Lying Leg Curl", "Standing Calf Raise"],
         libraryId: "leg_curl",
         restSeconds: 60,
       },
@@ -86,14 +88,14 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Quads",
         early: { sets: 3, repMin: 12, repMax: 15 },
         late: { sets: 3, repMin: 10, repMax: 12 },
-        names: ["Leg Extension", "Leg Extension", "Leg Extension"],
+        names: ["Leg Extension", "Leg Extension", "Leg Extension", "Heavy Leg Extension", "Leg Extension", "Leg Extension"],
         restSeconds: 45,
       },
       {
         pattern: "Core",
         early: { sets: 2, repMin: 10, repMax: 10 },
         late: { sets: 2, repMin: 15, repMax: 15 },
-        names: ["Plated Russian Twist", "Plated Toe Touchers", "Plated Russian Twist"],
+        names: ["Plated Russian Twist", "Plated Toe Touchers", "Plated Russian Twist", "Plated Toe Touchers", "Plated Russian Twist", "Plated Toe Touchers"],
         libraryId: "russian_twist",
         note: "Reps each side where noted",
         restSeconds: 45,
@@ -140,7 +142,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Horizontal Push",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["Machine Chest Press", "DB Bench Press", "Incline DB Bench Press"],
+        names: ["Machine Chest Press", "DB Bench Press", "Incline DB Bench Press", "Machine Chest Press", "DB Bench Press", "Incline DB Bench Press"],
         libraryId: "bench_press",
         restSeconds: 75,
       },
@@ -148,7 +150,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Vertical Pull",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["Wide Grip Lat Pulldown", "Machine Assisted Pull Up", "Neutral Grip Pulldown"],
+        names: ["Wide Grip Lat Pulldown", "Machine Assisted Pull Up", "Neutral Grip Pulldown", "Wide Grip Lat Pulldown", "Machine Assisted Pull Up", "Neutral Grip Pulldown"],
         libraryId: "lat_pulldown",
         restSeconds: 75,
       },
@@ -156,7 +158,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Horizontal Pull",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["Seated Cable Narrow Row", "Single Arm DB Row", "Machine Row"],
+        names: ["Seated Cable Narrow Row", "Single Arm DB Row", "Machine Row", "Seated Cable Narrow Row", "Single Arm DB Row", "Machine Row"],
         libraryId: "seated_row",
         note: "Single-arm rows: reps per side",
         restSeconds: 60,
@@ -165,7 +167,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Vertical Push",
         early: { sets: 3, repMin: 10, repMax: 12 },
         late: { sets: 3, repMin: 8, repMax: 10 },
-        names: ["Machine Shoulder Press", "BB Overhead Press", "DB Shoulder Press"],
+        names: ["Machine Shoulder Press", "BB Overhead Press", "DB Shoulder Press", "Machine Shoulder Press", "BB Overhead Press", "DB Shoulder Press"],
         libraryId: "shoulder_press",
         restSeconds: 60,
       },
@@ -173,7 +175,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Biceps",
         early: { sets: 2, repMin: 10, repMax: 12 },
         late: { sets: 2, repMin: 12, repMax: 15 },
-        names: ["DB Curl", "DB Hammer Curl", "Cable Rope Bicep Curl"],
+        names: ["DB Curl", "DB Hammer Curl", "Cable Rope Bicep Curl", "DB Curl", "DB Hammer Curl", "Cable Rope Bicep Curl"],
         libraryId: "bicep_curl",
         restSeconds: 45,
       },
@@ -181,14 +183,14 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Triceps",
         early: { sets: 2, repMin: 10, repMax: 12 },
         late: { sets: 2, repMin: 12, repMax: 15 },
-        names: ["Cable Bar Pushdown", "Overhead DB Tricep Extension", "Cable Rope Pushdown"],
+        names: ["Cable Bar Pushdown", "Overhead DB Tricep Extension", "Cable Rope Pushdown", "Cable Bar Pushdown", "Overhead DB Tricep Extension", "Cable Rope Pushdown"],
         restSeconds: 45,
       },
       {
         pattern: "Core",
         early: { sets: 2, repMin: 10, repMax: 12 },
         late: { sets: 2, repMin: 12, repMax: 15 },
-        names: ["Plank (30s hold × 2)", "Weighted Sit Up", "Plank"],
+        names: ["Plank (30s hold × 2)", "Weighted Sit Up", "Plank", "Plank (30s hold × 2)", "Weighted Sit Up", "Plank"],
         note: "Week 4–6 plank: 60s holds",
         restSeconds: 45,
       },
@@ -234,7 +236,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Hinge",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["KB Swing", "Single Leg RDL", "Trap Bar Deadlift"],
+        names: ["KB Swing", "Single Leg RDL", "Trap Bar Deadlift", "KB Swing", "Single Leg RDL", "Trap Bar Deadlift"],
         libraryId: "romanian_deadlift",
         restSeconds: 75,
       },
@@ -242,7 +244,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Push",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["Push Up", "Smith Machine Incline Press", "DB Bench Press"],
+        names: ["Push Up", "Smith Machine Incline Press", "DB Bench Press", "Push Up", "Smith Machine Incline Press", "DB Bench Press"],
         libraryId: "bench_press",
         restSeconds: 60,
       },
@@ -250,7 +252,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Pull",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["Chest Supported Row", "Single Arm Cable Row", "Cable Row Wide Grip"],
+        names: ["Chest Supported Row", "Single Arm Cable Row", "Cable Row Wide Grip", "Chest Supported Row", "Single Arm Cable Row", "Cable Row Wide Grip"],
         libraryId: "chest_supported_row",
         note: "Single-arm: reps per side",
         restSeconds: 60,
@@ -259,7 +261,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Squat",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["Heel Elevated Goblet Squat", "DB Box Squat", "Leg Press"],
+        names: ["Heel Elevated Goblet Squat", "DB Box Squat", "Leg Press", "Heel Elevated Goblet Squat", "DB Box Squat", "Leg Press"],
         libraryId: "goblet_squat",
         restSeconds: 75,
       },
@@ -267,7 +269,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Shoulders",
         early: { sets: 2, repMin: 10, repMax: 12 },
         late: { sets: 2, repMin: 12, repMax: 15 },
-        names: ["DB Lateral Raise", "Rear Delt Fly Machine", "DB Arnold Press"],
+        names: ["DB Lateral Raise", "Rear Delt Fly Machine", "DB Arnold Press", "DB Lateral Raise", "Rear Delt Fly Machine", "DB Arnold Press"],
         libraryId: "lateral_raise",
         restSeconds: 45,
       },
@@ -275,7 +277,7 @@ export const CRACKER_BEGINNER: CrackerDay[] = [
         pattern: "Core",
         early: { sets: 2, repMin: 10, repMax: 12 },
         late: { sets: 2, repMin: 12, repMax: 15 },
-        names: ["Weighted Sit Up", "Hanging Knee Raise", "Weighted Sit Up"],
+        names: ["Weighted Sit Up", "Hanging Knee Raise", "Weighted Sit Up", "Hanging Knee Raise", "Weighted Sit Up", "Hanging Knee Raise"],
         libraryId: "hanging_knee_raise",
         restSeconds: 45,
       },
@@ -325,7 +327,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Squat",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["BB Back Squat", "BB Front Squat", "Paused Back Squat 1:2:1"],
+        names: ["BB Back Squat", "BB Front Squat", "Paused Back Squat 1:2:1", "BB Back Squat", "BB Front Squat", "Paused Back Squat 1:2:1"],
         libraryId: "squat",
         restSeconds: 120,
       },
@@ -333,7 +335,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Hinge",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["BB Deadlift", "Trap Bar Deadlift", "BB Romanian Deadlift"],
+        names: ["BB Deadlift", "Trap Bar Deadlift", "BB Romanian Deadlift", "BB Deadlift", "Trap Bar Deadlift", "BB Romanian Deadlift"],
         libraryId: "romanian_deadlift",
         restSeconds: 120,
       },
@@ -341,7 +343,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Hip Thrust",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["BB Hip Thrust", "Single-Leg Hip Thrust (DB)", "Single-Leg Hip Thrust (BB)"],
+        names: ["BB Hip Thrust", "Single-Leg Hip Thrust (DB)", "Single-Leg Hip Thrust (BB)", "BB Hip Thrust", "Single-Leg Hip Thrust (DB)", "Single-Leg Hip Thrust (BB)"],
         libraryId: "hip_thrust",
         restSeconds: 90,
       },
@@ -349,7 +351,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Unilateral (SS w/ Leg Curl)",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 10, repMax: 12 },
-        names: ["Single DB Bulgarian Split Squat", "DB Walking Lunge", "Cable Step Up"],
+        names: ["Single DB Bulgarian Split Squat", "DB Walking Lunge", "Cable Step Up", "Single DB Bulgarian Split Squat", "DB Walking Lunge", "Cable Step Up"],
         libraryId: "bulgarian_split_squat",
         note: "Superset with leg curl — no rest between D1/D2; 60–75s between rounds. Reps per leg.",
         restSeconds: 70,
@@ -358,7 +360,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Leg Curl (SS w/ Unilateral)",
         early: { sets: 3, repMin: 10, repMax: 12 },
         late: { sets: 3, repMin: 12, repMax: 15 },
-        names: ["Lying Leg Curl", "Leg Extension", "Seated Leg Curl"],
+        names: ["Lying Leg Curl", "Leg Extension", "Seated Leg Curl", "Lying Leg Curl", "Leg Extension", "Seated Leg Curl"],
         libraryId: "leg_curl",
         note: "Superset partner for unilateral",
         restSeconds: 45,
@@ -367,14 +369,14 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Calves",
         early: { sets: 3, repMin: 12, repMax: 15 },
         late: { sets: 4, repMin: 15, repMax: 20 },
-        names: ["Standing Calf Raise", "Assisted Nordic Curl", "Smith Machine Calf Raise"],
+        names: ["Standing Calf Raise", "Assisted Nordic Curl", "Smith Machine Calf Raise", "Standing Calf Raise", "Assisted Nordic Curl", "Smith Machine Calf Raise"],
         restSeconds: 45,
       },
       {
         pattern: "Core",
         early: { sets: 3, repMin: 12, repMax: 12 },
         late: { sets: 3, repMin: 15, repMax: 15 },
-        names: ["Weighted Russian Twist", "Cable Crunch", "Weighted Russian Twist"],
+        names: ["Weighted Russian Twist", "Cable Crunch", "Weighted Russian Twist", "Weighted Russian Twist", "Cable Crunch", "Weighted Russian Twist"],
         libraryId: "cable_crunch",
         restSeconds: 45,
       },
@@ -420,7 +422,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Horizontal Push",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["Barbell Bench Press", "Incline DB Press", "Smith Machine Incline Bench"],
+        names: ["Barbell Bench Press", "Incline DB Press", "Smith Machine Incline Bench", "Barbell Bench Press", "Incline DB Press", "Smith Machine Incline Bench"],
         libraryId: "bench_press",
         restSeconds: 120,
       },
@@ -428,7 +430,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Vertical Pull",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["Lat Pulldown Wide Grip", "Pull-Up (assisted/BW)", "Chin-Up (assisted/BW)"],
+        names: ["Lat Pulldown Wide Grip", "Pull-Up (assisted/BW)", "Chin-Up (assisted/BW)", "Lat Pulldown Wide Grip", "Pull-Up (assisted/BW)", "Chin-Up (assisted/BW)"],
         libraryId: "lat_pulldown",
         restSeconds: 90,
       },
@@ -436,7 +438,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Horizontal Pull (SS w/ Biceps)",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 10, repMax: 12 },
-        names: ["Pendlay Row", "Chest-Supported DB Row", "Machine Row (single-arm)"],
+        names: ["Pendlay Row", "Chest-Supported DB Row", "Machine Row (single-arm)", "Pendlay Row", "Chest-Supported DB Row", "Machine Row (single-arm)"],
         libraryId: "seated_row",
         note: "Superset with biceps",
         restSeconds: 70,
@@ -445,7 +447,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Biceps (SS w/ Row)",
         early: { sets: 3, repMin: 10, repMax: 12 },
         late: { sets: 3, repMin: 12, repMax: 15 },
-        names: ["DB Bicep Curl", "Incline DB Curl", "Cable Bar Curl"],
+        names: ["DB Bicep Curl", "Incline DB Curl", "Cable Bar Curl", "DB Bicep Curl", "Incline DB Curl", "Cable Bar Curl"],
         libraryId: "bicep_curl",
         restSeconds: 45,
       },
@@ -453,7 +455,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Vertical Push",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["Barbell Overhead Strict Press", "BB Push Press", "Seated DB Shoulder Press"],
+        names: ["Barbell Overhead Strict Press", "BB Push Press", "Seated DB Shoulder Press", "Barbell Overhead Strict Press", "BB Push Press", "Seated DB Shoulder Press"],
         libraryId: "shoulder_press",
         restSeconds: 90,
       },
@@ -461,14 +463,14 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Triceps",
         early: { sets: 3, repMin: 10, repMax: 12 },
         late: { sets: 3, repMin: 12, repMax: 15 },
-        names: ["Close-Grip DB Bench Press", "Skull Crusher", "Overhead Cable Rope Extension"],
+        names: ["Close-Grip DB Bench Press", "Skull Crusher", "Overhead Cable Rope Extension", "Close-Grip DB Bench Press", "Skull Crusher", "Overhead Cable Rope Extension"],
         restSeconds: 45,
       },
       {
         pattern: "Core",
         early: { sets: 3, repMin: 12, repMax: 12 },
         late: { sets: 3, repMin: 15, repMax: 15 },
-        names: ["Weighted Plank", "Ab Wheel Rollout", "Weighted Plank"],
+        names: ["Weighted Plank", "Ab Wheel Rollout", "Weighted Plank", "Weighted Plank", "Ab Wheel Rollout", "Weighted Plank"],
         restSeconds: 45,
       },
     ],
@@ -513,7 +515,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Hinge",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["B Stance RDL (DB)", "KB Swing (heavy)", "BB Sumo Deadlift"],
+        names: ["B Stance RDL (DB)", "KB Swing (heavy)", "BB Sumo Deadlift", "B Stance RDL (DB)", "KB Swing (heavy)", "BB Sumo Deadlift"],
         libraryId: "romanian_deadlift",
         restSeconds: 90,
       },
@@ -521,7 +523,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Squat",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["Heel-Elevated Goblet Squat", "Leg Press High and Wide", "Single DB Bulgarian Split Squat"],
+        names: ["Heel-Elevated Goblet Squat", "Leg Press High and Wide", "Single DB Bulgarian Split Squat", "Heel-Elevated Goblet Squat", "Leg Press High and Wide", "Single DB Bulgarian Split Squat"],
         libraryId: "bulgarian_split_squat",
         restSeconds: 90,
       },
@@ -529,7 +531,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Push",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["Incline DB Press", "Tricep Dips BW/Machine", "DB Bench Press"],
+        names: ["Incline DB Press", "Tricep Dips BW/Machine", "DB Bench Press", "Incline DB Press", "Tricep Dips BW/Machine", "DB Bench Press"],
         libraryId: "bench_press",
         restSeconds: 75,
       },
@@ -537,7 +539,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Pull",
         early: { sets: 4, repMin: 6, repMax: 8 },
         late: { sets: 4, repMin: 4, repMax: 6 },
-        names: ["Single-Arm DB Row", "Machine Row (heavy)", "BB Pendlay Row"],
+        names: ["Single-Arm DB Row", "Machine Row (heavy)", "BB Pendlay Row", "Single-Arm DB Row", "Machine Row (heavy)", "BB Pendlay Row"],
         libraryId: "seated_row",
         restSeconds: 75,
       },
@@ -545,7 +547,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Hip Thrust / Glute",
         early: { sets: 3, repMin: 8, repMax: 10 },
         late: { sets: 3, repMin: 6, repMax: 8 },
-        names: ["DB Front Foot Elevated Split Squat", "BB Hip Thrust", "Cable Kickback"],
+        names: ["DB Front Foot Elevated Split Squat", "BB Hip Thrust", "Cable Kickback", "DB Front Foot Elevated Split Squat", "BB Hip Thrust", "Cable Kickback"],
         libraryId: "hip_thrust",
         restSeconds: 60,
       },
@@ -553,7 +555,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Shoulders (SS w/ Core)",
         early: { sets: 3, repMin: 10, repMax: 12 },
         late: { sets: 3, repMin: 12, repMax: 15 },
-        names: ["DB Seated Lateral Raise", "Cable Lateral Raise", "Cable Face Pull"],
+        names: ["DB Seated Lateral Raise", "Cable Lateral Raise", "Cable Face Pull", "DB Seated Lateral Raise", "Cable Lateral Raise", "Cable Face Pull"],
         libraryId: "lateral_raise",
         note: "Superset with core",
         restSeconds: 70,
@@ -562,7 +564,7 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Core (SS w/ Shoulders)",
         early: { sets: 3, repMin: 12, repMax: 12 },
         late: { sets: 3, repMin: 15, repMax: 15 },
-        names: ["Ab Wheel Rollout", "Hanging Knee Raise", "Weighted Russian Twist"],
+        names: ["Ab Wheel Rollout", "Hanging Knee Raise", "Weighted Russian Twist", "Ab Wheel Rollout", "Hanging Knee Raise", "Weighted Russian Twist"],
         libraryId: "hanging_knee_raise",
         restSeconds: 45,
       },
@@ -708,30 +710,18 @@ function makeExercise(
 
 /**
  * Build the three Cracker sessions for a given week (1–6).
- * Week column cycles 1→4, 2→5, 3→6 with early vs late set prescriptions.
+ * Exercise names and WODs come from the DRAFT Beginner / Intermediate tables.
  */
 export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout[] {
   const plan = level === "beginner" ? CRACKER_BEGINNER : CRACKER_INTERMEDIATE;
   const w = Math.min(6, Math.max(1, week));
-  const col = (w - 1) % 3;
   const late = w >= 4;
-  const theme =
-    w === 1
-      ? "Learn"
-      : w === 2
-        ? "Add Reps"
-        : w === 3
-          ? "Add Load"
-          : w === 4
-            ? "Add Volume"
-            : w === 5
-              ? "Intensity"
-              : "Demonstrate";
+  const theme = CRACKER_WEEK_THEMES[w - 1];
 
   return plan.map((day) => {
     const strength = day.strength.map((slot) => {
       const rx = late ? slot.late : slot.early;
-      const name = slot.names[col];
+      const name = slot.names[w - 1];
       const notes = [slot.pattern, slot.note, `Wk${w} · ${theme}`].filter(Boolean).join(" · ");
       return makeExercise(name, rx.sets, rx.repMin, rx.repMax, {
         libraryId: slot.libraryId,
@@ -742,21 +732,87 @@ export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout
     });
 
     const wod = day.wods[w - 1];
+    const wallBallNote =
+      /wall ball/i.test(wod.work) || /wall ball/i.test(wod.intensity)
+        ? "\nIf no wall ball is available, substitute Single DB Thruster."
+        : "";
+    const deathByNote = /death by/i.test(wod.format)
+      ? "\nDeath By score = last minute completed."
+      : "";
     const wodExercise = makeExercise(`WOD · ${wod.format}`, 1, 1, 1, {
-      notes: `${wod.work}\n${wod.intensity}`,
+      notes: `${wod.work}\n${wod.intensity}${wallBallNote}${deathByNote}`,
       restSeconds: 0,
       rpe: 8,
     });
 
     const exercises = [...strength, wodExercise];
     const duration = Math.max(45, strength.length * 8 + 15);
+    const slug = day.title.toLowerCase().replace(/\s+/g, "-");
 
     return {
-      id: uid(),
+      id: `cracker-${level}-w${w}-${slug}`,
       day: day.day,
-      title: `${day.title} · Wk${w}`,
+      title: day.title,
       duration,
       exercises,
+      // session ordinal for UI (1–3)
+      // kept in notes via theme; CrackerMove maps by title
     };
   });
+}
+
+export const CRACKER_WEEK_THEMES = [
+  "LEARN",
+  "ADD REPS",
+  "ADD LOAD",
+  "ADD VOLUME",
+  "INTENSITY",
+  "DEMONSTRATE",
+] as const;
+
+/** Shared Jess McKee weekly training education (Beginner + Intermediate). */
+export const CRACKER_TRAINING_EDUCATION = [
+  {
+    week: 1,
+    title: "Gym Confidence",
+    summary: "Show up, learn the floor, and own your space.",
+  },
+  {
+    week: 2,
+    title: "Training Intensity & Progressive Overload",
+    summary: "How to add reps and load without losing form.",
+  },
+  {
+    week: 3,
+    title: "Recovery",
+    summary: "Sleep, rest days, and bouncing back ready to train.",
+  },
+  {
+    week: 4,
+    title: "Mindset & Habit Building",
+    summary: "Consistency beats perfection across six weeks.",
+  },
+  {
+    week: 5,
+    title: "Strength Training & Why It Matters",
+    summary: "Why getting stronger changes how you feel every day.",
+  },
+  {
+    week: 6,
+    title: "What Happens After CRACKER?",
+    summary: "How to keep the momentum when the challenge ends.",
+  },
+] as const;
+
+export function crackerEducationForWeek(week: number) {
+  const w = Math.min(6, Math.max(1, week));
+  return CRACKER_TRAINING_EDUCATION[w - 1];
+}
+
+export function crackerSessionIndex(title: string): number {
+  const t = title.toLowerCase();
+  if (t.includes("lower")) return 1;
+  if (t.includes("upper")) return 2;
+  if (t.includes("full")) return 3;
+  return 0;
 }

@@ -8,7 +8,7 @@ import { CrackerNourish } from "@/components/cracker/CrackerNourish";
 import { CrackerTabBar } from "@/components/cracker/CrackerTabBar";
 import type { CrackerTab } from "@/components/cracker/types";
 import type { ExperienceLevel } from "@/lib/user";
-import type { Workout } from "@/lib/types";
+import type { Workout, WorkoutSession } from "@/lib/types";
 
 type Props = {
   week: number;
@@ -16,6 +16,7 @@ type Props = {
   sessionsTarget: number;
   experience: ExperienceLevel;
   workouts: Workout[];
+  history: WorkoutSession[];
   completedIds: Set<string>;
   profileInitial: string;
   profilePhoto?: string;
@@ -29,6 +30,7 @@ export function CrackerShell({
   sessionsTarget,
   experience,
   workouts,
+  history,
   completedIds,
   profileInitial,
   profilePhoto,
@@ -56,7 +58,7 @@ export function CrackerShell({
           currentWeek={week}
           experience={experience}
           liveWorkouts={workouts}
-          completedIds={completedIds}
+          history={history}
           onStart={onStartWorkout}
           onOpenProfile={onOpenProfile}
           profileInitial={profileInitial}

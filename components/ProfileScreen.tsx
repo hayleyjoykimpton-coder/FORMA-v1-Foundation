@@ -134,12 +134,19 @@ export function ProfileScreen({
 
           {challengeMode === "cracker" ? (
             <article className="card profile-section">
-              <span className="eyebrow">Challenge mode</span>
-              <p className="muted">
-                Christmas Cracker season is active — only Cracker workouts and programmes are available
-                for now. FORMA programme generation is paused until the challenge ends.
-              </p>
-              <p className="auth-info">Life & Soul · Christmas Cracker · 6 weeks</p>
+              <span className="eyebrow">Training level</span>
+              <p className="muted">Controls which MOVE workouts you see — Beginner or Intermediate.</p>
+              <ChoiceRow
+                options={[
+                  { value: "beginner" as ExperienceLevel, label: "BEGINNER" },
+                  { value: "intermediate" as ExperienceLevel, label: "INTERMEDIATE" },
+                ]}
+                selected={
+                  draft.experienceLevel === "beginner" ? "beginner" : "intermediate"
+                }
+                onSelect={(v) => set("experienceLevel", v)}
+              />
+              <p className="auth-info">Christmas Cracker season · 12 Oct – 22 Nov 2026</p>
             </article>
           ) : onChallengeModeChange ? (
             <article className="card profile-section">
@@ -206,12 +213,19 @@ export function ProfileScreen({
 
           <article className="card profile-section">
             <span className="eyebrow">Training</span>
-            <label className="mini-label">Experience</label>
-            <ChoiceRow
-              options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({ value: v, label: EXPERIENCE_LABELS[v] }))}
-              selected={draft.experienceLevel}
-              onSelect={(v) => set("experienceLevel", v)}
-            />
+            {challengeMode !== "cracker" ? (
+              <>
+                <label className="mini-label">Experience</label>
+                <ChoiceRow
+                  options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({
+                    value: v,
+                    label: EXPERIENCE_LABELS[v],
+                  }))}
+                  selected={draft.experienceLevel}
+                  onSelect={(v) => set("experienceLevel", v)}
+                />
+              </>
+            ) : null}
             <label className="mini-label">Days per week</label>
             <ChoiceRow
               options={([3, 4, 5] as TrainingDays[]).map((v) => ({ value: v, label: `${v} days` }))}

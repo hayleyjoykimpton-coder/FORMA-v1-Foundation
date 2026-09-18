@@ -1094,6 +1094,95 @@ textarea::placeholder {
   color: var(--cracker-navy);
 }
 
+
+.cracker-level-pill {
+  margin: 8px 0 0;
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(36, 63, 130, 0.12);
+  color: var(--cracker-blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.cracker-edu-focus {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.cracker-this-week {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cracker-week-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cracker-week-checklist li,
+.cracker-week-checklist button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(36, 63, 130, 0.1);
+  color: inherit;
+}
+
+.cracker-week-checklist li.is-done,
+.cracker-week-checklist li.is-done button {
+  border-color: rgba(36, 63, 130, 0.35);
+  background: rgba(36, 63, 130, 0.06);
+}
+
+.cracker-week-checklist span:first-child {
+  font-weight: 700;
+  color: var(--cracker-blue);
+  min-width: 1.1em;
+}
+
+.cracker-week-checklist small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.cracker-learn-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(26, 28, 34, 0.06);
+}
+
+.cracker-learn-card h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.cracker-learn-card p {
+  margin: 0;
+  color: var(--text-2);
+}
 .cracker-workout-stack {
   display: flex;
   flex-direction: column;
