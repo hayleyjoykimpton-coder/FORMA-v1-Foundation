@@ -247,7 +247,11 @@ export function CrackerMove({
               className={`cracker-workout-card${done ? " is-done" : ""}`}
             >
               {media.kind === "photo" && media.src ? (
-                <div className="cracker-workout-media cracker-workout-media--photo">
+                <div
+                  className={`cracker-workout-media cracker-workout-media--photo${
+                    media.label === "FULL" ? " cracker-workout-media--full" : ""
+                  }`}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={media.src} alt="" />
                   <span className="cracker-workout-chip">Session {idx} of 3</span>

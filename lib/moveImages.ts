@@ -57,6 +57,9 @@ export const JESS_COACHING_PULLDOWN = "/cracker/move/jess-coaching-pulldown.jpg"
 /** Jess coaching lateral raise — Soul Pilates mirror wall (Life & Soul kit). */
 export const JESS_COACHING_LATERAL_02 = "/cracker/move/jess-coaching-lateral-raise-02.jpg";
 
+/** Jess coaching a blonde client at a Hammer Strength rack with barbell — The Mayfair. */
+export const JESS_COACHING_FULL_BARBELL = "/cracker/move/jess-coaching-full-barbell.jpg";
+
 /** Life & Soul Christmas Cracker badge — branded, no AI people. */
 export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
 
@@ -74,7 +77,7 @@ export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   week6: JESS_COACHING_PULLDOWN,
   lower: JESS_COACHING_CLIENT_01,
   upper: JESS_COACHING_PULLDOWN,
-  full: JESS_COACHING_LATERAL_02,
+  full: JESS_COACHING_FULL_BARBELL,
   // Distinct from headTrainer (portrait) and from week banners — lateral-raise demo
   learnWithJess: JESS_LATERAL_RAISE,
   fitnessCheckIn: JESS_COACHING_CLIENT_01,
@@ -90,6 +93,7 @@ export const MOVE_IMAGE_POOL: string[] = [
   JESS_COACHING_CLIENT,
   JESS_COACHING_PULLDOWN,
   JESS_COACHING_LATERAL_02,
+  JESS_COACHING_FULL_BARBELL,
   JESS_LATERAL_RAISE,
   JESS_COACHING_LATERAL,
   JMK_TRAINING_IMAGE,
