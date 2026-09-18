@@ -54,6 +54,9 @@ export const JESS_COACHING_LATERAL = "/cracker/move/jess-coaching-lateral.jpg";
 /** Jess kneeling to cue lat-pulldown form — Life & Soul gym. */
 export const JESS_COACHING_PULLDOWN = "/cracker/move/jess-coaching-pulldown.jpg";
 
+/** Jess coaching lateral raise — Soul Pilates mirror wall (Life & Soul kit). */
+export const JESS_COACHING_LATERAL_02 = "/cracker/move/jess-coaching-lateral-raise-02.jpg";
+
 /** Life & Soul Christmas Cracker badge — branded, no AI people. */
 export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
 
@@ -64,17 +67,17 @@ export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
 export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   hero: JESS_LAS_PORTRAIT,
   week1: JESS_COACHING_CLIENT_01,
-  week2: JESS_LATERAL_RAISE,
+  week2: JESS_COACHING_LATERAL_02,
   week3: JESS_COACHING_CLIENT,
   week4: JMK_TRAINING_IMAGE,
   week5: JESS_COACHING_LATERAL,
   week6: JESS_COACHING_PULLDOWN,
   lower: JESS_COACHING_CLIENT_01,
   upper: JESS_COACHING_PULLDOWN,
-  full: JESS_COACHING_CLIENT,
+  full: JESS_COACHING_LATERAL_02,
   learnWithJess: JESS_LAS_PORTRAIT,
   fitnessCheckIn: JESS_COACHING_CLIENT_01,
-  scans: "",
+  scans: JESS_LATERAL_RAISE,
   headTrainer: JESS_LAS_PORTRAIT,
 };
 
@@ -84,6 +87,7 @@ export const MOVE_IMAGE_POOL: string[] = [
   JESS_COACHING_CLIENT_01,
   JESS_COACHING_CLIENT,
   JESS_COACHING_PULLDOWN,
+  JESS_COACHING_LATERAL_02,
   JESS_LATERAL_RAISE,
   JESS_COACHING_LATERAL,
   JMK_TRAINING_IMAGE,
