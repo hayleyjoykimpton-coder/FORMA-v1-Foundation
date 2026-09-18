@@ -33,8 +33,14 @@ export const JMK_TRAINING_IMAGE = "/cracker/jess-mckee-jmk-training.jpg";
 /** Jess in Life & Soul kit — gym portrait. */
 export const JESS_LAS_PORTRAIT = "/cracker/move/jess-life-and-soul-portrait.jpg";
 
-/** Jess coaching a client through a lower-body lift at Life & Soul. */
+/** Jess coaching a client through a lower-body hinge at Life & Soul. */
 export const JESS_COACHING_CLIENT = "/cracker/move/jess-coaching-client.jpg";
+
+/** Jess giving hands-on form guidance (Life & Soul polo). */
+export const JESS_COACHING_FORM = "/cracker/move/jess-coaching-form.jpg";
+
+/** Jess demonstrating lateral raise with client + dumbbells. */
+export const JESS_LATERAL_RAISE = "/cracker/move/jess-lateral-raise.jpg";
 
 /** Life & Soul Christmas Cracker badge — branded, no AI people. */
 export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
@@ -45,25 +51,27 @@ export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
  */
 export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   hero: JESS_LAS_PORTRAIT,
-  week1: JESS_COACHING_CLIENT,
-  week2: JESS_LAS_PORTRAIT,
+  week1: JESS_COACHING_FORM,
+  week2: JESS_LATERAL_RAISE,
   week3: JESS_COACHING_CLIENT,
-  week4: JESS_LAS_PORTRAIT,
-  week5: JESS_COACHING_CLIENT,
-  week6: JESS_LAS_PORTRAIT,
+  week4: JMK_TRAINING_IMAGE,
+  week5: JESS_COACHING_FORM,
+  week6: JESS_LATERAL_RAISE,
   lower: JESS_COACHING_CLIENT,
-  upper: "",
+  upper: JESS_LATERAL_RAISE,
   full: "",
-  learnWithJess: JESS_COACHING_CLIENT,
-  fitnessCheckIn: JESS_LAS_PORTRAIT,
+  learnWithJess: JESS_COACHING_FORM,
+  fitnessCheckIn: JESS_COACHING_FORM,
   scans: "",
   headTrainer: JESS_LAS_PORTRAIT,
 };
 
-/** Spare real photos available for rotation (not yet assigned). */
+/** Spare real photos available for rotation (not yet assigned to every slot). */
 export const MOVE_IMAGE_POOL: string[] = [
   JESS_LAS_PORTRAIT,
   JESS_COACHING_CLIENT,
+  JESS_COACHING_FORM,
+  JESS_LATERAL_RAISE,
   JMK_TRAINING_IMAGE,
 ];
 
