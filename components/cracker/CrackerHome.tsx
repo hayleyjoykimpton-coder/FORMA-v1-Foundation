@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { IMAGES } from "@/lib/content";
 import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
+import { JESS_LAS_PORTRAIT, moveImage } from "@/lib/moveImages";
 import { NOURISH_HERO_IMAGE } from "@/lib/nourish";
 import type { CrackerTab } from "@/components/cracker/types";
 
@@ -24,13 +25,16 @@ const PILLARS: {
   line: string;
   cta: string;
   image: string;
+  mediaClass?: string;
 }[] = [
   {
     key: "move",
     title: "MOVE",
     line: "Your training for the week.",
     cta: "VIEW TRAINING",
-    image: IMAGES.strength,
+    // Real Jess Life & Soul portrait (face + headroom) — not /img stock squat
+    image: moveImage("hero") ?? JESS_LAS_PORTRAIT,
+    mediaClass: "cracker-pillar-media--move-hero",
   },
   {
     key: "nourish",
@@ -92,7 +96,7 @@ export function CrackerHome({
         {PILLARS.map((pillar) => (
           <article key={pillar.key} className="cracker-pillar-card">
             <div
-              className="cracker-pillar-media"
+              className={`cracker-pillar-media${pillar.mediaClass ? ` ${pillar.mediaClass}` : ""}`}
               style={{ backgroundImage: `url(${pillar.image})` }}
               aria-hidden="true"
             />
