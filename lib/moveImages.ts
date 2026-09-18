@@ -64,7 +64,7 @@ export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   upper: JESS_LATERAL_RAISE,
   full: JESS_COACHING_LATERAL,
   learnWithJess: JESS_COACHING_FORM,
-  fitnessCheckIn: JESS_COACHING_LATERAL,
+  fitnessCheckIn: JESS_COACHING_FORM,
   scans: "",
   headTrainer: JESS_LAS_PORTRAIT,
 };
