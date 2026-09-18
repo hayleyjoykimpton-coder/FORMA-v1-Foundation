@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { imageForWorkout } from "@/lib/content";
 import {
   buildCrackerWorkouts,
   crackerEducationForWeek,
@@ -18,6 +17,7 @@ import {
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
 import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
+import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
 
@@ -74,6 +74,8 @@ export function CrackerMove({
   const education = crackerEducationForWeek(viewWeek);
   const theme = CRACKER_WEEK_THEMES[viewWeek - 1];
   const weekChecks = getWeekChecklist(checklist, level, viewWeek);
+  const weekBanner = moveWeekImage(viewWeek);
+  const learnImage = moveImage("learnWithJess");
 
   useEffect(() => {
     setChecklist(loadMoveChecklist());
@@ -151,6 +153,24 @@ export function CrackerMove({
         ))}
       </div>
 
+      {weekBanner ? (
+        <div className="cracker-move-banner">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={weekBanner} alt="" className="cracker-move-banner-image" />
+          <div className="cracker-move-banner-overlay">
+            <span>WEEK {viewWeek}</span>
+            <strong>{theme}</strong>
+          </div>
+        </div>
+      ) : (
+        <div className="cracker-move-banner cracker-move-banner--neutral" aria-hidden="true">
+          <div className="cracker-move-banner-overlay">
+            <span>WEEK {viewWeek}</span>
+            <strong>{theme}</strong>
+          </div>
+        </div>
+      )}
+
       <section className="cracker-this-week" aria-label="This week">
         <p className="eyebrow">THIS WEEK</p>
         <ul className="cracker-week-checklist">
@@ -189,16 +209,24 @@ export function CrackerMove({
       </section>
 
       <article className="cracker-learn-card">
-        <p className="eyebrow">LEARN WITH JESS</p>
-        <h2>{education.title}</h2>
-        <p>{education.summary}</p>
-        <button
-          type="button"
-          className="secondary-btn"
-          onClick={() => patchChecklist({ education: true })}
-        >
-          {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
-        </button>
+        {learnImage ? (
+          <div className="cracker-learn-media">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={learnImage} alt="" />
+          </div>
+        ) : null}
+        <div className="cracker-learn-body">
+          <p className="eyebrow">LEARN WITH JESS</p>
+          <h2>{education.title}</h2>
+          <p>{education.summary}</p>
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => patchChecklist({ education: true })}
+          >
+            {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
+          </button>
+        </div>
       </article>
 
       <JessHeadTrainerCard week={viewWeek} />
@@ -207,6 +235,7 @@ export function CrackerMove({
         {ordered.map((workout) => {
           const idx = crackerSessionIndex(workout.title) || 1;
           const done = doneMap.get(workout.id);
+          const media = moveMediaForSession(workout.title);
           const startTarget =
             viewWeek === currentWeek
               ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
@@ -217,13 +246,22 @@ export function CrackerMove({
               key={workout.id}
               className={`cracker-workout-card${done ? " is-done" : ""}`}
             >
-              <div
-                className="cracker-workout-media"
-                style={{ backgroundImage: `url(${imageForWorkout(workout.title)})` }}
-              >
-                <span className="cracker-workout-chip">Session {idx} of 3</span>
-                {done ? <span className="cracker-workout-done">Done</span> : null}
-              </div>
+              {media.kind === "photo" && media.src ? (
+                <div className="cracker-workout-media cracker-workout-media--photo">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={media.src} alt="" />
+                  <span className="cracker-workout-chip">Session {idx} of 3</span>
+                  {done ? <span className="cracker-workout-done">Done</span> : null}
+                </div>
+              ) : (
+                <div
+                  className={`cracker-workout-media cracker-workout-media--neutral accent-${media.label.toLowerCase()}`}
+                >
+                  <span className="cracker-workout-neutral-label">{media.label}</span>
+                  <span className="cracker-workout-chip">Session {idx} of 3</span>
+                  {done ? <span className="cracker-workout-done">Done</span> : null}
+                </div>
+              )}
               <div className="cracker-workout-body">
                 <p className="eyebrow">{workout.day}</p>
                 <h2>{workout.title.toUpperCase()}</h2>

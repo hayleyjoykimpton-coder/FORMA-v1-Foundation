@@ -1164,12 +1164,35 @@ textarea::placeholder {
 .cracker-learn-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
-  padding: 16px;
+  gap: 0;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
   border-radius: 20px;
   background: #fff;
   box-shadow: 0 10px 28px rgba(26, 28, 34, 0.06);
+}
+
+.cracker-learn-media {
+  background: #f4f4f4;
+  max-height: 160px;
+  overflow: hidden;
+}
+
+.cracker-learn-media img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+.cracker-learn-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px;
 }
 
 .cracker-learn-card h2 {
@@ -1182,6 +1205,93 @@ textarea::placeholder {
 .cracker-learn-card p {
   margin: 0;
   color: var(--text-2);
+}
+
+.cracker-move-banner {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #1a1c22;
+  min-height: 140px;
+}
+
+.cracker-move-banner-image {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  object-position: center 18%;
+}
+
+.cracker-move-banner--neutral {
+  min-height: 120px;
+  background:
+    linear-gradient(135deg, #243f82 0%, #000c4f 55%, #3a1214 100%);
+}
+
+.cracker-move-banner-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: linear-gradient(180deg, transparent, rgba(0, 12, 79, 0.72));
+  color: #fff;
+}
+
+.cracker-move-banner-overlay span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.cracker-move-banner-overlay strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.cracker-workout-media--photo {
+  position: relative;
+  min-height: 120px;
+  background: #eee;
+}
+
+.cracker-workout-media--photo img {
+  display: block;
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.cracker-workout-media--neutral {
+  position: relative;
+  min-height: 110px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(145deg, rgba(36, 63, 130, 0.92), rgba(0, 12, 79, 0.88));
+}
+
+.cracker-workout-media--neutral.accent-lower {
+  background: linear-gradient(145deg, #243f82, #1a2f5c);
+}
+
+.cracker-workout-media--neutral.accent-upper {
+  background: linear-gradient(145deg, #2f4a8c, #9c3b3b);
+}
+
+.cracker-workout-media--neutral.accent-full {
+  background: linear-gradient(145deg, #000c4f, #243f82);
+}
+
+.cracker-workout-neutral-label {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .cracker-jess-card {

@@ -5,6 +5,7 @@ import {
   crackerWeeklyTrainingVideoUrl,
   JESS_HEAD_TRAINER,
 } from "@/lib/jessTrainer";
+import { moveImage } from "@/lib/moveImages";
 
 type Props = {
   week: number;
@@ -12,13 +13,14 @@ type Props = {
 
 export function JessHeadTrainerCard({ week }: Props) {
   const videoUrl = crackerWeeklyTrainingVideoUrl(week);
+  const imageSrc = moveImage("headTrainer") ?? JESS_HEAD_TRAINER.imageSrc;
 
   return (
     <article className="cracker-jess-card" aria-label="Head trainer Jess McKee">
       <div className="cracker-jess-media">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={JESS_HEAD_TRAINER.imageSrc}
+          src={imageSrc}
           alt={JESS_HEAD_TRAINER.imageAlt}
           className="cracker-jess-image"
         />
