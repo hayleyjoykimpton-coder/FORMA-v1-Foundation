@@ -9,6 +9,7 @@ import {
   imageForWorkout,
   phaseCopy,
 } from "@/lib/content";
+import { imageForMoveWorkout } from "@/lib/moveImages";
 import type {
   Exercise,
   ExerciseResult,
@@ -755,6 +756,9 @@ export default function FormaApp() {
     [history, workouts],
   );
 
+  const workoutCoverImage = (title: string) =>
+    challengeMode === "cracker" ? imageForMoveWorkout(title) : imageForWorkout(title);
+
   // The weekly schedule reflects the user's actual (personalised) plan.
   const weeklySchedule = useMemo(
     () =>
@@ -762,11 +766,11 @@ export default function FormaApp() {
         day: workout.day,
         short: workout.day.slice(0, 3),
         focus: workout.title,
-        image: imageForWorkout(workout.title),
+        image: workoutCoverImage(workout.title),
         workoutId: workout.id,
         completed: completedThisWeek.has(workout.id),
       })),
-    [workouts, completedThisWeek],
+    [workouts, completedThisWeek, challengeMode],
   );
 
   const phaseDef = resolveActivePhase(week, alignActive);
@@ -1573,7 +1577,7 @@ export default function FormaApp() {
 
             <section
               className="session-hero"
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${imageForWorkout(sessionWorkout.title)})` }}
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${workoutCoverImage(sessionWorkout.title)})` }}
             >
               <span className="eyebrow light">{season} · Primary target</span>
               <h1>{exercise.name}</h1>
@@ -2188,7 +2192,7 @@ export default function FormaApp() {
                 <article className="card workout-today">
                   <div
                     className="workout-today-media"
-                    style={{ backgroundImage: `url(${imageForWorkout(todaysWorkout.title)})` }}
+                    style={{ backgroundImage: `url(${workoutCoverImage(todaysWorkout.title)})` }}
                   >
                     <span className="media-chip">{todaysWorkout.duration} min</span>
                     <button

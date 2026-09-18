@@ -75,9 +75,11 @@ export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   lower: JESS_COACHING_CLIENT_01,
   upper: JESS_COACHING_PULLDOWN,
   full: JESS_COACHING_LATERAL_02,
-  learnWithJess: JESS_LAS_PORTRAIT,
+  // Distinct from headTrainer (portrait) and from week banners — lateral-raise demo
+  learnWithJess: JESS_LATERAL_RAISE,
   fitnessCheckIn: JESS_COACHING_CLIENT_01,
-  scans: JESS_LATERAL_RAISE,
+  scans: JESS_COACHING_LATERAL,
+  // Identity portrait — keep separate from LEARN WITH JESS
   headTrainer: JESS_LAS_PORTRAIT,
 };
 
@@ -109,7 +111,19 @@ export function moveSessionImage(title: string): string | null {
   if (t.includes("lower")) return moveImage("lower");
   if (t.includes("upper")) return moveImage("upper");
   if (t.includes("full")) return moveImage("full");
-  return null;
+  return moveImage("hero");
+}
+
+/**
+ * Workout / session hero for Cracker MOVE — always prefers real Jess photos
+ * over generic `/img/*` stock.
+ */
+export function imageForMoveWorkout(title: string): string {
+  return (
+    moveSessionImage(title) ??
+    moveImage("hero") ??
+    JESS_LAS_PORTRAIT
+  );
 }
 
 export type MoveMediaKind = "photo" | "neutral";
