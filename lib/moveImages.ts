@@ -27,6 +27,23 @@ export type MoveImageSlot =
   | "scans"
   | "headTrainer";
 
+/**
+ * Session card themes — Intermediate / Beginner / Cracker titles map here so
+ * adjacent cards never share the same Jess photo.
+ */
+export type MoveSessionTheme =
+  | "lower"
+  | "glute-strength"
+  | "glute-shape"
+  | "upper"
+  | "upper-sculpt"
+  | "upper-strength"
+  | "full"
+  | "figure"
+  | "contour"
+  | "abs"
+  | "train";
+
 /** Official JMK Training promo (Jess + branding). */
 export const JMK_TRAINING_IMAGE = "/cracker/jess-mckee-jmk-training.jpg";
 
@@ -86,6 +103,29 @@ export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   headTrainer: JESS_LAS_PORTRAIT,
 };
 
+/**
+ * Distinct Jess photos per session theme.
+ * Chosen so same-week neighbours (e.g. Glute Shape → Weighted Abs) never match.
+ *
+ * Cracker: Lower Body / Upper Body / Full Body
+ * Intermediate 5-day: Glute Strength · Upper Sculpt · Glute Shape · Upper Strength · Weighted Abs
+ * Intermediate 4-day: Lower Strength · Upper Sculpt · Glute Shape · Weighted Abs
+ * Intermediate 3-day: Figure Strength · Contour Drive · Weighted Abs
+ */
+export const SESSION_THEME_IMAGES: Record<MoveSessionTheme, string> = {
+  lower: JESS_COACHING_CLIENT_01,
+  "glute-strength": JESS_COACHING_CLIENT_01,
+  "glute-shape": JESS_COACHING_CLIENT,
+  upper: JESS_COACHING_PULLDOWN,
+  "upper-sculpt": JESS_COACHING_PULLDOWN,
+  "upper-strength": JESS_LATERAL_RAISE,
+  full: JESS_COACHING_FULL_BARBELL,
+  figure: JESS_COACHING_FULL_BARBELL,
+  contour: JESS_COACHING_LATERAL,
+  abs: JESS_COACHING_LATERAL_02,
+  train: JESS_LAS_PORTRAIT,
+};
+
 /** Spare real photos available for rotation (not yet assigned to every slot). */
 export const MOVE_IMAGE_POOL: string[] = [
   JESS_LAS_PORTRAIT,
@@ -110,12 +150,48 @@ export function moveWeekImage(week: number): string | null {
   return moveImage(key);
 }
 
+/** Stable pool pick for unknown titles — different strings → different files when possible. */
+function poolImageForTitle(title: string): string {
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = (hash * 31 + title.charCodeAt(i)) >>> 0;
+  }
+  return MOVE_IMAGE_POOL[hash % MOVE_IMAGE_POOL.length] ?? JESS_LAS_PORTRAIT;
+}
+
+/**
+ * Map Intermediate / Beginner / Cracker session titles to a theme.
+ * Specific phrases win over broad keywords so Glute Shape ≠ Glute Strength, etc.
+ */
+export function moveSessionTheme(title: string): MoveSessionTheme {
+  const t = title.toLowerCase().trim();
+
+  if (/weighted\s*abs|\babs\b|core/.test(t)) return "abs";
+  if (/glute\s*shape/.test(t)) return "glute-shape";
+  if (/glute\s*strength/.test(t)) return "glute-strength";
+  if (/upper\s*sculpt/.test(t)) return "upper-sculpt";
+  if (/upper\s*strength/.test(t)) return "upper-strength";
+  if (/figure\s*strength/.test(t)) return "figure";
+  if (/contour\s*drive/.test(t)) return "contour";
+  if (/lower\s*(body|strength|power)?/.test(t) || /^lower\b/.test(t)) return "lower";
+  if (/upper\s*(body|strength|sculpt)?/.test(t) || /^upper\b/.test(t)) {
+    if (/sculpt/.test(t)) return "upper-sculpt";
+    if (/strength/.test(t)) return "upper-strength";
+    return "upper";
+  }
+  if (/full\s*body|fullbody|^full\b/.test(t)) return "full";
+  if (/glute|hip|leg|squat|hinge|shape/.test(t)) return "glute-shape";
+  if (/sculpt|pull|push|shoulder|row|press/.test(t)) return "upper-sculpt";
+  return "train";
+}
+
 export function moveSessionImage(title: string): string | null {
-  const t = title.toLowerCase();
-  if (t.includes("lower")) return moveImage("lower");
-  if (t.includes("upper")) return moveImage("upper");
-  if (t.includes("full")) return moveImage("full");
-  return moveImage("hero");
+  const theme = moveSessionTheme(title);
+  if (theme === "train") {
+    // Unknown title — rotate pool by hash so cards still diverge when possible
+    return poolImageForTitle(title);
+  }
+  return SESSION_THEME_IMAGES[theme] ?? moveImage("hero");
 }
 
 /**
@@ -132,19 +208,40 @@ export function imageForMoveWorkout(title: string): string {
 
 export type MoveMediaKind = "photo" | "neutral";
 
+/** CSS modifier for object-position on session card media (optional crop). */
+export function moveSessionCropClass(theme: MoveSessionTheme): string {
+  if (theme === "full" || theme === "figure") return "cracker-workout-media--full";
+  if (theme === "abs") return "cracker-workout-media--abs";
+  if (theme === "glute-shape") return "cracker-workout-media--glute-shape";
+  return "";
+}
+
 export function moveMediaForSession(title: string): {
   kind: MoveMediaKind;
   src: string | null;
   label: string;
+  theme: MoveSessionTheme;
+  cropClass: string;
 } {
-  const t = title.toLowerCase();
-  const label = t.includes("lower")
-    ? "LOWER"
-    : t.includes("upper")
-      ? "UPPER"
-      : t.includes("full")
-        ? "FULL"
-        : "TRAIN";
+  const theme = moveSessionTheme(title);
+  const label =
+    theme === "lower" || theme === "glute-strength"
+      ? "LOWER"
+      : theme === "glute-shape"
+        ? "GLUTE"
+        : theme === "upper" || theme === "upper-sculpt" || theme === "upper-strength"
+          ? "UPPER"
+          : theme === "full" || theme === "figure" || theme === "contour"
+            ? "FULL"
+            : theme === "abs"
+              ? "ABS"
+              : "TRAIN";
   const src = moveSessionImage(title);
-  return { kind: src ? "photo" : "neutral", src, label };
+  return {
+    kind: src ? "photo" : "neutral",
+    src,
+    label,
+    theme,
+    cropClass: moveSessionCropClass(theme),
+  };
 }
