@@ -36,14 +36,23 @@ export const JESS_LAS_PORTRAIT = "/cracker/move/jess-life-and-soul-portrait.jpg"
 /** Jess coaching a client through a lower-body hinge at Life & Soul. */
 export const JESS_COACHING_CLIENT = "/cracker/move/jess-coaching-client.jpg";
 
-/** Jess giving hands-on form guidance (Life & Soul polo). */
-export const JESS_COACHING_FORM = "/cracker/move/jess-coaching-form.jpg";
+/**
+ * Jess coaching a client (hinge / form cue) — Life & Soul gym, screens + retail wall.
+ * Preferred authentic 1:1 coaching shot for lower / check-in rotation.
+ */
+export const JESS_COACHING_CLIENT_01 = "/cracker/move/jess-coaching-client-01.jpg";
+
+/** Hands-on form guidance — same session as client-01 (canonical path). */
+export const JESS_COACHING_FORM = JESS_COACHING_CLIENT_01;
 
 /** Jess demonstrating lateral raise with client + dumbbells. */
 export const JESS_LATERAL_RAISE = "/cracker/move/jess-lateral-raise.jpg";
 
 /** Jess coaching a client on lateral raise — Life & Soul gym. */
 export const JESS_COACHING_LATERAL = "/cracker/move/jess-coaching-lateral.jpg";
+
+/** Jess kneeling to cue lat-pulldown form — Life & Soul gym. */
+export const JESS_COACHING_PULLDOWN = "/cracker/move/jess-coaching-pulldown.jpg";
 
 /** Life & Soul Christmas Cracker badge — branded, no AI people. */
 export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
@@ -54,17 +63,17 @@ export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
  */
 export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   hero: JESS_LAS_PORTRAIT,
-  week1: JESS_COACHING_FORM,
+  week1: JESS_COACHING_CLIENT_01,
   week2: JESS_LATERAL_RAISE,
   week3: JESS_COACHING_CLIENT,
   week4: JMK_TRAINING_IMAGE,
   week5: JESS_COACHING_LATERAL,
-  week6: JESS_LATERAL_RAISE,
-  lower: JESS_COACHING_CLIENT,
-  upper: JESS_LATERAL_RAISE,
-  full: JESS_COACHING_LATERAL,
-  learnWithJess: JESS_COACHING_FORM,
-  fitnessCheckIn: JESS_COACHING_FORM,
+  week6: JESS_COACHING_PULLDOWN,
+  lower: JESS_COACHING_CLIENT_01,
+  upper: JESS_COACHING_PULLDOWN,
+  full: JESS_COACHING_CLIENT,
+  learnWithJess: JESS_LAS_PORTRAIT,
+  fitnessCheckIn: JESS_COACHING_CLIENT_01,
   scans: "",
   headTrainer: JESS_LAS_PORTRAIT,
 };
@@ -72,8 +81,9 @@ export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
 /** Spare real photos available for rotation (not yet assigned to every slot). */
 export const MOVE_IMAGE_POOL: string[] = [
   JESS_LAS_PORTRAIT,
+  JESS_COACHING_CLIENT_01,
   JESS_COACHING_CLIENT,
-  JESS_COACHING_FORM,
+  JESS_COACHING_PULLDOWN,
   JESS_LATERAL_RAISE,
   JESS_COACHING_LATERAL,
   JMK_TRAINING_IMAGE,
