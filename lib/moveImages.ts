@@ -30,6 +30,9 @@ export type MoveImageSlot =
 /** Official JMK Training promo (Jess + branding). */
 export const JMK_TRAINING_IMAGE = "/cracker/jess-mckee-jmk-training.jpg";
 
+/** Jess in Life & Soul kit — gym portrait. */
+export const JESS_LAS_PORTRAIT = "/cracker/move/jess-life-and-soul-portrait.jpg";
+
 /** Life & Soul Christmas Cracker badge — branded, no AI people. */
 export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
 
@@ -38,24 +41,25 @@ export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
  * Fill slots as real Jess/client photos are supplied.
  */
 export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
-  hero: JMK_TRAINING_IMAGE,
-  week1: "",
-  week2: "",
-  week3: "",
-  week4: "",
-  week5: "",
-  week6: "",
+  hero: JESS_LAS_PORTRAIT,
+  week1: JESS_LAS_PORTRAIT,
+  week2: JMK_TRAINING_IMAGE,
+  week3: JESS_LAS_PORTRAIT,
+  week4: JMK_TRAINING_IMAGE,
+  week5: JESS_LAS_PORTRAIT,
+  week6: JMK_TRAINING_IMAGE,
   lower: "",
   upper: "",
   full: "",
-  learnWithJess: JMK_TRAINING_IMAGE,
-  fitnessCheckIn: "",
+  learnWithJess: JESS_LAS_PORTRAIT,
+  fitnessCheckIn: JESS_LAS_PORTRAIT,
   scans: "",
-  headTrainer: JMK_TRAINING_IMAGE,
+  headTrainer: JESS_LAS_PORTRAIT,
 };
 
 /** Spare real photos available for rotation (not yet assigned). */
 export const MOVE_IMAGE_POOL: string[] = [
+  JESS_LAS_PORTRAIT,
   JMK_TRAINING_IMAGE,
 ];
 
@@ -75,7 +79,7 @@ export function moveSessionImage(title: string): string | null {
   if (t.includes("lower")) return moveImage("lower");
   if (t.includes("upper")) return moveImage("upper");
   if (t.includes("full")) return moveImage("full");
-  return moveImage("hero");
+  return null;
 }
 
 export type MoveMediaKind = "photo" | "neutral";
