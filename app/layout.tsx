@@ -16,10 +16,21 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FORMA",
-  description: "A premium personal strength & wellness system.",
+  title: "CRACKER",
+  applicationName: "CRACKER",
+  description: "Life & Soul · Christmas Cracker 2026",
+  appleWebApp: {
+    capable: true,
+    title: "CC",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [{ url: "/brand/cracker-app-icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   other: {
-    "theme-color": "#5B4337",
+    "theme-color": "#c41218",
+    "apple-mobile-web-app-title": "CC",
   },
 };
 
