@@ -76,6 +76,13 @@ import {
   emptyMoveCheckIns,
   MOVE_CHECKINS_CHANGED_EVENT,
 } from "@/lib/crackerMoveCheckIns";
+import {
+  emptyMoveChecklist,
+  loadMoveChecklist,
+  mergeMoveChecklists,
+  MOVE_CHECKLIST_CHANGED_EVENT,
+  saveMoveChecklist,
+} from "@/lib/crackerMoveChecklist";
 import { exportProgressBundle } from "@/lib/exportProgress";
 import {
   dismissWeeklyReviewNudge,
@@ -444,6 +451,9 @@ export default function FormaApp() {
       const localCheckIns = canMergeLocal ? loadMoveCheckIns() : emptyMoveCheckIns();
       const mergedCheckIns =
         Object.keys(cloudCheckIns).length > 0 ? cloudCheckIns : localCheckIns;
+      const mergedChecklist = canMergeLocal
+        ? mergeMoveChecklists(cloud.moveChecklist, loadMoveChecklist())
+        : cloud.moveChecklist ?? emptyMoveChecklist();
 
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
@@ -475,6 +485,7 @@ export default function FormaApp() {
       saveMeals(cloud.meals);
       saveInBody(cloud.inbody);
       saveMoveCheckIns(mergedCheckIns);
+      saveMoveChecklist(mergedChecklist);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
       window.localStorage.setItem(STORAGE.history, JSON.stringify(sourceHistory));
       window.localStorage.setItem(
@@ -504,6 +515,7 @@ export default function FormaApp() {
           meals: cloud.meals,
           inbody: cloud.inbody,
           crackerMoveCheckIns: mergedCheckIns,
+          moveChecklist: mergedChecklist,
           sessionDraft: cloud.sessionDraft,
         });
       }
@@ -533,6 +545,7 @@ export default function FormaApp() {
         meals: loadMeals(),
         inbody: loadInBody(),
         crackerMoveCheckIns: loadMoveCheckIns(),
+        moveChecklist: loadMoveChecklist(),
         sessionDraft: freshLocal.sessionDraft,
       });
     }
@@ -661,7 +674,11 @@ export default function FormaApp() {
   useEffect(() => {
     const bump = () => setCheckInsRevision((n) => n + 1);
     window.addEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
-    return () => window.removeEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+    window.addEventListener(MOVE_CHECKLIST_CHANGED_EVENT, bump);
+    return () => {
+      window.removeEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+      window.removeEventListener(MOVE_CHECKLIST_CHANGED_EVENT, bump);
+    };
   }, []);
 
   // Cloud sync (debounced) whenever signed-in state changes.
@@ -683,6 +700,7 @@ export default function FormaApp() {
           meals,
           inbody,
           crackerMoveCheckIns: loadMoveCheckIns(),
+          moveChecklist: loadMoveChecklist(),
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
@@ -1473,6 +1491,7 @@ export default function FormaApp() {
               meals,
               inbody,
               crackerMoveCheckIns: loadMoveCheckIns(),
+              moveChecklist: loadMoveChecklist(),
               sessionDraft: null,
             });
             setSyncNote(result.error ? `History cleared on this device. Cloud: ${result.error}` : "Workout history cleared");
@@ -1503,6 +1522,7 @@ export default function FormaApp() {
               meals,
               inbody,
               crackerMoveCheckIns: loadMoveCheckIns(),
+              moveChecklist: loadMoveChecklist(),
               sessionDraft: pausedDraft,
             });
           }

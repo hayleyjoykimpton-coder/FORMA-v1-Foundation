@@ -1,9 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { CRACKER_DATES_LABEL, CRACKER_CHALLENGE_MILESTONES } from "@/lib/challengeMode";
 import { CONNECT_HERO_IMAGE } from "@/lib/connect";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
+import {
+  loadMoveChecklist,
+  saveMoveChecklist,
+  setIntroWatched,
+  type MoveChecklistState,
+} from "@/lib/crackerMoveChecklist";
+import { crackerIntroVideoUrl } from "@/lib/jessTrainer";
 import { JESS_LAS_PORTRAIT, moveImage } from "@/lib/moveImages";
 import { NOURISH_HERO_IMAGE } from "@/lib/nourish";
 import type { CrackerTab } from "@/components/cracker/types";
@@ -65,6 +74,20 @@ export function CrackerHome({
 }: Props) {
   const progress =
     sessionsTarget > 0 ? Math.min(100, Math.round((sessionsDone / sessionsTarget) * 100)) : 0;
+  const [checklist, setChecklist] = useState<MoveChecklistState>({ weeks: {} });
+  const introUrl = crackerIntroVideoUrl();
+
+  useEffect(() => {
+    setChecklist(loadMoveChecklist());
+  }, []);
+
+  const toggleIntro = () => {
+    setChecklist((current) => {
+      const next = setIntroWatched(current, !current.intro);
+      saveMoveChecklist(next);
+      return next;
+    });
+  };
 
   return (
     <div className="screen cracker-screen cracker-home">
@@ -92,6 +115,22 @@ export function CrackerHome({
           {sessionsDone}/{sessionsTarget || "—"} sessions this week
         </p>
       </section>
+
+      <article className="card cracker-intro-card" aria-label="Jess intro video">
+        <p className="eyebrow">WATCH JESS</p>
+        <h2>Intro to CRACKER training</h2>
+        <p className="muted">
+          Start here. Jess walks you through how the six weeks work.
+        </p>
+        {introUrl ? (
+          <InAppVideo url={introUrl} title="Jess intro to CRACKER training" />
+        ) : (
+          <p className="auth-info">Intro video will play here once we have Jess&apos;s link.</p>
+        )}
+        <button type="button" className="secondary-btn" onClick={toggleIntro}>
+          {checklist.intro ? "INTRO WATCHED" : "MARK INTRO WATCHED"}
+        </button>
+      </article>
 
       <section className="cracker-milestones" aria-label="Challenge dates">
         <span className="eyebrow">Challenge dates</span>

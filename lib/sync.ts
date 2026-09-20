@@ -20,6 +20,11 @@ import {
   normalizeMoveCheckIns,
   type CrackerMoveCheckIns,
 } from "./crackerMoveCheckIns";
+import {
+  emptyMoveChecklist,
+  normalizeMoveChecklist,
+  type MoveChecklistState,
+} from "./crackerMoveChecklist";
 
 export type CloudState = {
   profile: UserProfile | null;
@@ -38,6 +43,8 @@ export type CloudState = {
   inbody: InBodyState;
   /** Christmas Cracker MOVE fitness / InBody / measurements check-ins. */
   crackerMoveCheckIns: CrackerMoveCheckIns;
+  /** Learn with Jess / intro ticks. */
+  moveChecklist: MoveChecklistState;
   sessionDraft: SessionDraftStored | null;
 };
 
@@ -78,6 +85,7 @@ type StateRow = {
     meals?: MealsState;
     inbody?: InBodyState;
     crackerMoveCheckIns?: CrackerMoveCheckIns;
+    moveChecklist?: MoveChecklistState;
   };
   progress: ProgressEntry[];
   photos: ProgressPhoto[];
@@ -179,6 +187,9 @@ export async function pullCloudState(userId: string): Promise<CloudState | null>
     crackerMoveCheckIns: state?.programme?.crackerMoveCheckIns
       ? normalizeMoveCheckIns(state.programme.crackerMoveCheckIns)
       : emptyMoveCheckIns(),
+    moveChecklist: state?.programme?.moveChecklist
+      ? normalizeMoveChecklist(state.programme.moveChecklist)
+      : emptyMoveChecklist(),
     sessionDraft: state?.session_draft ?? null,
   };
 }
@@ -214,6 +225,7 @@ export async function pushUserState(input: {
   meals: MealsState;
   inbody: InBodyState;
   crackerMoveCheckIns?: CrackerMoveCheckIns;
+  moveChecklist?: MoveChecklistState;
   sessionDraft: SessionDraftStored | null;
 }): Promise<{ error?: string }> {
   const supabase = getSupabase();
@@ -236,6 +248,7 @@ export async function pushUserState(input: {
       crackerMoveCheckIns: normalizeMoveCheckIns(
         input.crackerMoveCheckIns ?? emptyMoveCheckIns(),
       ),
+      moveChecklist: normalizeMoveChecklist(input.moveChecklist ?? emptyMoveChecklist()),
     },
     progress: input.progress,
     photos: input.photos,

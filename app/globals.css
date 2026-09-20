@@ -1312,9 +1312,46 @@ textarea::placeholder {
   font-weight: 400;
 }
 
-.cracker-learn-card p {
+.cracker-learn-media--video {
+  max-height: none;
+  background: #000;
+}
+
+.cracker-learn-media--video .in-app-video {
+  border-radius: 0;
+}
+
+.in-app-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.in-app-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.cracker-intro-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cracker-intro-card h2 {
   margin: 0;
-  color: var(--text-2);
+  font-size: 24px;
+}
+
+.cracker-intro-card .in-app-video {
+  width: 100%;
 }
 
 .cracker-move-banner {

@@ -1,18 +1,10 @@
 "use client";
 
 import { ExternalLinkIcon } from "@/components/cracker/icons";
-import {
-  crackerWeeklyTrainingVideoUrl,
-  JESS_HEAD_TRAINER,
-} from "@/lib/jessTrainer";
+import { JESS_HEAD_TRAINER } from "@/lib/jessTrainer";
 import { moveImage } from "@/lib/moveImages";
 
-type Props = {
-  week: number;
-};
-
-export function JessHeadTrainerCard({ week }: Props) {
-  const videoUrl = crackerWeeklyTrainingVideoUrl(week);
+export function JessHeadTrainerCard() {
   const imageSrc = moveImage("headTrainer") ?? JESS_HEAD_TRAINER.imageSrc;
 
   return (
@@ -40,21 +32,6 @@ export function JessHeadTrainerCard({ week }: Props) {
             <span>{JESS_HEAD_TRAINER.followLabel}</span>
             <ExternalLinkIcon size={16} />
           </a>
-          {videoUrl ? (
-            <a
-              className="secondary-btn cracker-jess-video"
-              href={videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span>{JESS_HEAD_TRAINER.watchLabel}</span>
-              <ExternalLinkIcon size={16} />
-            </a>
-          ) : (
-            <button type="button" className="secondary-btn" disabled>
-              {JESS_HEAD_TRAINER.comingSoonLabel}
-            </button>
-          )}
         </div>
       </div>
     </article>

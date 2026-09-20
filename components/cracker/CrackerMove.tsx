@@ -17,6 +17,7 @@ import {
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
 import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
+import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { MoveFitnessTesting } from "@/components/cracker/MoveFitnessTesting";
 import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasurements";
 import { MoveProgressPhotos } from "@/components/cracker/MoveProgressPhotos";
@@ -27,6 +28,7 @@ import {
   type MoveSubTab,
 } from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
+import { crackerWeeklyTrainingVideoUrl } from "@/lib/jessTrainer";
 import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
@@ -128,6 +130,7 @@ export function CrackerMove({
   const weekChecks = getWeekChecklist(checklist, level, viewWeek);
   const weekBanner = moveWeekImage(viewWeek);
   const learnImage = moveImage("learnWithJess");
+  const educationVideo = crackerWeeklyTrainingVideoUrl(viewWeek);
 
   useEffect(() => {
     setChecklist(loadMoveChecklist());
@@ -326,7 +329,11 @@ export function CrackerMove({
         </section>
 
         <article className="cracker-learn-card">
-          {learnImage ? (
+          {educationVideo ? (
+            <div className="cracker-learn-media cracker-learn-media--video">
+              <InAppVideo url={educationVideo} title={`Learn with Jess · ${education.title}`} />
+            </div>
+          ) : learnImage ? (
             <div className="cracker-learn-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={learnImage} alt="" />
@@ -336,17 +343,20 @@ export function CrackerMove({
             <p className="eyebrow">LEARN WITH JESS</p>
             <h2>{education.title}</h2>
             <p>{education.summary}</p>
+            {educationVideo ? null : (
+              <p className="muted">This week&apos;s video will play here once Jess&apos;s link is in.</p>
+            )}
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => patchChecklist({ education: true })}
+              onClick={() => patchChecklist({ education: !weekChecks.education })}
             >
               {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
             </button>
           </div>
         </article>
 
-        <JessHeadTrainerCard week={viewWeek} />
+        <JessHeadTrainerCard />
 
         <div className="cracker-workout-stack">
           {ordered.map((workout, orderIdx) => {

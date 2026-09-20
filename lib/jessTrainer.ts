@@ -14,8 +14,13 @@ export const JESS_HEAD_TRAINER = {
 } as const;
 
 /**
- * Weekly Jess training education video URLs.
- * Leave empty until the official weekly links are supplied.
+ * Jess intro video (Home). Paste a YouTube or Vimeo link when Hayley sends it.
+ */
+export const CRACKER_INTRO_VIDEO: string | null = null;
+
+/**
+ * Weekly Jess training education video URLs (Learn with Jess).
+ * Paste YouTube or Vimeo links when they arrive — week 1–6.
  */
 export const CRACKER_WEEKLY_TRAINING_VIDEOS: Record<number, string | null> = {
   1: null,
@@ -30,4 +35,9 @@ export function crackerWeeklyTrainingVideoUrl(week: number): string | null {
   const w = Math.min(6, Math.max(1, week));
   const url = CRACKER_WEEKLY_TRAINING_VIDEOS[w];
   return url?.trim() ? url.trim() : null;
+}
+
+export function crackerIntroVideoUrl(): string | null {
+  const url = CRACKER_INTRO_VIDEO?.trim();
+  return url ? url : null;
 }
