@@ -50,6 +50,8 @@ export type CrackerMoveCheckIns = {
 };
 
 export const MOVE_CHECKINS_STORAGE = "forma-cracker-move-checkins-v1";
+/** Fired after local check-ins save so signed-in cloud sync can pick them up. */
+export const MOVE_CHECKINS_CHANGED_EVENT = "forma-move-checkins-changed";
 const LEGACY_FITNESS_KEY = "forma-cracker-fitness-v1";
 
 export const FITNESS_INITIAL_LABEL = "INITIAL · 10 OCTOBER 2026";
@@ -195,6 +197,7 @@ export function saveMoveCheckIns(state: CrackerMoveCheckIns): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(MOVE_CHECKINS_STORAGE, JSON.stringify(normalizeMoveCheckIns(state)));
+    window.dispatchEvent(new Event(MOVE_CHECKINS_CHANGED_EVENT));
   } catch {
     /* ignore quota */
   }

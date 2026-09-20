@@ -73,6 +73,7 @@ import {
   loadMoveCheckIns,
   saveMoveCheckIns,
   emptyMoveCheckIns,
+  MOVE_CHECKINS_CHANGED_EVENT,
 } from "@/lib/crackerMoveCheckIns";
 import {
   dismissTrainingReminderToday,
@@ -297,6 +298,7 @@ export default function FormaApp() {
   const [pausedDraft, setPausedDraft] = useState<SessionDraftStored | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("booting");
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
+  const [checkInsRevision, setCheckInsRevision] = useState(0);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [cueSessionId, setCueSessionId] = useState<string | null>(null);
   const [sessionCelebration, setSessionCelebration] = useState<{
@@ -637,6 +639,13 @@ export default function FormaApp() {
     setPausedDraft({ ...session, restRemaining });
   }, [session, restRemaining, hydrated]);
 
+  // Fitness / InBody check-ins live in localStorage; bump so cloud sync includes them.
+  useEffect(() => {
+    const bump = () => setCheckInsRevision((n) => n + 1);
+    window.addEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+    return () => window.removeEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+  }, []);
+
   // Cloud sync (debounced) whenever signed-in state changes.
   useEffect(() => {
     if (!hydrated || authMode !== "cloud" || !cloudUserId || !profile) return;
@@ -682,6 +691,7 @@ export default function FormaApp() {
     meals,
     inbody,
     pausedDraft,
+    checkInsRevision,
     hydrated,
   ]);
 
@@ -1475,6 +1485,24 @@ export default function FormaApp() {
         accountMode={authMode}
         syncNote={syncNote}
         onSignOut={async () => {
+          if (authMode === "cloud" && profile) {
+            await pushProfile(profile);
+            await pushUserState({
+              workouts,
+              history,
+              week,
+              alignActive,
+              progress: progressEntries,
+              photos: progressPhotos,
+              water: { date: new Date().toDateString(), count: water },
+              journal,
+              wellness,
+              meals,
+              inbody,
+              crackerMoveCheckIns: loadMoveCheckIns(),
+              sessionDraft: pausedDraft,
+            });
+          }
           await signOut();
           clearLocalMemberData();
           setCloudUserId(null);
