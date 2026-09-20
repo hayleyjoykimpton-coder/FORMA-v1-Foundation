@@ -3,9 +3,12 @@
 import { ExternalLinkIcon } from "@/components/cracker/icons";
 import {
   CRACKER_EXTERNAL_LINKS,
+  CRACKER_NUTRITION_SUPPORT_EMAIL,
   configuredUrl,
+  facebookCommunityUrl,
   isWellnessClub,
   nutritionEducationLinks,
+  nutritionSupportMailto,
   personalisedNutritionUrl,
   wellnessUpgradeUrl,
 } from "@/lib/crackerLinks";
@@ -30,6 +33,8 @@ export function CrackerNourish({
   const showWellness = isWellnessClub(club);
   const wellnessUrl = showWellness ? wellnessUpgradeUrl(club) : null;
   const education = nutritionEducationLinks();
+  const supportMail = nutritionSupportMailto();
+  const facebook = facebookCommunityUrl();
 
   return (
     <div className="screen cracker-screen cracker-nourish">
@@ -62,6 +67,15 @@ export function CrackerNourish({
           Your base nutrition plan, recipes and weekly nutrition education with Naomi Gillespie.
         </p>
         <ExternalCta href={nutritionUrl} label="OPEN NUTRITION PROGRAM" />
+      </article>
+
+      <article className="card nourish-hub-card">
+        <p className="eyebrow">{NOURISH_COPY.supportEyebrow}</p>
+        <h2>{NOURISH_COPY.supportTitle}</h2>
+        <p className="muted">{NOURISH_COPY.supportBody}</p>
+        <p className="profile-help-detail nourish-support-email">{CRACKER_NUTRITION_SUPPORT_EMAIL}</p>
+        <ExternalCta href={supportMail} label={NOURISH_COPY.supportEmailCta} />
+        <ExternalCta href={facebook} label={NOURISH_COPY.supportMessageCta} secondary />
       </article>
 
       <article className="card nourish-hub-card">
@@ -106,7 +120,15 @@ export function CrackerNourish({
   );
 }
 
-function ExternalCta({ href, label }: { href: string | null; label: string }) {
+function ExternalCta({
+  href,
+  label,
+  secondary = false,
+}: {
+  href: string | null;
+  label: string;
+  secondary?: boolean;
+}) {
   if (!href) {
     return (
       <button type="button" className="secondary-btn" disabled>
@@ -114,8 +136,14 @@ function ExternalCta({ href, label }: { href: string | null; label: string }) {
       </button>
     );
   }
+  const isMail = href.startsWith("mailto:");
   return (
-    <a className="cta-btn cracker-external-cta" href={href} target="_blank" rel="noopener noreferrer">
+    <a
+      className={`${secondary ? "secondary-btn" : "cta-btn"} cracker-external-cta`}
+      href={href}
+      target={isMail ? undefined : "_blank"}
+      rel={isMail ? undefined : "noopener noreferrer"}
+    >
       <span>{label}</span>
       <ExternalLinkIcon size={16} />
     </a>

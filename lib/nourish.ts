@@ -17,4 +17,10 @@ export const NOURISH_COPY = {
   personalisedPrice: "$25",
   wellnessPrice: "$10",
   pricePeriod: "per week",
+  supportEyebrow: "NUTRITION SUPPORT",
+  supportTitle: "ASK NAOMI",
+  supportBody:
+    "Email Origin Wellness or message the CRACKER page. Naomi also hosts Thursday Question Bomb — live Q&A every Thursday.",
+  supportEmailCta: "EMAIL ORIGIN WELLNESS",
+  supportMessageCta: "MESSAGE CRACKER PAGE",
 } as const;

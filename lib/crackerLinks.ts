@@ -7,6 +7,7 @@
 import { CRACKER_FACEBOOK_URL } from "./connect";
 
 export const CRACKER_SUPPORT_EMAIL = "hayleyk@lifeandsoul.com.au";
+export const CRACKER_NUTRITION_SUPPORT_EMAIL = "hello@originwellness.au";
 
 export const CRACKER_EXTERNAL_LINKS = {
   nutritionProgram: "https://christmas-cracker-2026.netlify.app/",
@@ -57,6 +58,14 @@ export function jessVideoUrl(week: number): string | null {
 
 export function personalisedNutritionUrl(): string | null {
   return configuredUrl(CRACKER_EXTERNAL_LINKS.personalisedNutrition);
+}
+
+export function nutritionSupportMailto(): string {
+  return `mailto:${CRACKER_NUTRITION_SUPPORT_EMAIL}`;
+}
+
+export function facebookCommunityUrl(): string | null {
+  return configuredUrl(CRACKER_EXTERNAL_LINKS.facebookCommunity);
 }
 
 export function isWellnessClub(club: string): club is WellnessClub {

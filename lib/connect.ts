@@ -12,4 +12,9 @@ export const CONNECT_COPY = {
   section: "STAY CONNECTED",
   body: "Events, updates and community posts are shared in our Christmas Cracker Facebook group.",
   cta: "OPEN CRACKER FACEBOOK",
+  questionBombEyebrow: "EVERY THURSDAY",
+  questionBombTitle: "QUESTION BOMB",
+  questionBombBody:
+    "Naomi Gillespie answers nutrition questions live every Thursday. Drop yours on the CRACKER Facebook page.",
+  questionBombCta: "MESSAGE CRACKER PAGE",
 } as const;

@@ -48,6 +48,21 @@ export function CrackerConnect({ onOpenProfile, profileInitial, profilePhoto }: 
           <ExternalLinkIcon size={18} />
         </a>
       </section>
+
+      <article className="card nourish-hub-card">
+        <p className="eyebrow">{CONNECT_COPY.questionBombEyebrow}</p>
+        <h2>{CONNECT_COPY.questionBombTitle}</h2>
+        <p className="muted">{CONNECT_COPY.questionBombBody}</p>
+        <a
+          className="cta-btn cracker-external-cta"
+          href={CRACKER_FACEBOOK_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>{CONNECT_COPY.questionBombCta}</span>
+          <ExternalLinkIcon size={16} />
+        </a>
+      </article>
     </div>
   );
 }

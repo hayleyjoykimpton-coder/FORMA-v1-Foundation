@@ -1589,6 +1589,17 @@ textarea::placeholder {
   margin-top: 4px;
 }
 
+.nourish-support-email {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cracker-navy);
+}
+
+.nourish-hub-card .secondary-btn.cracker-external-cta {
+  margin-top: 0;
+}
+
 .move-learn-stack,
 .move-progress-screen {
   display: flex;

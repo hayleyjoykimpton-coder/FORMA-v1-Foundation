@@ -27,6 +27,7 @@ import type {
 import { fileToResizedDataUrl } from "@/lib/images";
 import {
   CRACKER_EXTERNAL_LINKS,
+  CRACKER_NUTRITION_SUPPORT_EMAIL,
   CRACKER_SUPPORT_EMAIL,
   configuredUrl,
   jessInstagramUrl,
@@ -365,7 +366,6 @@ export function ProfileScreen({
 
 function NeedHelpList() {
   const instagram = jessInstagramUrl();
-  const nutrition = configuredUrl(CRACKER_EXTERNAL_LINKS.nutritionProgram);
   const facebook = configuredUrl(CRACKER_EXTERNAL_LINKS.facebookCommunity);
 
   const rows = [
@@ -390,15 +390,16 @@ function NeedHelpList() {
       key: "nutrition",
       icon: <IconHelpNourish />,
       title: "Nutrition",
-      subtitle: "Access your CRACKER nutrition plan and resources.",
-      href: nutrition,
-      action: "Open nutrition",
+      subtitle: "Questions about your nutrition plan? Email Origin Wellness or message the CRACKER page.",
+      href: `mailto:${CRACKER_NUTRITION_SUPPORT_EMAIL}`,
+      action: "Email Origin Wellness",
+      detail: CRACKER_NUTRITION_SUPPORT_EMAIL,
     },
     {
       key: "community",
       icon: <IconHelpCommunity />,
       title: "Community & events",
-      subtitle: "Find your club's latest CRACKER events and updates.",
+      subtitle: "Message the CRACKER page for events, updates and Thursday Question Bomb.",
       href: facebook,
       action: "Open Facebook group",
     },
