@@ -376,6 +376,7 @@ function NeedHelpList() {
       subtitle: "Having trouble with your account or the CRACKER app?",
       href: `mailto:${CRACKER_SUPPORT_EMAIL}`,
       action: "Email Hayley",
+      detail: CRACKER_SUPPORT_EMAIL,
     },
     {
       key: "training",
@@ -413,7 +414,7 @@ function NeedHelpList() {
               <a
                 href={row.href}
                 target={row.href.startsWith("mailto:") ? undefined : "_blank"}
-                rel="noopener noreferrer"
+                rel={row.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
                 aria-label={row.action}
               >
                 <span className="profile-help-icon" aria-hidden="true">
@@ -422,6 +423,9 @@ function NeedHelpList() {
                 <span>
                   <strong>{row.title}</strong>
                   <small>{row.subtitle}</small>
+                  {"detail" in row && row.detail ? (
+                    <small className="profile-help-detail">{row.detail}</small>
+                  ) : null}
                 </span>
                 <ExternalLinkIcon size={14} />
               </a>

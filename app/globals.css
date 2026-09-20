@@ -1738,6 +1738,11 @@ textarea::placeholder {
   line-height: 1.35;
 }
 
+.profile-help-detail {
+  font-weight: 700;
+  color: var(--cracker-navy);
+}
+
 .profile-help-icon {
   color: var(--cracker-navy);
 }
