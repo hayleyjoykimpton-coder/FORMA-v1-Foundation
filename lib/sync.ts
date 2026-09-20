@@ -15,6 +15,11 @@ import { PROGRAM_SCHEMA_VERSION } from "./programGenerator";
 import { normalizeWellness, type WellnessState } from "./wellness";
 import { normalizeMeals, type MealsState } from "./meals";
 import { normalizeInBody, type InBodyState } from "./inbody";
+import {
+  emptyMoveCheckIns,
+  normalizeMoveCheckIns,
+  type CrackerMoveCheckIns,
+} from "./crackerMoveCheckIns";
 
 export type CloudState = {
   profile: UserProfile | null;
@@ -31,6 +36,8 @@ export type CloudState = {
   wellness: WellnessState;
   meals: MealsState;
   inbody: InBodyState;
+  /** Christmas Cracker MOVE fitness / InBody / measurements check-ins. */
+  crackerMoveCheckIns: CrackerMoveCheckIns;
   sessionDraft: SessionDraftStored | null;
 };
 
@@ -70,6 +77,7 @@ type StateRow = {
     wellness?: WellnessState;
     meals?: MealsState;
     inbody?: InBodyState;
+    crackerMoveCheckIns?: CrackerMoveCheckIns;
   };
   progress: ProgressEntry[];
   photos: ProgressPhoto[];
@@ -168,6 +176,9 @@ export async function pullCloudState(userId: string): Promise<CloudState | null>
     wellness: normalizeWellness(state?.programme?.wellness),
     meals: normalizeMeals(state?.programme?.meals),
     inbody: normalizeInBody(state?.programme?.inbody),
+    crackerMoveCheckIns: state?.programme?.crackerMoveCheckIns
+      ? normalizeMoveCheckIns(state.programme.crackerMoveCheckIns)
+      : emptyMoveCheckIns(),
     sessionDraft: state?.session_draft ?? null,
   };
 }
@@ -195,6 +206,7 @@ export async function pushUserState(input: {
   wellness: WellnessState;
   meals: MealsState;
   inbody: InBodyState;
+  crackerMoveCheckIns?: CrackerMoveCheckIns;
   sessionDraft: SessionDraftStored | null;
 }): Promise<{ error?: string }> {
   const supabase = getSupabase();
@@ -214,6 +226,9 @@ export async function pushUserState(input: {
       wellness: normalizeWellness(input.wellness),
       meals: normalizeMeals(input.meals),
       inbody: normalizeInBody(input.inbody),
+      crackerMoveCheckIns: normalizeMoveCheckIns(
+        input.crackerMoveCheckIns ?? emptyMoveCheckIns(),
+      ),
     },
     progress: input.progress,
     photos: input.photos,

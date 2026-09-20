@@ -5,6 +5,36 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { signIn, signUp } from "@/lib/sync";
 
+function friendlyAuthError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes("invalid login") || lower.includes("invalid credentials")) {
+    return "That email or password doesn’t match. Check and try again.";
+  }
+  if (lower.includes("already registered") || lower.includes("already been registered")) {
+    return "An account with this email already exists. Try signing in.";
+  }
+  if (lower.includes("email") && lower.includes("invalid")) {
+    return "Enter a valid email address.";
+  }
+  if (lower.includes("password") && (lower.includes("weak") || lower.includes("least"))) {
+    return "Choose a stronger password (at least 6 characters).";
+  }
+  if (lower.includes("rate") || lower.includes("too many")) {
+    return "Too many attempts. Wait a moment and try again.";
+  }
+  if (lower.includes("network") || lower.includes("fetch")) {
+    return "Couldn’t reach the server. Check your connection and try again.";
+  }
+  if (lower.includes("not configured") || lower.includes("supabase")) {
+    return "Accounts aren’t available right now. You can continue on this device.";
+  }
+  // Never surface raw database / stack traces to members.
+  if (lower.includes("permission") || lower.includes("rls") || lower.includes("jwt")) {
+    return "Something went wrong signing in. Please try again.";
+  }
+  return "Something went wrong. Please try again.";
+}
+
 export function AuthScreen({
   onAuthenticated,
   onContinueLocal,
@@ -41,7 +71,7 @@ export function AuthScreen({
     setBusy(false);
 
     if (result.error) {
-      setError(result.error);
+      setError(friendlyAuthError(result.error));
       return;
     }
 
@@ -62,8 +92,8 @@ export function AuthScreen({
           <p className="cracker-auth-kicker">Life & Soul · Christmas Cracker 2026</p>
           <h1>{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
           <p className="muted">
-            Sign in to save your Cracker programme, fitness test scores, meals and progress across
-            devices.
+            Sign in to save your Cracker programme, workout history, and progress across devices.
+            Fitness Testing and InBody results sync when you are signed in.
           </p>
 
           {!configured && (

@@ -171,6 +171,10 @@ export function normalizeMoveCheckIns(raw: unknown): CrackerMoveCheckIns {
   };
 }
 
+export function emptyMoveCheckIns(): CrackerMoveCheckIns {
+  return {};
+}
+
 export function loadMoveCheckIns(): CrackerMoveCheckIns {
   if (typeof window === "undefined") return {};
   try {

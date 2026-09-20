@@ -66,6 +66,15 @@ import {
   signOut,
 } from "@/lib/sync";
 import {
+  clearLocalMemberData,
+  localProfileBelongsToUser,
+} from "@/lib/localMemberData";
+import {
+  loadMoveCheckIns,
+  saveMoveCheckIns,
+  emptyMoveCheckIns,
+} from "@/lib/crackerMoveCheckIns";
+import {
   dismissTrainingReminderToday,
   loadReminderPrefs,
   markTrainingDoneToday,
@@ -364,13 +373,43 @@ export default function FormaApp() {
     const cloud = await pullCloudState(userId);
     const local = loadForma();
     const localProfile = loadProfile();
+    const mode = loadChallengeMode();
+    const canMergeLocal = localProfileBelongsToUser(
+      localProfile,
+      userId,
+      cloud?.profile?.email || localProfile?.email,
+    );
 
     // Prefer cloud when it has a profile; otherwise keep local and upload.
     if (cloud?.profile) {
-      const sourceWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
+      // Never merge another member's local cache into this account.
+      if (!canMergeLocal) {
+        clearLocalMemberData();
+      }
+
+      const sourceHistory = canMergeLocal
+        ? mergeHistories(local.history, cloud.history)
+        : cloud.history;
+      const sourceWorkouts = cloud.workouts.length
+        ? cloud.workouts
+        : canMergeLocal
+          ? local.workouts
+          : [];
       let nextWorkouts = sourceWorkouts;
       let didUpgrade = false;
-      if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
+      const weekForMode =
+        mode === "cracker" ? crackerWeek(cloud.week) : cycleWeek(cloud.week);
+
+      if (mode === "cracker") {
+        nextWorkouts = transferExerciseWeights(
+          sourceWorkouts,
+          buildCrackerWorkouts(
+            crackerLevelFromExperience(cloud.profile.experienceLevel),
+            weekForMode,
+          ),
+        );
+        didUpgrade = true;
+      } else if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
         nextWorkouts = transferExerciseWeights(
           sourceWorkouts,
           generateProgram(cloud.profile, {
@@ -380,14 +419,18 @@ export default function FormaApp() {
         );
         didUpgrade = true;
       }
-      const mergedHistory = mergeHistories(local.history, cloud.history);
+
       const liveSession = sessionRef.current;
+      const cloudCheckIns = cloud.crackerMoveCheckIns;
+      const localCheckIns = canMergeLocal ? loadMoveCheckIns() : emptyMoveCheckIns();
+      const mergedCheckIns =
+        Object.keys(cloudCheckIns).length > 0 ? cloudCheckIns : localCheckIns;
 
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
-      setHistory(mergedHistory);
-      setWeek(cycleWeek(cloud.week));
-      setAlignActive(cloud.alignActive);
+      setHistory(sourceHistory);
+      setWeek(weekForMode);
+      setAlignActive(mode === "cracker" ? false : cloud.alignActive);
       setProgressEntries(cloud.progress);
       setProgressPhotos(cloud.photos);
       setJournal(cloud.journal);
@@ -412,15 +455,16 @@ export default function FormaApp() {
       saveWellness(cloud.wellness);
       saveMeals(cloud.meals);
       saveInBody(cloud.inbody);
+      saveMoveCheckIns(mergedCheckIns);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
-      window.localStorage.setItem(STORAGE.history, JSON.stringify(mergedHistory));
+      window.localStorage.setItem(STORAGE.history, JSON.stringify(sourceHistory));
       window.localStorage.setItem(
         STORAGE.program,
         JSON.stringify({
-          week: cloud.week,
+          week: weekForMode,
           programId: FORMA_PROGRAM.id,
           schemaVersion: PROGRAM_SCHEMA_VERSION,
-          alignActive: cloud.alignActive,
+          alignActive: mode === "cracker" ? false : cloud.alignActive,
         }),
       );
       saveProgress(cloud.progress);
@@ -430,9 +474,9 @@ export default function FormaApp() {
       if (didUpgrade) {
         await pushUserState({
           workouts: nextWorkouts,
-          history: mergedHistory,
-          week: cloud.week,
-          alignActive: cloud.alignActive,
+          history: sourceHistory,
+          week: weekForMode,
+          alignActive: mode === "cracker" ? false : cloud.alignActive,
           progress: cloud.progress,
           photos: cloud.photos,
           water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
@@ -440,28 +484,37 @@ export default function FormaApp() {
           wellness: cloud.wellness,
           meals: cloud.meals,
           inbody: cloud.inbody,
+          crackerMoveCheckIns: mergedCheckIns,
           sessionDraft: cloud.sessionDraft,
         });
       }
     } else {
-      applyLocalBundle({ seedHayley: !localProfile });
+      // Empty cloud: never seed demo/Hayley data into a real account.
+      if (!canMergeLocal) {
+        clearLocalMemberData();
+        applyLocalBundle({ seedHayley: false });
+      } else {
+        applyLocalBundle({ seedHayley: false });
+      }
       const profileToSave = loadProfile();
       if (profileToSave) {
         await pushProfile({ ...profileToSave, id: userId, email: profileToSave.email || "" });
       }
+      const freshLocal = loadForma();
       await pushUserState({
-        workouts: local.workouts,
-        history: local.history,
-        week: local.week,
-        alignActive: local.alignActive,
+        workouts: freshLocal.workouts,
+        history: freshLocal.history,
+        week: freshLocal.week,
+        alignActive: freshLocal.alignActive,
         progress: loadProgress(),
         photos: loadPhotos(),
-        water: { date: new Date().toDateString(), count: local.water },
-        journal: local.journal,
-        wellness: local.wellness,
+        water: { date: new Date().toDateString(), count: freshLocal.water },
+        journal: freshLocal.journal,
+        wellness: freshLocal.wellness,
         meals: loadMeals(),
         inbody: loadInBody(),
-        sessionDraft: local.sessionDraft,
+        crackerMoveCheckIns: loadMoveCheckIns(),
+        sessionDraft: freshLocal.sessionDraft,
       });
     }
 
@@ -515,8 +568,15 @@ export default function FormaApp() {
     const supabase = getSupabase();
     const subscription = supabase?.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
+        clearLocalMemberData();
         setCloudUserId(null);
-        setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
+        setProfile(null);
+        setWorkouts([]);
+        setHistory([]);
+        setSession(null);
+        setPausedDraft(null);
+        persistSessionDraft(null);
+        setAuthMode("gate");
         return;
       }
       // TOKEN_REFRESHED used to re-pull and overwrite activeWorkoutId / history mid-session.
@@ -588,6 +648,7 @@ export default function FormaApp() {
           wellness,
           meals,
           inbody,
+          crackerMoveCheckIns: loadMoveCheckIns(),
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
@@ -1408,8 +1469,14 @@ export default function FormaApp() {
         syncNote={syncNote}
         onSignOut={async () => {
           await signOut();
-          window.localStorage.removeItem(LOCAL_ONLY_KEY);
+          clearLocalMemberData();
           setCloudUserId(null);
+          setProfile(null);
+          setWorkouts([]);
+          setHistory([]);
+          setSession(null);
+          setPausedDraft(null);
+          persistSessionDraft(null);
           setAuthMode("gate");
           setProfileOpen(false);
         }}
