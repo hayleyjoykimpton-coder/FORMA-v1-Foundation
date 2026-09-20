@@ -101,6 +101,7 @@ import { WEEKDAYS, moveWorkoutWithDays, putWorkoutOnDay } from "@/lib/workoutSch
 import {
   completedWorkoutIdsThisWeek,
   mergeHistories,
+  sessionsCompletedThisCalendarWeek,
 } from "@/lib/historyMerge";
 import {
   adjustResultsForReadiness,
@@ -628,6 +629,8 @@ export default function FormaApp() {
     };
   }, []);
 
+  const allowEmptyHistoryWrite = useRef(false);
+
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
@@ -635,13 +638,18 @@ export default function FormaApp() {
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
-    // Never persist an empty history over a non-empty store (guards sync races / parse blips).
+    // Never persist an empty history over a non-empty store (guards sync races / parse blips),
+    // unless the member explicitly reset history in Profile.
     try {
       const raw = window.localStorage.getItem(STORAGE.history);
       const previous = raw ? (JSON.parse(raw) as WorkoutSession[]) : [];
-      if (!(history.length === 0 && Array.isArray(previous) && previous.length > 0)) {
+      const skipEmptyGuard =
+        allowEmptyHistoryWrite.current ||
+        !(history.length === 0 && Array.isArray(previous) && previous.length > 0);
+      if (skipEmptyGuard) {
         window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
       }
+      if (history.length === 0) allowEmptyHistoryWrite.current = false;
     } catch {
       window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
     }
@@ -881,7 +889,7 @@ export default function FormaApp() {
   const linearPhase = getPhaseForWeek(weekInCycle);
   const journeyStatuses = phaseJourneyStatuses(weekInCycle, alignActive);
   const upcomingPhase = nextLinearPhase(linearPhase.id);
-  const sessionsThisWeek = history.filter((entry) => cycleWeek(entry.week ?? 1) === weekInCycle).length;
+  const sessionsThisWeek = sessionsCompletedThisCalendarWeek(history);
   const sessionsTarget =
     challengeMode === "cracker" ? Math.max(1, workouts.length) : profile?.trainingDays ?? 3;
   const weekComplete =
@@ -1502,6 +1510,36 @@ export default function FormaApp() {
           setSyncNote(
             challengeMode === "cracker" ? "Cracker programme rebuilt" : "Programme rebuilt",
           );
+        }}
+        onResetWorkoutHistory={async () => {
+          allowEmptyHistoryWrite.current = true;
+          setHistory([]);
+          setSession(null);
+          setPausedDraft(null);
+          persistSessionDraft(null);
+          window.localStorage.setItem(STORAGE.history, JSON.stringify([]));
+          if (authMode === "cloud") {
+            const result = await pushUserState({
+              workouts,
+              history: [],
+              week,
+              alignActive,
+              progress: progressEntries,
+              photos: progressPhotos,
+              water: { date: new Date().toDateString(), count: water },
+              journal,
+              wellness,
+              meals,
+              inbody,
+              crackerMoveCheckIns: loadMoveCheckIns(),
+              sessionDraft: null,
+            });
+            setSyncNote(result.error ? `History cleared on this device. Cloud: ${result.error}` : "Workout history cleared");
+          } else {
+            setSyncNote("Workout history cleared");
+          }
+          setProfileOpen(false);
+          setTab("today");
         }}
         challengeMode={challengeMode}
         // Seasonal lock: FORMA programmes disabled — no toggle back to FORMA workouts.

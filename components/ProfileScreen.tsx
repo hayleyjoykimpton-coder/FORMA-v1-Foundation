@@ -38,6 +38,7 @@ export function ProfileScreen({
   onClose,
   onViewProgress,
   onRebuildProgramme,
+  onResetWorkoutHistory,
   reminderPrefs,
   onReminderPrefsChange,
   challengeMode = "forma",
@@ -52,6 +53,7 @@ export function ProfileScreen({
   onClose: () => void;
   onViewProgress: () => void;
   onRebuildProgramme?: () => void;
+  onResetWorkoutHistory?: () => void | Promise<void>;
   reminderPrefs?: {
     enabled: boolean;
     browserNotify: boolean;
@@ -241,6 +243,31 @@ export function ProfileScreen({
               >
                 Rebuild this week&apos;s programme
               </button>
+            ) : null}
+            {onResetWorkoutHistory ? (
+              <button
+                type="button"
+                className="secondary-btn"
+                style={{ marginTop: 12 }}
+                onClick={() => {
+                  if (
+                    typeof window !== "undefined" &&
+                    !window.confirm(
+                      "Clear all completed workouts? This week’s session count will go back to 0. Fitness Testing, InBody, and meals stay.",
+                    )
+                  ) {
+                    return;
+                  }
+                  void onResetWorkoutHistory();
+                }}
+              >
+                Reset workout history
+              </button>
+            ) : null}
+            {onResetWorkoutHistory ? (
+              <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+                Use this if this week&apos;s session count looks wrong (for example 9/3 when you haven&apos;t trained).
+              </p>
             ) : null}
             <label className="mini-label">Equipment</label>
             <ChoiceRow

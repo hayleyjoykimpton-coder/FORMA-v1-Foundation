@@ -64,3 +64,19 @@ export function completedWorkoutIdsThisWeek(
 
   return ids;
 }
+
+/** Completed sessions in the current Mon–Sun calendar week (not programme week number). */
+export function sessionsCompletedThisCalendarWeek(
+  history: WorkoutSession[],
+  now = new Date(),
+): number {
+  const start = startOfWeekMonday(now).getTime();
+  const end = start + 7 * 24 * 60 * 60 * 1000;
+  let count = 0;
+  for (const session of history) {
+    const at = new Date(session.completedAt).getTime();
+    if (!Number.isFinite(at) || at < start || at >= end) continue;
+    count += 1;
+  }
+  return count;
+}
