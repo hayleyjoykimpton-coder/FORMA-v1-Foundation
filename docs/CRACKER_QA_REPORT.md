@@ -2,7 +2,7 @@
 
 **Branch:** `cursor/cracker-qa-audit-511a`  
 **Base:** `cursor/move-fitness-inbody-511a`  
-**Updated:** 2026-09-20 (confirm-email **OFF** — two-account Auth **PASS** API + UI)
+**Updated:** 2026-09-20 (confirm-email **OFF** — two-account Auth **PASS**; `profiles.club` **present**)
 
 **Environment:** Cursor Cloud Agent VM — `NEXT_PUBLIC_SUPABASE_URL` + publishable key present. Fresh accounts (no reused QA_USER_*). No service-role key used.
 
