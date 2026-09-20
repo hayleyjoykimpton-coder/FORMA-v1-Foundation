@@ -3633,6 +3633,95 @@ button.avatar { padding: 0; }
   color: #fff;
 }
 
+.move-recap-screen .cracker-edu-focus {
+  max-width: 42ch;
+}
+
+.cracker-recap-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 18px 28px;
+}
+
+.cracker-recap-empty {
+  margin: 0 18px;
+}
+
+.cracker-recap-card {
+  border-radius: 18px;
+  border: 1px solid rgba(36, 63, 130, 0.12);
+  background: #fff;
+  overflow: hidden;
+}
+
+.cracker-recap-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 16px 14px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.cracker-recap-summary strong {
+  font-size: 18px;
+  letter-spacing: 0.02em;
+}
+
+.cracker-recap-summary p,
+.cracker-recap-summary small {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.cracker-recap-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 16px 16px;
+}
+
+.cracker-recap-lifts,
+.cracker-recap-wods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.cracker-recap-lifts li,
+.cracker-recap-wods li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(36, 63, 130, 0.08);
+}
+
+.cracker-recap-lifts li:last-child,
+.cracker-recap-wods li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.cracker-recap-notes p {
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.move-fitness-screen,
+.move-inbody-screen,
+.move-recap-screen {
+  scroll-margin-top: 72px;
+}
+
 .cracker-move-panel .cracker-topbar {
   padding-top: 4px;
 }

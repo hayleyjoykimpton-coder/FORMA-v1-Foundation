@@ -24,6 +24,8 @@ const HOME_PREFS_KEY = "forma-home-prefs-v1";
 const REMINDERS_KEY = "forma-reminders-v1";
 const PROGRESS_SUBTAB_KEY = "forma-progress-subtab-v1";
 const WEEKLY_REVIEW_NUDGE_KEY = "forma-weekly-review-nudge-v1";
+const CRACKER_TAB_KEY = "forma-cracker-tab-v1";
+const RECAP_FOCUS_KEY = "forma-cracker-recap-focus-v1";
 
 /** Member-owned keys. Challenge mode preference is kept (seasonal product setting). */
 export const MEMBER_DATA_KEYS = [
@@ -43,6 +45,8 @@ export const MEMBER_DATA_KEYS = [
   MOVE_CHECKINS_STORAGE,
   MOVE_CHECKLIST_KEY,
   MOVE_SUBTAB_KEY,
+  CRACKER_TAB_KEY,
+  RECAP_FOCUS_KEY,
   LEGACY_FITNESS_KEY,
   LOCAL_ONLY_KEY,
   HOME_PREFS_KEY,

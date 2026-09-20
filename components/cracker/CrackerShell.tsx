@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CrackerConnect } from "@/components/cracker/CrackerConnect";
 import { CrackerHome } from "@/components/cracker/CrackerHome";
 import { CrackerMove } from "@/components/cracker/CrackerMove";
 import { CrackerNourish } from "@/components/cracker/CrackerNourish";
 import { CrackerTabBar } from "@/components/cracker/CrackerTabBar";
 import type { CrackerTab } from "@/components/cracker/types";
+import { loadCrackerTab, saveCrackerTab } from "@/lib/crackerNav";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
 
@@ -39,6 +40,15 @@ export function CrackerShell({
 }: Props) {
   const [tab, setTab] = useState<CrackerTab>("home");
 
+  useEffect(() => {
+    setTab(loadCrackerTab());
+  }, []);
+
+  const selectTab = (next: CrackerTab) => {
+    setTab(next);
+    saveCrackerTab(next);
+  };
+
   return (
     <div className="shell cracker-shell">
       {tab === "home" ? (
@@ -49,7 +59,7 @@ export function CrackerShell({
           profileInitial={profileInitial}
           profilePhoto={profilePhoto}
           onOpenProfile={onOpenProfile}
-          onNavigate={setTab}
+          onNavigate={selectTab}
         />
       ) : null}
 
@@ -82,7 +92,7 @@ export function CrackerShell({
         />
       ) : null}
 
-      <CrackerTabBar tab={tab} onChange={setTab} />
+      <CrackerTabBar tab={tab} onChange={selectTab} />
     </div>
   );
 }

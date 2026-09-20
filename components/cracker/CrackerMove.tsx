@@ -19,30 +19,24 @@ import {
 import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
 import { MoveFitnessTesting } from "@/components/cracker/MoveFitnessTesting";
 import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasurements";
+import { MoveWorkoutRecap } from "@/components/cracker/MoveWorkoutRecap";
+import {
+  loadMoveSubTab,
+  saveMoveSubTab,
+  type MoveSubTab,
+} from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
 
-export type MoveSubTab = "training" | "fitness" | "inbody";
+export type { MoveSubTab };
 
 const MOVE_SUBTABS: { key: MoveSubTab; label: string }[] = [
   { key: "training", label: "TRAINING" },
+  { key: "recap", label: "RECAP" },
   { key: "fitness", label: "FITNESS TESTING" },
   { key: "inbody", label: "INBODY + MEASUREMENTS" },
 ];
-
-const MOVE_SUBTAB_KEY = "forma-cracker-move-subtab-v1";
-
-function loadMoveSubTab(): MoveSubTab {
-  if (typeof window === "undefined") return "training";
-  try {
-    const raw = window.localStorage.getItem(MOVE_SUBTAB_KEY);
-    if (raw === "fitness" || raw === "inbody" || raw === "training") return raw;
-  } catch {
-    /* ignore */
-  }
-  return "training";
-}
 
 type Props = {
   currentWeek: number;
@@ -137,11 +131,7 @@ export function CrackerMove({
 
   const selectSubTab = (tab: MoveSubTab) => {
     setSubTab(tab);
-    try {
-      window.localStorage.setItem(MOVE_SUBTAB_KEY, tab);
-    } catch {
-      /* ignore */
-    }
+    saveMoveSubTab(tab);
   };
 
   const workouts = useMemo(() => {
@@ -170,6 +160,20 @@ export function CrackerMove({
       return next;
     });
   };
+
+  if (subTab === "recap") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveWorkoutRecap
+          history={history}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
 
   if (subTab === "fitness") {
     return (

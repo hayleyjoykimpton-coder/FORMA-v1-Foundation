@@ -44,6 +44,7 @@ import {
   computeStreak,
   computeStrengthProgress,
   plannedWeeklySets,
+  sessionVolume,
   totalCompletedSets,
   weekSessionCount,
 } from "@/lib/analytics";
@@ -133,6 +134,7 @@ import {
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
 import { CrackerShell } from "@/components/cracker/CrackerShell";
+import { saveCrackerTab, saveMoveSubTab, saveRecapFocus } from "@/lib/crackerNav";
 import { WodLogger } from "@/components/WodLogger";
 import {
   formatWodScore,
@@ -296,6 +298,8 @@ export default function FormaApp() {
     lines: string[];
     setsDone: number;
     setsTotal: number;
+    volumeKg: number;
+    sessionId: string;
   } | null>(null);
   const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => defaultHomePrefs());
   const [homeCustomiseOpen, setHomeCustomiseOpen] = useState(false);
@@ -1119,6 +1123,8 @@ export default function FormaApp() {
       lines: postWorkoutSummary(completed, nextHistory),
       setsDone,
       setsTotal,
+      volumeKg: Math.round(sessionVolume(completed)),
+      sessionId: completed.id,
     });
   };
 
@@ -1598,13 +1604,17 @@ export default function FormaApp() {
                   accent="sage"
                 />
                 <StatTile
-                  label="Completion"
-                  value={`${
-                    sessionCelebration.setsTotal
-                      ? Math.round((sessionCelebration.setsDone / sessionCelebration.setsTotal) * 100)
-                      : 0
-                  }%`}
-                  note="working sets"
+                  label={sessionCelebration.volumeKg > 0 ? "Volume" : "Completion"}
+                  value={
+                    sessionCelebration.volumeKg > 0
+                      ? `${sessionCelebration.volumeKg.toLocaleString()} kg`
+                      : `${
+                          sessionCelebration.setsTotal
+                            ? Math.round((sessionCelebration.setsDone / sessionCelebration.setsTotal) * 100)
+                            : 0
+                        }%`
+                  }
+                  note={sessionCelebration.volumeKg > 0 ? "working sets" : "working sets"}
                   accent="mocha"
                 />
               </div>
@@ -1617,22 +1627,30 @@ export default function FormaApp() {
                 type="button"
                 className="cta-btn"
                 onClick={() => {
+                  saveCrackerTab("move");
+                  saveMoveSubTab("recap");
+                  saveRecapFocus(sessionCelebration.sessionId);
                   setSessionCelebration(null);
-                  setProgressSubTab("overview");
-                  setTab("progress");
+                  if (challengeMode !== "cracker") {
+                    setProgressSubTab("overview");
+                    setTab("progress");
+                  }
                 }}
               >
-                See your progress
+                See workout recap
               </button>
               <button
                 type="button"
                 className="secondary-btn"
                 onClick={() => {
+                  saveCrackerTab("move");
+                  saveMoveSubTab("recap");
+                  saveRecapFocus(sessionCelebration.sessionId);
                   setSessionCelebration(null);
-                  setTab("today");
+                  if (challengeMode !== "cracker") setTab("today");
                 }}
               >
-                Back to Home
+                {challengeMode === "cracker" ? "Back to MOVE" : "Back to Home"}
               </button>
             </article>
           </div>
