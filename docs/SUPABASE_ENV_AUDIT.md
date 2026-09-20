@@ -52,25 +52,26 @@ Uses `@supabase/supabase-js` `createClient` (browser).
 **No.** Exactly one browser key is enough, plus URL.
 
 Minimum for Auth QA:
-1. `NEXT_PUBLIC_SUPABASE_URL` = `https://kvhthuektwwffsobiuww.supabase.co`
+1. `NEXT_PUBLIC_SUPABASE_URL` = `[REDACTED]`
 2. **Either** `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` **or** `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## 6. Service-role / private keys in frontend?
 
 **None found.** No `service_role`, `SUPABASE_SERVICE_ROLE`, or private key env reads in app/frontend code. Comment in `lib/supabase.ts` explicitly forbids exposing service_role to the browser.
 
-**Do not** put a service-role key in any `NEXT_PUBLIC_*` variable.
+**Do not** put a service-role key in any `NEXT_PUBLIC_*` variable. Tests never read `SUPABASE_SERVICE_ROLE_KEY`.
 
-## Current VM state (2026-09-20, two-account Auth retest)
+## Current VM state (2026-09-20, confirm-email OFF retest)
 
 - URL: present (`kvhthuektwwffsobiuww.supabase.co`)
 - Publishable key: **present** (`sb_publishable_…`) — used by `getSupabaseKey()`
 - Anon JWT: **present** (fallback only; not used while publishable is set)
-- Service role: **not set** (correct — never used)
+- Service role: **not used** (correct — never added to `.env.local` or the test client)
+- **Confirm email: OFF** — signup returns a session immediately (`sessionOnSignup: true`). No Mailinator confirm step.
 
 GoTrue `/auth/v1/health` returns 200 with the publishable key.
 
-Two real accounts signed in with the publishable key (no service-role). Isolation + RLS verified.
+Fresh accounts (unique mailinator addresses; previous QA_USER_* not reused). Isolation + RLS verified via API and UI.
 
 Live `profiles` table is missing the `club` column from `supabase/schema.sql`. `pushProfile()` retries the upsert without `club` so name/level still sync. Run this in the SQL editor to add it:
 
@@ -78,22 +79,24 @@ Live `profiles` table is missing the `club` column from `supabase/schema.sql`. `
 alter table public.profiles add column if not exists club text not null default '';
 ```
 
-## Scorecard (Auth / sync) — two-account live
+`handle_new_user` still inserts a stub `profiles` + empty `user_state` on signup. The app now treats that stub as **not onboarded** (`cloudMemberNeedsCrackerOnboarding`) so club + Beginner/Intermediate onboarding still runs.
 
-| Check | Result |
-|-------|--------|
-| SUPABASE CLIENT CONFIG | **PASS** |
-| ACCOUNT CREATION | **PASS** |
-| LOGIN | **PASS** |
-| LOGOUT | **PASS** |
-| PROFILE SYNC | **PASS** (club column absent; upsert retried without it) |
-| WORKOUT SYNC | **PASS** |
-| FITNESS SYNC | **PASS** |
-| INBODY SYNC | **PASS** |
-| TWO-USER ISOLATION | **PASS** |
-| RLS | **PASS** |
-| ACCOUNT RESTORE | **PASS** (User A Beginner + fitness/InBody restored; User B rows not visible) |
+## Scorecard (Auth / sync) — two-account live, confirm-email off
 
-Harness: `node scripts/two-account-auth-test.cjs` (browser key only).
+| Check | API (`two-account-auth-test.cjs`) | UI (`two-account-auth-qa.cjs`) |
+|-------|-----------------------------------|--------------------------------|
+| SUPABASE CLIENT CONFIG | **PASS** | **PASS** |
+| ACCOUNT CREATION | **PASS** (session on signup) | **PASS** (session on signup) |
+| LOGIN | **PASS** | **PASS** |
+| LOGOUT | **PASS** | **PASS** |
+| PROFILE SYNC | **PASS** (club column absent; upsert retried without it) | **PASS** (Beginner restored) |
+| WORKOUT SYNC | **PASS** | **PASS** |
+| FITNESS SYNC | **PASS** | **PASS** |
+| INBODY SYNC | **PASS** | **PASS** |
+| TWO-USER ISOLATION | **PASS** | **PASS** |
+| RLS | **PASS** | **PASS** (B read of A `user_state` → 0 rows) |
+| ACCOUNT RESTORE | **PASS** (User A Beginner + fitness/InBody; B rows not visible) | **PASS** |
+
+Harnesses use the browser key only. Emails/passwords redacted.
 
 Schema expects `profiles` + `user_state`; Cracker check-ins sync into `user_state.programme.crackerMoveCheckIns` when signed in. Sign-out flushes that blob before clearing local cache.

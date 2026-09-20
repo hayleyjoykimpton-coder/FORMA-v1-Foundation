@@ -2,9 +2,11 @@
 
 **Branch:** `cursor/cracker-qa-audit-511a`  
 **Base:** `cursor/move-fitness-inbody-511a`  
-**Updated:** 2026-09-20 (two-account Auth **PASS**)
+**Updated:** 2026-09-20 (confirm-email **OFF** — two-account Auth **PASS** API + UI)
 
-**Environment:** Cursor Cloud Agent VM — `NEXT_PUBLIC_SUPABASE_URL` + publishable key present. Two live accounts. No service-role key.
+**Environment:** Cursor Cloud Agent VM — `NEXT_PUBLIC_SUPABASE_URL` + publishable key present. Fresh accounts (no reused QA_USER_*). No service-role key used.
+
+**Supabase Auth:** Confirm email is **OFF** (`Authentication → Providers → Email → Confirm email`). Signup returns a session immediately; no inbox/Mailinator confirm step.
 
 ---
 
@@ -13,12 +15,12 @@
 | Area | Result | Notes |
 |------|--------|-------|
 | SUPABASE CLIENT CONFIG | **PASS** | Auth gate, no “Setup needed”; GoTrue health 200 |
-| ACCOUNT_CREATION / LOGIN | **PASS** | Two accounts; login + logout + User A restore |
+| ACCOUNT_CREATION / LOGIN | **PASS** | Fresh accounts; session on signup; login + logout + User A restore |
 | PROFILE_SAVING | **PASS** | Cloud + local. Live DB missing `profiles.club`; upsert retries without it |
-| BEGINNER / INTERMEDIATE | **PASS** | User A beginner restored; User B wrote intermediate without leaking |
-| WORKOUT_SAVING | **PASS** | Cloud `user_state.history` |
+| BEGINNER / INTERMEDIATE | **PASS** | User A onboarding → Beginner restored; User B Intermediate; no leak |
+| WORKOUT_SAVING | **PASS** | Cloud `user_state.history` (API) + UI Nice-work finish + restore |
 | WOD_TRACKING | **PASS** | Format-specific logger (AMRAP verified E2E; all kinds typed) |
-| FITNESS / INBODY / MEASUREMENTS | **PASS** | Cloud `programme.crackerMoveCheckIns` |
+| FITNESS / INBODY / MEASUREMENTS | **PASS** | Cloud `programme.crackerMoveCheckIns`; UI restore of push-ups + body fat |
 | NOURISH / CONNECT | **PASS** | |
 | CHALLENGE_DATES | **PASS** | Full milestone list on Home via `lib/challengeDates.ts` |
 | MOVE_SCROLL | **PASS** | sticky clearance + scroll-margin |
@@ -32,11 +34,9 @@
 
 ## Fixes in this iteration
 
-1. **WOD logging** — `lib/wod.ts` + `components/WodLogger.tsx`; `ExerciseResult.wodResult` separate from `SetResult`
-2. **Session drafts** — WOD scores persist in existing `forma-session-v1` (live timer is in-memory only)
-3. **Auth staging readiness** — `supabaseConfigDiagnostics()`; AuthScreen lists missing env **names** only
-4. **Challenge dates** — `lib/challengeDates.ts` + Home milestones (registration close, party, champion)
-5. **MOVE sticky / bottom nav** — scroll-margin on results; `--cracker-tabbar-clearance` padding
+1. **Confirm-email-off Auth retest** — fresh signups return a session immediately (`scripts/two-account-auth-test.cjs` + UI harness).
+2. **Stub-profile onboarding** — `handle_new_user` inserts a `profiles` row on signup, which previously skipped club/level onboarding. New empty cloud members now see Cracker onboarding; signed-up first name is kept (`cloudMemberNeedsCrackerOnboarding`).
+3. **UI harness** — unique mailinator addresses (no inbox needed); finish-session dialog no longer double-accepted; wait for Nice work.
 
 ---
 
@@ -61,16 +61,39 @@ USER A: create → Beginner → partial workout + Fitness + InBody → logout
 USER B: create → confirm empty → Intermediate → log → logout  
 USER A: login → Beginner + data restored  
 
-**Live API/RLS run:** **PASS** (`scripts/two-account-auth-test.cjs`, publishable key only).
+| Step | Result |
+|------|--------|
+| USER A create (session on signup) | **PASS** |
+| USER A Beginner onboarding | **PASS** |
+| USER A partial workout + Fitness + InBody | **PASS** |
+| USER A logout → auth gate | **PASS** |
+| USER B create → empty (no User A data) | **PASS** |
+| USER B Intermediate + log | **PASS** |
+| USER A login → Beginner + fitness/InBody restored | **PASS** |
+| RLS (B cannot read A `user_state`) | **PASS** |
 
-Dashboard leftover: add `profiles.club` via `supabase/schema.sql` so club selection syncs (app already falls back).
+**Live API/RLS run:** **PASS** (`scripts/two-account-auth-test.cjs`, publishable key only, `sessionOnSignup: true` for A and B).  
+**Live UI run:** **PASS** (`scripts/two-account-auth-qa.cjs` against `pnpm dev :3000`).
+
+---
+
+## Remaining dashboard notes
+
+1. Add `profiles.club` via `supabase/schema.sql` so club selection syncs (app already falls back / retries without the column).
+2. Confirm email is **currently OFF** (correct for this staging retest). Turn it back **on** for production if you want verified inboxes — signup will then stop returning a session until the member confirms.
+3. Do **not** add `SUPABASE_SERVICE_ROLE_KEY` to the app or any `NEXT_PUBLIC_*` variable.
 
 ---
 
 ## Evidence
 
-- `two_account_auth_report.json` — live two-account Auth/RLS scorecard (all PASS)
-- `qa_auth_gate_keys.png` — Auth gate with keys (no Setup needed)
+- `two_account_auth_report.json` — live two-account API/RLS scorecard (all PASS, session on signup)
+- `two-account-auth-qa.json` — live UI harness scorecard (all PASS)
+- `auth_gate_with_supabase_keys.png` — Auth gate with keys (no Setup needed)
+- `auth_logout_returns_to_gate.png` — Sign out returns to Welcome back
+- `user_b_home_empty_no_user_a_data.png` — User B Home empty (0/3, no User A markers)
+- `user_a_fitness_pushups_saved.png` — User A push-ups 12
+- `user_a_inbody_restored_after_relogin.png` — User A body fat 22.5% after re-login
 - `qa_auth_invalid_login.png` — friendly invalid-login copy
 - `qa_wod_logger.png` — AMRAP rounds / extra reps  
 - `qa_challenge_dates_home.png` — milestones  
