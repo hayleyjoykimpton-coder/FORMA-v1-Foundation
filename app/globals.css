@@ -1516,6 +1516,223 @@ textarea::placeholder {
   width: 100%;
 }
 
+.cracker-home-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cracker-home-progress:hover {
+  border-color: rgba(36, 63, 130, 0.28);
+}
+
+.cracker-home-progress-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.cracker-home-progress-cta {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--cracker-blue);
+}
+
+.nourish-hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.nourish-hub-card h2 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--cracker-navy);
+}
+
+.nourish-hub-card .cta-btn,
+.nourish-hub-card .secondary-btn {
+  margin-top: 6px;
+}
+
+.nourish-hub-card .secondary-btn:disabled {
+  opacity: 0.55;
+}
+
+.nourish-price {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  color: var(--cracker-navy);
+}
+
+.nourish-hub-education {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.move-learn-stack,
+.move-progress-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.move-learn-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.move-learn-cover img {
+  display: block;
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  object-position: center 32%;
+}
+
+.move-learn-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+}
+
+.move-learn-body h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.move-learn-body .in-app-video {
+  width: 100%;
+}
+
+.move-learn-status {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+}
+
+.move-learn-status.is-watched {
+  color: var(--cracker-navy);
+}
+
+.move-progress-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.move-progress-percent,
+.move-progress-stat {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  color: var(--cracker-navy);
+}
+
+.move-progress-line,
+.move-progress-flag {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cracker-navy);
+}
+
+.move-progress-compare-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.move-progress-compare p {
+  margin: 2px 0 0;
+  font-size: 16px;
+  color: var(--cracker-navy);
+}
+
+.move-progress-compare span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.move-progress-triple-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.move-progress-triple-grid span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cracker-navy);
+}
+
+.move-progress-triple-grid small {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.profile-help-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-help-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.profile-help-list a,
+.profile-help-soon {
+  display: grid;
+  grid-template-columns: 28px 1fr 16px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.profile-help-list strong {
+  display: block;
+  font-size: 14px;
+}
+
+.profile-help-list small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.profile-help-icon {
+  color: var(--cracker-navy);
+}
+
 .cracker-move-banner {
   position: relative;
   border-radius: 20px;
@@ -3799,7 +4016,9 @@ button.avatar { padding: 0; }
 .cracker-checkin-screen,
 .move-fitness-screen,
 .move-inbody-screen,
-.move-photos-screen {
+.move-photos-screen,
+.move-learn-screen,
+.move-progress-screen {
   scroll-margin-top: 72px;
 }
 
@@ -3919,7 +4138,9 @@ button.avatar { padding: 0; }
 .move-fitness-screen,
 .move-inbody-screen,
 .move-recap-screen,
-.move-photos-screen {
+.move-photos-screen,
+.move-learn-screen,
+.move-progress-screen {
   scroll-margin-top: 72px;
 }
 

@@ -1,6 +1,8 @@
 /** External Christmas Cracker Nutrition platform (authoritative). */
 
-export const NOURISH_PROGRAM_URL = "https://christmas-cracker-2026.netlify.app/";
+import { CRACKER_EXTERNAL_LINKS } from "./crackerLinks";
+
+export const NOURISH_PROGRAM_URL = CRACKER_EXTERNAL_LINKS.nutritionProgram;
 
 /** Real flat-lay whole-foods photo for the Cracker NOURISH gateway hero. */
 export const NOURISH_HERO_IMAGE = "/cracker/nourish/nourish-hero-flatlay.jpg";

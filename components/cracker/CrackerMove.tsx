@@ -20,6 +20,8 @@ import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
 import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { MoveFitnessTesting } from "@/components/cracker/MoveFitnessTesting";
 import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasurements";
+import { MoveLearnLibrary } from "@/components/cracker/MoveLearnLibrary";
+import { MoveMyProgress } from "@/components/cracker/MoveMyProgress";
 import { MoveProgressPhotos } from "@/components/cracker/MoveProgressPhotos";
 import { MoveWorkoutRecap } from "@/components/cracker/MoveWorkoutRecap";
 import {
@@ -37,6 +39,8 @@ export type { MoveSubTab };
 
 const MOVE_SUBTABS: { key: MoveSubTab; label: string }[] = [
   { key: "training", label: "TRAINING" },
+  { key: "learn", label: "LEARN" },
+  { key: "progress", label: "MY PROGRESS" },
   { key: "recap", label: "RECAP" },
   { key: "fitness", label: "FITNESS TESTING" },
   { key: "inbody", label: "INBODY + MEASUREMENTS" },
@@ -121,7 +125,7 @@ export function CrackerMove({
   onAddPhoto,
   onDeletePhoto,
 }: Props) {
-  const [subTab, setSubTab] = useState<MoveSubTab>("training");
+  const [subTab, setSubTab] = useState<MoveSubTab>(() => loadMoveSubTab());
   const [viewWeek, setViewWeek] = useState(currentWeek);
   const [checklist, setChecklist] = useState<MoveChecklistState>({ weeks: {} });
   const level: CrackerLevel = crackerLevelFromExperience(experience);
@@ -172,6 +176,36 @@ export function CrackerMove({
       return next;
     });
   };
+
+  if (subTab === "learn") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveLearnLibrary
+          level={level}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
+  if (subTab === "progress") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveMyProgress
+          currentWeek={currentWeek}
+          experience={experience}
+          history={history}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
 
   if (subTab === "recap") {
     return (

@@ -25,6 +25,19 @@ import type {
   WorkoutLocation,
 } from "@/lib/user";
 import { fileToResizedDataUrl } from "@/lib/images";
+import {
+  CRACKER_EXTERNAL_LINKS,
+  CRACKER_SUPPORT_EMAIL,
+  configuredUrl,
+  jessInstagramUrl,
+} from "@/lib/crackerLinks";
+import {
+  ExternalLinkIcon,
+  IconHelpCommunity,
+  IconHelpMail,
+  IconHelpNourish,
+  IconHelpTraining,
+} from "@/components/cracker/icons";
 
 function numberOrNull(value: string): number | null {
   if (value.trim() === "") return null;
@@ -235,6 +248,8 @@ export function ProfileScreen({
             />
           </article>
 
+          {challengeMode === "cracker" ? <NeedHelpList /> : null}
+
           {challengeMode !== "cracker" ? (
             <>
           <article className="card profile-section">
@@ -345,6 +360,86 @@ export function ProfileScreen({
         </div>
       </div>
     </div>
+  );
+}
+
+function NeedHelpList() {
+  const instagram = jessInstagramUrl();
+  const nutrition = configuredUrl(CRACKER_EXTERNAL_LINKS.nutritionProgram);
+  const facebook = configuredUrl(CRACKER_EXTERNAL_LINKS.facebookCommunity);
+
+  const rows = [
+    {
+      key: "app",
+      icon: <IconHelpMail />,
+      title: "App support",
+      subtitle: "Having trouble with your account or the CRACKER app?",
+      href: `mailto:${CRACKER_SUPPORT_EMAIL}`,
+      action: "Email Hayley",
+    },
+    {
+      key: "training",
+      icon: <IconHelpTraining />,
+      title: "Training",
+      subtitle: "Questions about the training program?",
+      href: instagram,
+      action: "Contact Jess",
+    },
+    {
+      key: "nutrition",
+      icon: <IconHelpNourish />,
+      title: "Nutrition",
+      subtitle: "Access your CRACKER nutrition plan and resources.",
+      href: nutrition,
+      action: "Open nutrition",
+    },
+    {
+      key: "community",
+      icon: <IconHelpCommunity />,
+      title: "Community & events",
+      subtitle: "Find your club's latest CRACKER events and updates.",
+      href: facebook,
+      action: "Open Facebook group",
+    },
+  ] as const;
+
+  return (
+    <article className="card profile-section">
+      <span className="eyebrow">Need help?</span>
+      <ul className="profile-help-list">
+        {rows.map((row) => (
+          <li key={row.key}>
+            {row.href ? (
+              <a
+                href={row.href}
+                target={row.href.startsWith("mailto:") ? undefined : "_blank"}
+                rel="noopener noreferrer"
+                aria-label={row.action}
+              >
+                <span className="profile-help-icon" aria-hidden="true">
+                  {row.icon}
+                </span>
+                <span>
+                  <strong>{row.title}</strong>
+                  <small>{row.subtitle}</small>
+                </span>
+                <ExternalLinkIcon size={14} />
+              </a>
+            ) : (
+              <div className="profile-help-soon">
+                <span className="profile-help-icon" aria-hidden="true">
+                  {row.icon}
+                </span>
+                <span>
+                  <strong>{row.title}</strong>
+                  <small>Coming soon</small>
+                </span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }
 

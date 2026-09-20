@@ -2149,6 +2149,7 @@ export default function FormaApp() {
           photos={progressPhotos}
           onAddPhoto={handleAddPhoto}
           onDeletePhoto={handleDeletePhoto}
+          club={profile.club}
         />
       </div>
     );

@@ -1,6 +1,13 @@
 import type { CrackerTab } from "@/components/cracker/types";
 
-export type MoveSubTab = "training" | "fitness" | "inbody" | "recap" | "photos";
+export type MoveSubTab =
+  | "training"
+  | "learn"
+  | "progress"
+  | "fitness"
+  | "inbody"
+  | "recap"
+  | "photos";
 
 export const MOVE_SUBTAB_KEY = "forma-cracker-move-subtab-v1";
 export const CRACKER_TAB_KEY = "forma-cracker-tab-v1";
@@ -15,7 +22,9 @@ export function loadMoveSubTab(): MoveSubTab {
       raw === "inbody" ||
       raw === "training" ||
       raw === "recap" ||
-      raw === "photos"
+      raw === "photos" ||
+      raw === "learn" ||
+      raw === "progress"
     ) {
       return raw;
     }
