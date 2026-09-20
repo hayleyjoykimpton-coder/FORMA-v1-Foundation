@@ -14,4 +14,7 @@ export const NOURISH_COPY = {
   note: "Your nutrition plan, recipes and education are managed through the separate CRACKER Nutrition platform.",
   ctaPrimary: "OPEN NUTRITION PROGRAM",
   ctaHome: "OPEN NUTRITION",
+  personalisedPrice: "$25",
+  wellnessPrice: "$10",
+  pricePeriod: "per week",
 } as const;
