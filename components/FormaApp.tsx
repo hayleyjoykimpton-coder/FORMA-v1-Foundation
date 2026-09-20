@@ -75,18 +75,6 @@ import {
   emptyMoveCheckIns,
   MOVE_CHECKINS_CHANGED_EVENT,
 } from "@/lib/crackerMoveCheckIns";
-import {
-  dismissTrainingReminderToday,
-  loadReminderPrefs,
-  markTrainingDoneToday,
-  maybeNotifyTrainingDay,
-  requestBrowserNotifyPermission,
-  saveReminderPrefs,
-  shouldShowTrainingReminder,
-  todaysScheduledWorkout,
-  trainingReminderCopy,
-  type ReminderPrefs,
-} from "@/lib/reminders";
 import { exportProgressBundle } from "@/lib/exportProgress";
 import {
   dismissWeeklyReviewNudge,
@@ -309,11 +297,6 @@ export default function FormaApp() {
     setsDone: number;
     setsTotal: number;
   } | null>(null);
-  const [reminderPrefs, setReminderPrefs] = useState<ReminderPrefs>({
-    enabled: true,
-    browserNotify: false,
-    preferredWindow: "anytime",
-  });
   const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => defaultHomePrefs());
   const [homeCustomiseOpen, setHomeCustomiseOpen] = useState(false);
   const [weeklyReviewDismissed, setWeeklyReviewDismissed] = useState(false);
@@ -364,7 +347,6 @@ export default function FormaApp() {
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
-    setReminderPrefs(loadReminderPrefs());
     setHomePrefs(loadHomePrefs());
     setProgressSubTab(loadProgressSubTab());
     setChallengeMode(mode);
@@ -793,53 +775,6 @@ export default function FormaApp() {
     ? workouts.find((workout) => workout.id === session.workoutId) ?? null
     : null;
   const todaysWorkout = useMemo(() => pickTodaysWorkout(workouts), [workouts]);
-  const scheduledToday = useMemo(() => todaysScheduledWorkout(workouts), [workouts]);
-  const showTrainingReminder = useMemo(
-    () =>
-      shouldShowTrainingReminder({
-        workouts,
-        history,
-        prefs: reminderPrefs,
-      }),
-    [workouts, history, reminderPrefs],
-  );
-  const trainingReminder = useMemo(
-    () => trainingReminderCopy(scheduledToday),
-    [scheduledToday],
-  );
-
-  useEffect(() => {
-    if (!hydrated || !showTrainingReminder || !reminderPrefs.browserNotify) return;
-    void maybeNotifyTrainingDay({
-      prefs: reminderPrefs,
-      workout: scheduledToday,
-      history,
-      workouts,
-    }).then((next) => {
-      if (next.lastNotifiedDate !== reminderPrefs.lastNotifiedDate) {
-        setReminderPrefs(next);
-      }
-    });
-  }, [hydrated, showTrainingReminder, reminderPrefs, scheduledToday, history, workouts]);
-
-  const updateReminderPrefs = async (patch: Partial<ReminderPrefs>) => {
-    let next: ReminderPrefs = { ...reminderPrefs, ...patch };
-    if (patch.browserNotify === true) {
-      const permission = await requestBrowserNotifyPermission();
-      if (permission !== "granted") {
-        next = { ...next, browserNotify: false };
-        setSyncNote(
-          permission === "denied"
-            ? "Browser notifications blocked — in-app reminders still work"
-            : "Browser notifications unavailable here",
-        );
-      } else {
-        setSyncNote("Browser notify on while FORMA is open");
-      }
-    }
-    saveReminderPrefs(next);
-    setReminderPrefs(next);
-  };
   const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
   const streak = useMemo(() => computeStreak(history), [history]);
   const completedSets = useMemo(() => totalCompletedSets(history), [history]);
@@ -1544,14 +1479,6 @@ export default function FormaApp() {
         challengeMode={challengeMode}
         // Seasonal lock: FORMA programmes disabled — no toggle back to FORMA workouts.
         onChallengeModeChange={undefined}
-        reminderPrefs={{
-          enabled: reminderPrefs.enabled,
-          browserNotify: reminderPrefs.browserNotify,
-          preferredWindow: reminderPrefs.preferredWindow,
-        }}
-        onReminderPrefsChange={(prefs) => {
-          void updateReminderPrefs(prefs);
-        }}
         accountMode={authMode}
         syncNote={syncNote}
         onSignOut={async () => {
@@ -2282,52 +2209,6 @@ export default function FormaApp() {
                       Log InBody
                     </button>
                   ) : null}
-                </div>
-              </article>
-            ) : null}
-
-            {showTrainingReminder ? (
-              <article className="card training-reminder-card">
-                <div className="training-reminder-copy">
-                  <span className="eyebrow">Training day</span>
-                  <strong>{trainingReminder.title}</strong>
-                  <p className="muted">{trainingReminder.text}</p>
-                  <div className={`reminder accent-${trainingReminder.tip.accent}`}>
-                    <strong>{trainingReminder.tip.title}</strong>
-                    <small>{trainingReminder.tip.text}</small>
-                  </div>
-                </div>
-                <div className="training-reminder-actions">
-                  {scheduledToday && scheduledToday.exercises.length > 0 ? (
-                    <button
-                      type="button"
-                      className="cta-btn"
-                      onClick={() => startWorkout(scheduledToday)}
-                    >
-                      Start workout
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => setSessionPickerOpen(true)}
-                  >
-                    Choose session
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => setReminderPrefs(markTrainingDoneToday(reminderPrefs))}
-                  >
-                    Mark done
-                  </button>
-                  <button
-                    type="button"
-                    className="text-btn"
-                    onClick={() => setReminderPrefs(dismissTrainingReminderToday(reminderPrefs))}
-                  >
-                    Later
-                  </button>
                 </div>
               </article>
             ) : null}

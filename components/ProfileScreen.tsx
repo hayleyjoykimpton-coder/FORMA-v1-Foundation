@@ -39,8 +39,6 @@ export function ProfileScreen({
   onViewProgress,
   onRebuildProgramme,
   onResetWorkoutHistory,
-  reminderPrefs,
-  onReminderPrefsChange,
   challengeMode = "forma",
   onChallengeModeChange,
   accountMode = "local",
@@ -54,16 +52,6 @@ export function ProfileScreen({
   onViewProgress: () => void;
   onRebuildProgramme?: () => void;
   onResetWorkoutHistory?: () => void | Promise<void>;
-  reminderPrefs?: {
-    enabled: boolean;
-    browserNotify: boolean;
-    preferredWindow?: "anytime" | "morning" | "afternoon" | "evening";
-  };
-  onReminderPrefsChange?: (prefs: {
-    enabled: boolean;
-    browserNotify: boolean;
-    preferredWindow?: "anytime" | "morning" | "afternoon" | "evening";
-  }) => void;
   challengeMode?: "forma" | "cracker";
   onChallengeModeChange?: (mode: "forma" | "cracker") => void;
   accountMode?: "local" | "cloud" | "gate" | "booting";
@@ -332,50 +320,6 @@ export function ProfileScreen({
                 />
               </>
             )}
-            {reminderPrefs && onReminderPrefsChange ? (
-              <>
-                <label className="mini-label">Reminders</label>
-                <ChoiceRow
-                  options={[
-                    { value: "on", label: "Training day reminders on" },
-                    { value: "off", label: "Reminders off" },
-                  ]}
-                  selected={reminderPrefs.enabled ? "on" : "off"}
-                  onSelect={(v) =>
-                    onReminderPrefsChange({ ...reminderPrefs, enabled: v === "on" })
-                  }
-                />
-                <label className="mini-label">Preferred time</label>
-                <ChoiceRow
-                  options={[
-                    { value: "anytime", label: "Any time" },
-                    { value: "morning", label: "Morning" },
-                    { value: "afternoon", label: "Afternoon" },
-                    { value: "evening", label: "Evening" },
-                  ]}
-                  selected={reminderPrefs.preferredWindow ?? "anytime"}
-                  onSelect={(v) =>
-                    onReminderPrefsChange({
-                      ...reminderPrefs,
-                      preferredWindow: v as "anytime" | "morning" | "afternoon" | "evening",
-                    })
-                  }
-                />
-                <ChoiceRow
-                  options={[
-                    { value: "on", label: "Browser notify while open" },
-                    { value: "off", label: "No browser notify" },
-                  ]}
-                  selected={reminderPrefs.browserNotify ? "on" : "off"}
-                  onSelect={(v) =>
-                    onReminderPrefsChange({ ...reminderPrefs, browserNotify: v === "on" })
-                  }
-                />
-                <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-                  Quiet in-app nudge on gym days after your preferred window. Browser notify only while FORMA is open.
-                </p>
-              </>
-            ) : null}
             <div className="profile-fields">
               <label className="field">
                 <span>Sleep (hrs)</span>
