@@ -59,7 +59,8 @@ function shot(page, name) {
 
 async function visible(locator, timeout = 2500) {
   try {
-    return await locator.first().isVisible({ timeout });
+    await locator.first().waitFor({ state: "visible", timeout });
+    return true;
   } catch {
     return false;
   }
@@ -245,8 +246,9 @@ async function readAuthSession(page) {
     if (validation) report.notes.push("Client-side validation messages shown.");
 
     await fillAuth(page, USER_A, "signup");
-    await shot(page, "qa_auth_signup_a.png");
     await page.getByRole("button", { name: /create account/i }).click();
+    await page.waitForTimeout(1500);
+    await shot(page, "qa_auth_signup_a.png");
 
     const confirmEmail = await visible(page.getByText(/check your email to confirm/i), 8000);
     const authError = page.locator(".auth-error");

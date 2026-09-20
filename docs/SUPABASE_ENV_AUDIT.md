@@ -61,29 +61,36 @@ Minimum for Auth QA:
 
 **Do not** put a service-role key in any `NEXT_PUBLIC_*` variable.
 
-## Current VM state
+## Current VM state (2026-09-20, keys injected)
 
-- URL present in `.env.local`
-- Publishable key: **empty**
-- Anon key: **empty**
+- URL: present (`kvhthuektwwffsobiuww.supabase.co`)
+- Publishable key: **present** (`sb_publishable_…`) — used by `getSupabaseKey()`
+- Anon JWT: **present** (fallback only; not used while publishable is set)
+- Service role: **not set** (correct)
 
-Two-account isolation test: **not run** (blocked on missing browser key).
+GoTrue `/auth/v1/health` returns 200 with the publishable key.
 
-## Scorecard (Auth / sync) — until keys + two-account test
+`mailer_autoconfirm` is **false** (Confirm email is ON). Signup sends a confirmation email and does **not** return a session.
+
+Supabase Free email sending is **rate-limited**. Eight signup retries over ~12 minutes all returned `email rate limit exceeded`.
+
+## Scorecard (Auth / sync) — keys present, two-account still blocked
 
 | Check | Result |
 |-------|--------|
-| SUPABASE CLIENT CONFIG | **FAIL** (key missing) |
-| ACCOUNT CREATION | **FAIL** |
-| LOGIN | **FAIL** |
-| LOGOUT | **FAIL** |
+| SUPABASE CLIENT CONFIG | **PASS** |
+| ACCOUNT CREATION | **FAIL** (Confirm email ON + email send rate limit) |
+| LOGIN | **FAIL** (happy path blocked; invalid-login copy is friendly) |
+| LOGOUT | **FAIL** (no authenticated session to exercise) |
 | PROFILE SYNC | **FAIL** |
 | WORKOUT SYNC | **FAIL** |
-| FITNESS SYNC | **FAIL** |
+| FITNESS SYNC | **FAIL** (code now pushes check-ins; live unverified) |
 | INBODY SYNC | **FAIL** |
 | TWO-USER ISOLATION | **FAIL** |
 | RLS | **FAIL*** |
 
-\*RLS policies exist in `supabase/schema.sql` (`auth.uid() = id` / `user_id`) but are **not verified** against a live project until Auth works.
+\*Anonymous `GET /rest/v1/profiles` and `user_state` return `[]` (`content-range */0`) — RLS is enabled against the anon/publishable key. Member-to-member isolation is **not** verified until two sessions exist.
 
-Schema expects `profiles` + `user_state`; Cracker check-ins sync into `user_state.programme.crackerMoveCheckIns` when signed in.
+**Do not mark AUTH PASS** until Confirm email is off (or rate limit clears and two inboxes can confirm), then re-run `node scripts/two-account-auth-test.cjs` and `node scripts/two-account-auth-qa.cjs`.
+
+Schema expects `profiles` + `user_state`; Cracker check-ins sync into `user_state.programme.crackerMoveCheckIns` when signed in. Sign-out now flushes that blob before clearing local cache.

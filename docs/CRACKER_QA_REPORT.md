@@ -2,9 +2,9 @@
 
 **Branch:** `cursor/cracker-qa-audit-511a`  
 **Base:** `cursor/move-fitness-inbody-511a`  
-**Updated:** 2026-09-20 (post-fix retest)
+**Updated:** 2026-09-20 (keys injected — two-account Auth still blocked)
 
-**Environment:** Cursor Cloud Agent VM — **Supabase publishable key still missing** (URL prepared for `kvhthuektwwffsobiuww`)
+**Environment:** Cursor Cloud Agent VM — `NEXT_PUBLIC_SUPABASE_URL` + publishable key **present**. Confirm email still ON; signup emails rate-limited.
 
 ---
 
@@ -12,18 +12,19 @@
 
 | Area | Result | Notes |
 |------|--------|-------|
-| ACCOUNT_CREATION / LOGIN | **BLOCKED** | Needs `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or ANON) — do not mark PASS yet |
-| PROFILE_SAVING | **PASS** | |
-| BEGINNER / INTERMEDIATE | **PASS** | |
-| WORKOUT_SAVING | **PASS** | Strength + session draft |
+| SUPABASE CLIENT CONFIG | **PASS** | Auth gate, no “Setup needed”; GoTrue health 200 |
+| ACCOUNT_CREATION / LOGIN | **FAIL** | Confirm email ON + `email rate limit exceeded` after 8 retries (~12 min) |
+| PROFILE_SAVING | **PASS** | Local |
+| BEGINNER / INTERMEDIATE | **PASS** | Local |
+| WORKOUT_SAVING | **PASS** | Strength + session draft (local) |
 | WOD_TRACKING | **PASS** | Format-specific logger (AMRAP verified E2E; all kinds typed) |
-| FITNESS / INBODY / MEASUREMENTS | **PASS** | |
+| FITNESS / INBODY / MEASUREMENTS | **PASS** | Local; cloud push now wired (see below) |
 | NOURISH / CONNECT | **PASS** | |
 | CHALLENGE_DATES | **PASS** | Full milestone list on Home via `lib/challengeDates.ts` |
 | MOVE_SCROLL | **PASS** | sticky clearance + scroll-margin |
 | BOTTOM_NAV_OVERLAP | **PASS** | `--cracker-tabbar-clearance` (96px measured) |
 | DATA_PERSISTENCE | **PASS** | WOD `wodResult` in `forma-session-v1` draft |
-| USER_DATA_ISOLATION | **PASS*** | Code path; live two-account needs Supabase |
+| USER_DATA_ISOLATION | **FAIL** | Live two-account not completed |
 | PRODUCTION_BUILD | **PASS** | `pnpm build` OK |
 | MOBILE_FLOW | **PASS** | 375 / 390 |
 
@@ -56,16 +57,23 @@
 
 ## Staging Auth checklist (when keys present)
 
-USER A: create → Beginner → partial workout + Fitness + InBody → logout  
-USER B: create → confirm empty → Intermediate → log → logout  
-USER A: login → Beginner + data restored  
+**Keys are present.** Remaining dashboard step:
 
-Do **not** mark AUTH PASS until that run succeeds.
+1. Supabase → Authentication → Providers → Email → **Confirm email = OFF**
+2. Wait for the email rate limit to clear (or skip it by disabling confirm)
+3. `node scripts/two-account-auth-test.cjs` (API + RLS)
+4. `node scripts/two-account-auth-qa.cjs` (UI)
+
+Do **not** mark AUTH PASS until USER A / USER B isolation succeeds.
+
+Cloud fix shipped: MOVE check-ins dispatch `forma-move-checkins-changed` and sign-out flushes `user_state` so Fitness/InBody are not wiped on logout.
 
 ---
 
 ## Evidence
 
+- `qa_auth_gate_keys.png` — Auth gate with keys (no Setup needed)
+- `qa_auth_invalid_login.png` — friendly invalid-login copy
 - `qa_wod_logger.png` — AMRAP rounds / extra reps  
 - `qa_challenge_dates_home.png` — milestones  
 - `qa_move_scroll_fitness.png` — sticky clearance  
