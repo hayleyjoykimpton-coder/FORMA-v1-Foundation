@@ -69,6 +69,7 @@
 |-------|--------|--------|
 | Incomplete challenge dates in UI | Home / Profile | Shows 12 Oct–22 Nov 2026; missing registration close, party weekend (27–29 Nov), champion (5 Dec) |
 | Sticky Move sub-nav can obscure “YOUR RESULTS” | Fitness / InBody | Add scroll padding under sticky pills |
+| Bottom nav overlaps tappable cards when scrolling | InBody / long Move screens | Tab bar can intercept taps (e.g. WAIST card) — add bottom content padding |
 | Auth copy previously overclaimed meals | Auth | Fixed in this PR |
 | Jess weekly videos all Coming Soon | MOVE education | Expected until URLs provided |
 
@@ -78,6 +79,25 @@
 |-------|--------|
 | Onboarding name defaults to “Friend” | No name step in Cracker onboarding |
 | Playwright sometimes showed stray “N” near tab bar | Likely tooling chrome; not found in Cracker components |
+
+---
+
+## Manual GUI pass (390px) — follow-up
+
+Completed after automated audit ([Manual Cracker workout QA](bc-91b78ccc-b2ca-5f33-b633-dab729231c3b)):
+
+| Check | Result |
+|-------|--------|
+| MOVE sticky sub-tabs | **PASS** |
+| Start Lower Body + log set (12 kg / 8 / RPE 7) | **PASS** |
+| Fitness Testing INITIAL/FINAL + deltas | **PASS** |
+| InBody + Measurements cards + WAIST modal | **PASS** |
+| Nourish → `christmas-cracker-2026.netlify.app` | **PASS** |
+| Connect Facebook CTA | **PASS** |
+| Profile Beginner → Intermediate updates MOVE badge | **PASS** |
+| Format-specific WOD fields in session | **FAIL** (confirmed: KG/REPS/RPE only) |
+
+Artifacts: `qa_manual_workout_session_set_logged.webp`, `qa_manual_fitness_testing_initial_final.webp`, `qa_manual_inbody_measurements.webp`, `qa_manual_nourish_external_link.webp`, `qa_manual_connect_facebook.webp`, `qa_manual_profile_intermediate_updated.webp`
 
 ---
 
