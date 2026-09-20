@@ -61,36 +61,39 @@ Minimum for Auth QA:
 
 **Do not** put a service-role key in any `NEXT_PUBLIC_*` variable.
 
-## Current VM state (2026-09-20, keys injected)
+## Current VM state (2026-09-20, two-account Auth retest)
 
 - URL: present (`kvhthuektwwffsobiuww.supabase.co`)
 - Publishable key: **present** (`sb_publishable_…`) — used by `getSupabaseKey()`
 - Anon JWT: **present** (fallback only; not used while publishable is set)
-- Service role: **not set** (correct)
+- Service role: **not set** (correct — never used)
 
 GoTrue `/auth/v1/health` returns 200 with the publishable key.
 
-`mailer_autoconfirm` is **false** (Confirm email is ON). Signup sends a confirmation email and does **not** return a session.
+Two real accounts signed in with the publishable key (no service-role). Isolation + RLS verified.
 
-Supabase Free email sending is **rate-limited**. Eight signup retries over ~12 minutes all returned `email rate limit exceeded`.
+Live `profiles` table is missing the `club` column from `supabase/schema.sql`. `pushProfile()` retries the upsert without `club` so name/level still sync. Run this in the SQL editor to add it:
 
-## Scorecard (Auth / sync) — keys present, two-account still blocked
+```sql
+alter table public.profiles add column if not exists club text not null default '';
+```
+
+## Scorecard (Auth / sync) — two-account live
 
 | Check | Result |
 |-------|--------|
 | SUPABASE CLIENT CONFIG | **PASS** |
-| ACCOUNT CREATION | **FAIL** (Confirm email ON + email send rate limit) |
-| LOGIN | **FAIL** (happy path blocked; invalid-login copy is friendly) |
-| LOGOUT | **FAIL** (no authenticated session to exercise) |
-| PROFILE SYNC | **FAIL** |
-| WORKOUT SYNC | **FAIL** |
-| FITNESS SYNC | **FAIL** (code now pushes check-ins; live unverified) |
-| INBODY SYNC | **FAIL** |
-| TWO-USER ISOLATION | **FAIL** |
-| RLS | **FAIL*** |
+| ACCOUNT CREATION | **PASS** |
+| LOGIN | **PASS** |
+| LOGOUT | **PASS** |
+| PROFILE SYNC | **PASS** (club column absent; upsert retried without it) |
+| WORKOUT SYNC | **PASS** |
+| FITNESS SYNC | **PASS** |
+| INBODY SYNC | **PASS** |
+| TWO-USER ISOLATION | **PASS** |
+| RLS | **PASS** |
+| ACCOUNT RESTORE | **PASS** (User A Beginner + fitness/InBody restored; User B rows not visible) |
 
-\*Anonymous `GET /rest/v1/profiles` and `user_state` return `[]` (`content-range */0`) — RLS is enabled against the anon/publishable key. Member-to-member isolation is **not** verified until two sessions exist.
+Harness: `node scripts/two-account-auth-test.cjs` (browser key only).
 
-**Do not mark AUTH PASS** until Confirm email is off (or rate limit clears and two inboxes can confirm), then re-run `node scripts/two-account-auth-test.cjs` and `node scripts/two-account-auth-qa.cjs`.
-
-Schema expects `profiles` + `user_state`; Cracker check-ins sync into `user_state.programme.crackerMoveCheckIns` when signed in. Sign-out now flushes that blob before clearing local cache.
+Schema expects `profiles` + `user_state`; Cracker check-ins sync into `user_state.programme.crackerMoveCheckIns` when signed in. Sign-out flushes that blob before clearing local cache.

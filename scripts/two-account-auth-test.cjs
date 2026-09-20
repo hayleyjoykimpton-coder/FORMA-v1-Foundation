@@ -108,6 +108,17 @@ function profilePayload(id, email, firstName, experienceLevel) {
   };
 }
 
+async function upsertProfile(client, payload) {
+  const first = await client.from("profiles").upsert(payload);
+  if (!first.error) return first;
+  if (/club/i.test(first.error.message || "")) {
+    report.notes.push("Live profiles table has no club column; retried upsert without it.");
+    const { club: _club, ...withoutClub } = payload;
+    return client.from("profiles").upsert(withoutClub);
+  }
+  return first;
+}
+
 function statePayload(userId, { level, historyId, fitnessReps, inbodyFat }) {
   return {
     user_id: userId,
@@ -330,7 +341,8 @@ async function main() {
   pass("ACCOUNT CREATION");
   pass("LOGIN");
 
-  const aProfile = await a.client.from("profiles").upsert(
+  const aProfile = await upsertProfile(
+    a.client,
     profilePayload(a.user.id, userA.email, "UserA", "beginner"),
   );
   if (aProfile.error) {
@@ -447,7 +459,8 @@ async function main() {
     pass("RLS");
   }
 
-  const bOwn = await b.client.from("profiles").upsert(
+  const bOwn = await upsertProfile(
+    b.client,
     profilePayload(b.user.id, userB.email, "UserB", "intermediate"),
   );
   const bState = await b.client.from("user_state").upsert(

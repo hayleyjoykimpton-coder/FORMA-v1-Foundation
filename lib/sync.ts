@@ -190,8 +190,15 @@ export async function pushProfile(profile: UserProfile): Promise<{ error?: strin
   if (!userId) return { error: "Not signed in." };
 
   const payload = { ...profileToRow({ ...profile, id: userId }) };
-  const { error } = await supabase.from("profiles").upsert(payload);
-  return error ? { error: error.message } : {};
+  const first = await supabase.from("profiles").upsert(payload);
+  if (!first.error) return {};
+  // Live projects that have not run the `club` alter still accept every other column.
+  if (/club/i.test(first.error.message)) {
+    const { club: _club, ...withoutClub } = payload;
+    const retry = await supabase.from("profiles").upsert(withoutClub);
+    return retry.error ? { error: retry.error.message } : {};
+  }
+  return { error: first.error.message };
 }
 
 export async function pushUserState(input: {

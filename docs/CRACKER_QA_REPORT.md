@@ -2,9 +2,9 @@
 
 **Branch:** `cursor/cracker-qa-audit-511a`  
 **Base:** `cursor/move-fitness-inbody-511a`  
-**Updated:** 2026-09-20 (keys injected — two-account Auth still blocked)
+**Updated:** 2026-09-20 (two-account Auth **PASS**)
 
-**Environment:** Cursor Cloud Agent VM — `NEXT_PUBLIC_SUPABASE_URL` + publishable key **present**. Confirm email still ON; signup emails rate-limited.
+**Environment:** Cursor Cloud Agent VM — `NEXT_PUBLIC_SUPABASE_URL` + publishable key present. Two live accounts. No service-role key.
 
 ---
 
@@ -13,18 +13,18 @@
 | Area | Result | Notes |
 |------|--------|-------|
 | SUPABASE CLIENT CONFIG | **PASS** | Auth gate, no “Setup needed”; GoTrue health 200 |
-| ACCOUNT_CREATION / LOGIN | **FAIL** | Confirm email ON + `email rate limit exceeded` after 8 retries (~12 min) |
-| PROFILE_SAVING | **PASS** | Local |
-| BEGINNER / INTERMEDIATE | **PASS** | Local |
-| WORKOUT_SAVING | **PASS** | Strength + session draft (local) |
+| ACCOUNT_CREATION / LOGIN | **PASS** | Two accounts; login + logout + User A restore |
+| PROFILE_SAVING | **PASS** | Cloud + local. Live DB missing `profiles.club`; upsert retries without it |
+| BEGINNER / INTERMEDIATE | **PASS** | User A beginner restored; User B wrote intermediate without leaking |
+| WORKOUT_SAVING | **PASS** | Cloud `user_state.history` |
 | WOD_TRACKING | **PASS** | Format-specific logger (AMRAP verified E2E; all kinds typed) |
-| FITNESS / INBODY / MEASUREMENTS | **PASS** | Local; cloud push now wired (see below) |
+| FITNESS / INBODY / MEASUREMENTS | **PASS** | Cloud `programme.crackerMoveCheckIns` |
 | NOURISH / CONNECT | **PASS** | |
 | CHALLENGE_DATES | **PASS** | Full milestone list on Home via `lib/challengeDates.ts` |
 | MOVE_SCROLL | **PASS** | sticky clearance + scroll-margin |
 | BOTTOM_NAV_OVERLAP | **PASS** | `--cracker-tabbar-clearance` (96px measured) |
 | DATA_PERSISTENCE | **PASS** | WOD `wodResult` in `forma-session-v1` draft |
-| USER_DATA_ISOLATION | **FAIL** | Live two-account not completed |
+| USER_DATA_ISOLATION | **PASS** | User B cannot read/write User A `profiles` / `user_state`; A restore hides B |
 | PRODUCTION_BUILD | **PASS** | `pnpm build` OK |
 | MOBILE_FLOW | **PASS** | 375 / 390 |
 
@@ -55,23 +55,21 @@
 
 ---
 
-## Staging Auth checklist (when keys present)
+## Staging Auth checklist
 
-**Keys are present.** Remaining dashboard step:
+USER A: create → Beginner → partial workout + Fitness + InBody → logout  
+USER B: create → confirm empty → Intermediate → log → logout  
+USER A: login → Beginner + data restored  
 
-1. Supabase → Authentication → Providers → Email → **Confirm email = OFF**
-2. Wait for the email rate limit to clear (or skip it by disabling confirm)
-3. `node scripts/two-account-auth-test.cjs` (API + RLS)
-4. `node scripts/two-account-auth-qa.cjs` (UI)
+**Live API/RLS run:** **PASS** (`scripts/two-account-auth-test.cjs`, publishable key only).
 
-Do **not** mark AUTH PASS until USER A / USER B isolation succeeds.
-
-Cloud fix shipped: MOVE check-ins dispatch `forma-move-checkins-changed` and sign-out flushes `user_state` so Fitness/InBody are not wiped on logout.
+Dashboard leftover: add `profiles.club` via `supabase/schema.sql` so club selection syncs (app already falls back).
 
 ---
 
 ## Evidence
 
+- `two_account_auth_report.json` — live two-account Auth/RLS scorecard (all PASS)
 - `qa_auth_gate_keys.png` — Auth gate with keys (no Setup needed)
 - `qa_auth_invalid_login.png` — friendly invalid-login copy
 - `qa_wod_logger.png` — AMRAP rounds / extra reps  
