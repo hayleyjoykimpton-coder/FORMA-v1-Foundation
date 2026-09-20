@@ -73,11 +73,7 @@ GoTrue `/auth/v1/health` returns 200 with the publishable key.
 
 Fresh accounts (unique mailinator addresses; previous QA_USER_* not reused). Isolation + RLS verified via API and UI.
 
-Live `profiles` table is missing the `club` column from `supabase/schema.sql`. `pushProfile()` retries the upsert without `club` so name/level still sync. Run this in the SQL editor to add it:
-
-```sql
-alter table public.profiles add column if not exists club text not null default '';
-```
+Live `profiles.club` is **present** (verified 2026-09-20): upsert `club: "fremantle"` then re-login returned the same value. `pushProfile()` still retries without `club` if an older project is missing the column.
 
 `handle_new_user` still inserts a stub `profiles` + empty `user_state` on signup. The app now treats that stub as **not onboarded** (`cloudMemberNeedsCrackerOnboarding`) so club + Beginner/Intermediate onboarding still runs.
 
@@ -89,7 +85,7 @@ alter table public.profiles add column if not exists club text not null default 
 | ACCOUNT CREATION | **PASS** (session on signup) | **PASS** (session on signup) |
 | LOGIN | **PASS** | **PASS** |
 | LOGOUT | **PASS** | **PASS** |
-| PROFILE SYNC | **PASS** (club column absent; upsert retried without it) | **PASS** (Beginner restored) |
+| PROFILE SYNC | **PASS** (`club` column present; Fremantle round-trip) | **PASS** (Beginner restored) |
 | WORKOUT SYNC | **PASS** | **PASS** |
 | FITNESS SYNC | **PASS** | **PASS** |
 | INBODY SYNC | **PASS** | **PASS** |

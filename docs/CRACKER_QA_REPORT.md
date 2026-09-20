@@ -16,7 +16,7 @@
 |------|--------|-------|
 | SUPABASE CLIENT CONFIG | **PASS** | Auth gate, no “Setup needed”; GoTrue health 200 |
 | ACCOUNT_CREATION / LOGIN | **PASS** | Fresh accounts; session on signup; login + logout + User A restore |
-| PROFILE_SAVING | **PASS** | Cloud + local. Live DB missing `profiles.club`; upsert retries without it |
+| PROFILE_SAVING | **PASS** | Cloud + local. Live `profiles.club` present; Fremantle persisted after re-login |
 | BEGINNER / INTERMEDIATE | **PASS** | User A onboarding → Beginner restored; User B Intermediate; no leak |
 | WORKOUT_SAVING | **PASS** | Cloud `user_state.history` (API) + UI Nice-work finish + restore |
 | WOD_TRACKING | **PASS** | Format-specific logger (AMRAP verified E2E; all kinds typed) |
@@ -79,7 +79,7 @@ USER A: login → Beginner + data restored
 
 ## Remaining dashboard notes
 
-1. Add `profiles.club` via `supabase/schema.sql` so club selection syncs (app already falls back / retries without the column).
+1. ~~Add `profiles.club`~~ **Done** — column present; club value round-trips on re-login. App still retries without `club` for older projects.
 2. Confirm email is **currently OFF** (correct for this staging retest). Turn it back **on** for production if you want verified inboxes — signup will then stop returning a session until the member confirms.
 3. Do **not** add `SUPABASE_SERVICE_ROLE_KEY` to the app or any `NEXT_PUBLIC_*` variable.
 
