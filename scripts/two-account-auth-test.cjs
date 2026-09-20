@@ -61,8 +61,8 @@ const report = {
     serviceRoleUsed: false,
   },
   accounts: {
-    a: { email: userA.email, id: null, confirmed: false },
-    b: { email: userB.email, id: null, confirmed: false },
+    a: { email: userA.email, id: null, confirmed: false, sessionOnSignup: false },
+    b: { email: userB.email, id: null, confirmed: false, sessionOnSignup: false },
   },
   results: {},
   issues: [],
@@ -288,7 +288,13 @@ async function createAccount(label, creds) {
   }
   let session = data.session;
   let user = data.user;
+  if (session) {
+    report.notes.push(`${label} signup returned a session immediately (confirm-email off).`);
+    if (label === "USER A") report.accounts.a.sessionOnSignup = true;
+    if (label === "USER B") report.accounts.b.sessionOnSignup = true;
+  }
   if (!session) {
+    report.notes.push(`${label} signup had no session; attempting email confirm (confirm-email may still be on).`);
     try {
       await confirmEmail(creds.email);
     } catch (err) {

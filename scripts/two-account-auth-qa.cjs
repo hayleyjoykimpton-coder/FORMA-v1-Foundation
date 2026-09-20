@@ -14,7 +14,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const stamp = Date.now();
 const USER_A = {
   firstName: "QaAlpha",
-  email: `forma.qa.a.${stamp}@gmail.com`,
+  email: `forma.qa.a.${stamp}@mailinator.com`,
   password: `CrackerQa-A-${stamp}!`,
   markerKg: "47.5",
   markerReps: "8",
@@ -24,7 +24,7 @@ const USER_A = {
 };
 const USER_B = {
   firstName: "QaBravo",
-  email: `forma.qa.b.${stamp}@gmail.com`,
+  email: `forma.qa.b.${stamp}@mailinator.com`,
   password: `CrackerQa-B-${stamp}!`,
   markerKg: "33",
 };
@@ -247,22 +247,33 @@ async function readAuthSession(page) {
 
     await fillAuth(page, USER_A, "signup");
     await page.getByRole("button", { name: /create account/i }).click();
-    await page.waitForTimeout(1500);
     await shot(page, "qa_auth_signup_a.png");
 
-    const confirmEmail = await visible(page.getByText(/check your email to confirm/i), 8000);
+    const homeishLocator = page
+      .getByRole("button", { name: /^Move$/i })
+      .or(page.getByText(/Where do you train/i));
+    const confirmLocator = page.getByText(/check your email to confirm/i);
     const authError = page.locator(".auth-error");
-    const errorText = (await visible(authError, 2500)) ? (await authError.innerText()) : "";
-    const rateLimited = /too many attempts/i.test(errorText);
-    const homeish = await visible(page.getByRole("button", { name: /^Move$/i }), 6000)
-      || await visible(page.getByText(/Where do you train/i), 1000);
+    const signupOutcome = await Promise.race([
+      homeishLocator.first().waitFor({ timeout: 25000 }).then(() => "session"),
+      confirmLocator.waitFor({ timeout: 25000 }).then(() => "confirm"),
+      authError.waitFor({ timeout: 25000 }).then(() => "error"),
+    ]).catch(() => "timeout");
 
-    if (confirmEmail || rateLimited || /couldn.?t reach|something went wrong/i.test(errorText)) {
+    const errorText = signupOutcome === "error" && (await visible(authError, 500))
+      ? await authError.innerText()
+      : "";
+    const rateLimited = /too many attempts/i.test(errorText);
+    const confirmEmail = signupOutcome === "confirm";
+    const homeish = signupOutcome === "session";
+    if (homeish) report.notes.push("User A signup returned a session (confirm-email off).");
+
+    if (confirmEmail || rateLimited || signupOutcome === "error" || signupOutcome === "timeout") {
       const reason = confirmEmail
         ? "Supabase Confirm email is ON (mailer_autoconfirm=false). Signup does not return a session."
         : rateLimited
           ? "Supabase email send rate limit (over_email_send_rate_limit). Free-tier confirm emails blocked."
-          : errorText || "Signup did not establish a session";
+          : errorText || `Signup did not establish a session (outcome=${signupOutcome})`;
       blocked("ACCOUNT_CREATION", reason);
       blocked("LOGIN", "Depends on ACCOUNT_CREATION");
       blocked("LOGOUT", "Depends on ACCOUNT_CREATION");
@@ -315,17 +326,28 @@ async function readAuthSession(page) {
       if (out) pass("LOGOUT");
       else fail("LOGOUT", "Sign out did not return to auth gate");
 
+      await page.waitForTimeout(4000);
       await fillAuth(page, USER_B, "signup");
       await page.getByRole("button", { name: /create account/i }).click();
-      const confirmB = await visible(page.getByText(/check your email to confirm/i), 8000);
-      const errB = (await visible(page.locator(".auth-error"), 2000))
-        ? await page.locator(".auth-error").innerText()
+      const homeBLocator = page
+        .getByRole("button", { name: /^Move$/i })
+        .or(page.getByText(/Where do you train/i));
+      const confirmBLocator = page.getByText(/check your email to confirm/i);
+      const errBLoc = page.locator(".auth-error");
+      const signupB = await Promise.race([
+        homeBLocator.first().waitFor({ timeout: 25000 }).then(() => "session"),
+        confirmBLocator.waitFor({ timeout: 25000 }).then(() => "confirm"),
+        errBLoc.waitFor({ timeout: 25000 }).then(() => "error"),
+      ]).catch(() => "timeout");
+      const confirmB = signupB === "confirm";
+      const errB = signupB === "error" && (await visible(errBLoc, 500))
+        ? await errBLoc.innerText()
         : "";
-      const homeB = await visible(page.getByRole("button", { name: /^Move$/i }), 6000)
-        || await visible(page.getByText(/Where do you train/i), 1000);
+      const homeB = signupB === "session";
+      if (homeB) report.notes.push("User B signup returned a session (confirm-email off).");
 
       if (confirmB || errB || !homeB) {
-        blocked("TWO-USER ISOLATION", confirmB ? "User B needs email confirmation" : errB || "User B signup failed");
+        blocked("TWO-USER ISOLATION", confirmB ? "User B needs email confirmation" : errB || `User B signup failed (outcome=${signupB})`);
         blocked("RLS", "User B session not established");
       } else {
         await maybeOnboard(page, "Intermediate");
