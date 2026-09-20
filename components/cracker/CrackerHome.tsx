@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { InAppVideo } from "@/components/cracker/InAppVideo";
-import { CRACKER_DATES_LABEL, CRACKER_CHALLENGE_MILESTONES } from "@/lib/challengeMode";
+import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
+import { ChallengeTimeline } from "@/components/cracker/ChallengeTimeline";
 import { CONNECT_HERO_IMAGE } from "@/lib/connect";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
 import {
@@ -132,18 +133,7 @@ export function CrackerHome({
         </button>
       </article>
 
-      <section className="cracker-milestones" aria-label="Challenge dates">
-        <span className="eyebrow">Challenge dates</span>
-        <ul className="cracker-milestone-list">
-          {CRACKER_CHALLENGE_MILESTONES.map((m) => (
-            <li key={m.id}>
-              <strong>{m.label}</strong>
-              <span>{m.dateLabel}</span>
-              {m.note ? <em>{m.note}</em> : null}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ChallengeTimeline />
 
       <div className="cracker-pillar-stack">
         {PILLARS.map((pillar) => (
