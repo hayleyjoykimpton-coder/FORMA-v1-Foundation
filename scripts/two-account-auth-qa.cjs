@@ -164,7 +164,6 @@ async function logPartialWorkout(page, kg, reps, rpe) {
   await repsInput.fill(String(reps));
   await rpeInput.fill(String(rpe));
   await page.locator(".set-row").first().getByRole("button", { name: /^Done$/i }).click();
-  page.once("dialog", (d) => d.accept());
   if (await visible(page.getByRole("button", { name: /^Finish$/i }), 2000)) {
     await page.getByRole("button", { name: /^Finish$/i }).click();
   } else if (await visible(page.getByRole("button", { name: /finish session/i }), 2000)) {
@@ -221,7 +220,9 @@ async function readAuthSession(page) {
   });
   context.setDefaultTimeout(20000);
   const page = await context.newPage();
-  page.on("dialog", (d) => d.accept());
+  page.on("dialog", (d) => {
+    d.accept().catch(() => {});
+  });
 
   try {
     await page.goto(BASE, { waitUntil: "networkidle" });
