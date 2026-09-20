@@ -132,6 +132,7 @@ import {
   CRACKER_SEASON_ACTIVE,
   CRACKER_WEEKS,
   challengeWeekLabel,
+  cloudMemberNeedsCrackerOnboarding,
   crackerWeek,
   isCrackerFitnessTestWeek,
   loadChallengeMode,
@@ -319,6 +320,7 @@ export default function FormaApp() {
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
+  const [needsCrackerOnboarding, setNeedsCrackerOnboarding] = useState(false);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
@@ -391,6 +393,27 @@ export default function FormaApp() {
 
     // Prefer cloud when it has a profile; otherwise keep local and upload.
     if (cloud?.profile) {
+      if (cloudMemberNeedsCrackerOnboarding(cloud)) {
+        const seeded = {
+          ...cloud.profile,
+          firstName: cloud.profile.firstName?.trim() || "",
+          email: cloud.profile.email || "",
+        };
+        if (seeded.firstName || seeded.email) saveProfile(seeded);
+        setProfile(seeded.firstName ? seeded : cloud.profile);
+        setWorkouts([]);
+        setHistory([]);
+        setWeek(1);
+        setAlignActive(false);
+        setNeedsCrackerOnboarding(true);
+        setCloudUserId(userId);
+        setAuthMode("cloud");
+        window.localStorage.removeItem(LOCAL_ONLY_KEY);
+        setSyncNote("Choose your club and training level to start.");
+        return;
+      }
+      setNeedsCrackerOnboarding(false);
+
       // Never merge another member's local cache into this account.
       if (!canMergeLocal) {
         clearLocalMemberData();
@@ -585,6 +608,7 @@ export default function FormaApp() {
         setSession(null);
         setPausedDraft(null);
         persistSessionDraft(null);
+        setNeedsCrackerOnboarding(false);
         setAuthMode("gate");
         return;
       }
@@ -963,17 +987,24 @@ export default function FormaApp() {
 
   const handleOnboardingComplete = (result: CrackerOnboardingResult) => {
     const { profile: nextProfile } = result;
-    saveProfile(nextProfile);
-    setProfile(nextProfile);
+    const merged = {
+      ...nextProfile,
+      id: profile?.id || nextProfile.id,
+      firstName: (profile?.firstName || nextProfile.firstName || "Friend").trim(),
+      email: profile?.email || nextProfile.email || "",
+    };
+    saveProfile(merged);
+    setProfile(merged);
+    setNeedsCrackerOnboarding(false);
     saveChallengeMode("cracker");
     setChallengeMode("cracker");
     setWeek(1);
     setAlignActive(false);
-    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false, mode: "cracker" });
+    applyGeneratedProgram(merged, { week: 1, alignActive: false, mode: "cracker" });
     setTab("today");
     const clubLabel =
-      nextProfile.club && nextProfile.club in CLUB_LABELS
-        ? CLUB_LABELS[nextProfile.club as keyof typeof CLUB_LABELS]
+      merged.club && merged.club in CLUB_LABELS
+        ? CLUB_LABELS[merged.club as keyof typeof CLUB_LABELS]
         : "";
     setSyncNote(
       clubLabel
@@ -1446,9 +1477,10 @@ export default function FormaApp() {
     );
   }
 
-  if (!profile) {
+  if (!profile || needsCrackerOnboarding) {
     return (
       <CrackerOnboarding
+        existing={profile}
         onComplete={(result: CrackerOnboardingResult) => {
           handleOnboardingComplete(result);
         }}
@@ -1512,6 +1544,7 @@ export default function FormaApp() {
           setSession(null);
           setPausedDraft(null);
           persistSessionDraft(null);
+          setNeedsCrackerOnboarding(false);
           setAuthMode("gate");
           setProfileOpen(false);
         }}

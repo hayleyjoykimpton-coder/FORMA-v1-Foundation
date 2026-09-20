@@ -26,7 +26,7 @@ const USER_B = {
   firstName: "QaBravo",
   email: `forma.qa.b.${stamp}@mailinator.com`,
   password: `CrackerQa-B-${stamp}!`,
-  markerKg: "33",
+  markerKg: "61.25",
 };
 
 const report = {
@@ -99,7 +99,7 @@ async function fillAuth(page, { firstName, email, password }, mode) {
 }
 
 async function maybeOnboard(page, levelLabel) {
-  if (await visible(page.getByText(/Where do you train/i), 4000)) {
+  if (await visible(page.getByText(/Where do you train/i), 12000)) {
     const club = page.getByRole("button", { name: /fremantle|broome|port hedland|karratha/i }).first();
     await club.click();
     await page.getByRole("button", { name: /^Continue$/i }).click();
@@ -158,20 +158,24 @@ async function logPartialWorkout(page, kg, reps, rpe) {
     await page.getByRole("button", { name: /^Start workout$/i }).click();
   }
   const kgInput = page.locator(".set-row").first().locator("label:has-text('kg') input");
+  if (!(await visible(kgInput, 8000))) return false;
   const repsInput = page.locator(".set-row").first().locator("label:has-text('reps') input");
   const rpeInput = page.locator(".set-row").first().locator("label:has-text('RPE') input");
   await kgInput.fill(String(kg));
   await repsInput.fill(String(reps));
   await rpeInput.fill(String(rpe));
   await page.locator(".set-row").first().getByRole("button", { name: /^Done$/i }).click();
-  if (await visible(page.getByRole("button", { name: /^Finish$/i }), 2000)) {
+  await clickIf(page.getByRole("button", { name: /skip rest/i }), 2500);
+  if (await visible(page.getByRole("button", { name: /^Finish$/i }), 4000)) {
     await page.getByRole("button", { name: /^Finish$/i }).click();
   } else if (await visible(page.getByRole("button", { name: /finish session/i }), 2000)) {
     await page.getByRole("button", { name: /finish session/i }).click();
   }
-  await page.waitForTimeout(800);
-  await clickIf(page.getByRole("button", { name: /back to home/i }), 4000);
-  return true;
+  const celebrated = await visible(page.getByText(/Nice work/i), 8000);
+  if (celebrated) {
+    await clickIf(page.getByRole("button", { name: /back to home/i }), 4000);
+  }
+  return celebrated;
 }
 
 async function saveFitnessPushups(page, reps) {
@@ -400,6 +404,9 @@ async function readAuthSession(page) {
         await waitHome(page);
         await goMove(page);
         const restoredLevel = await visible(page.getByText(/BEGINNER PROGRAM/i), 5000);
+        await page.getByRole("tab", { name: /^training$/i }).click();
+        const restoredKg = await visible(page.getByText(USER_A.markerKg), 4000);
+        const restoredDone = await visible(page.getByText(/^Done$/i), 1500);
         await page.getByRole("tab", { name: /fitness testing/i }).click();
         const restoredFit = await visible(page.getByText(new RegExp(`${USER_A.pushups}`)), 4000);
         await page.getByRole("tab", { name: /inbody/i }).click();
@@ -408,8 +415,13 @@ async function readAuthSession(page) {
         await shot(page, "qa_user_a_restored.png");
         if (restoredLevel) pass("PROFILE SYNC");
         else fail("PROFILE SYNC", "Beginner programme not restored for User A");
-        if (logged && !leakB) pass("WORKOUT SYNC");
-        else if (!report.results["WORKOUT SYNC"]) fail("WORKOUT SYNC", "User A workout not restored cleanly");
+        if (logged && !leakB && (restoredKg || restoredDone)) pass("WORKOUT SYNC");
+        else if (!report.results["WORKOUT SYNC"]) {
+          fail(
+            "WORKOUT SYNC",
+            `User A workout not restored cleanly (kg=${restoredKg} done=${restoredDone} leakB=${leakB})`,
+          );
+        }
         if (fit && restoredFit) pass("FITNESS SYNC");
         else fail("FITNESS SYNC", "User A fitness check-in not restored after re-login");
         if (ib && restoredIb) pass("INBODY SYNC");

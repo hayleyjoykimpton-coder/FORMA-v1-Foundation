@@ -95,3 +95,28 @@ export function isCrackerFitnessTestWeek(week: number): boolean {
   const w = crackerWeek(week);
   return w === 1 || w === 6;
 }
+
+/**
+ * True when Auth created a stub `profiles` row (handle_new_user) but the member
+ * has not finished club + level onboarding or logged any Cracker data yet.
+ * Must run before we auto-generate and push workouts, or Home skips onboarding.
+ */
+export function cloudMemberNeedsCrackerOnboarding(cloud: {
+  history: unknown[];
+  workouts: unknown[];
+  progress: unknown[];
+  sessionDraft: unknown;
+  crackerMoveCheckIns: Record<string, unknown>;
+}): boolean {
+  if (!CRACKER_SEASON_ACTIVE) return false;
+  const hasCheckIns = Object.values(cloud.crackerMoveCheckIns || {}).some(
+    (entry) => entry && typeof entry === "object" && Object.keys(entry as object).length > 0,
+  );
+  return (
+    cloud.history.length === 0 &&
+    cloud.workouts.length === 0 &&
+    cloud.progress.length === 0 &&
+    !cloud.sessionDraft &&
+    !hasCheckIns
+  );
+}
