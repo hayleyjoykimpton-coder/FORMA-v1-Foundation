@@ -69,6 +69,9 @@ export function WodLogger({
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
 
+  // Timer is in-memory only: refresh / background may reset the live clock.
+  // Saved scores and loads persist via session draft (`forma-session-v1`).
+
   useEffect(() => {
     if (!running) return;
     const started = Date.now() - elapsed * 1000;

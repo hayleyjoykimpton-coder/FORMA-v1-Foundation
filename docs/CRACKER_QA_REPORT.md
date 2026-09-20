@@ -2,160 +2,72 @@
 
 **Branch:** `cursor/cracker-qa-audit-511a`  
 **Base:** `cursor/move-fitness-inbody-511a`  
-**Date:** 2026-09-20  
-**Environment:** Cursor Cloud Agent VM — **Supabase keys not configured** (`.env.local` empty)
+**Updated:** 2026-09-20 (post-fix retest)
+
+**Environment:** Cursor Cloud Agent VM — **Supabase publishable key still missing** (URL prepared for `kvhthuektwwffsobiuww`)
 
 ---
 
-## Scorecard
+## Scorecard (retest)
 
 | Area | Result | Notes |
 |------|--------|-------|
-| ACCOUNT_CREATION | **BLOCKED** | Auth UI present; live Supabase register not runnable in this VM |
-| LOGIN | **BLOCKED** | Same — gate + Continue on this device works |
-| PROFILE_SAVING | **PASS** | Club + Beginner/Intermediate persist in `forma-profile-v1` across refresh |
-| BEGINNER_PROGRAM | **PASS** | Lower / Upper / Full Body generated for week 1–6 |
-| INTERMEDIATE_PROGRAM | **PASS** | Intermediate programme builds; history retains `crackerLevel` |
-| WORKOUT_SAVING | **PASS** | History + session draft localStorage; completion tagged with level |
-| WOD_TRACKING | **FAIL** | WODs use generic sets/reps/RPE — not AMRAP rounds+reps / FOR TIME / Death By |
-| FITNESS_TESTING | **PASS** | INITIAL/FINAL cards, change maths, persist + reload (see artifacts) |
-| INBODY | **PASS** | Start/Final + numerical change only |
-| MEASUREMENTS | **PASS** | Chest/Waist/Hips Start/Final + change |
-| NOURISH_LINK | **PASS** | External `christmas-cracker-2026.netlify.app` only — no nutrition goals |
-| CONNECT_LINK | **PASS** | Facebook group URL present |
-| MOBILE_FLOW | **PASS** | 390×844 nav + Move sub-tabs usable |
-| DATA_PERSISTENCE | **PASS** | Profile, workouts, history, check-ins survive reload |
-| USER_DATA_ISOLATION | **PASS*** | *After fix:* clear on sign-out; no cross-account history merge |
-| PRODUCTION_BUILD | **PASS** | `pnpm build` succeeded |
-
-\*Isolation was **CRITICAL FAIL** before this PR’s fixes.
+| ACCOUNT_CREATION / LOGIN | **BLOCKED** | Needs `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or ANON) — do not mark PASS yet |
+| PROFILE_SAVING | **PASS** | |
+| BEGINNER / INTERMEDIATE | **PASS** | |
+| WORKOUT_SAVING | **PASS** | Strength + session draft |
+| WOD_TRACKING | **PASS** | Format-specific logger (AMRAP verified E2E; all kinds typed) |
+| FITNESS / INBODY / MEASUREMENTS | **PASS** | |
+| NOURISH / CONNECT | **PASS** | |
+| CHALLENGE_DATES | **PASS** | Full milestone list on Home via `lib/challengeDates.ts` |
+| MOVE_SCROLL | **PASS** | sticky clearance + scroll-margin |
+| BOTTOM_NAV_OVERLAP | **PASS** | `--cracker-tabbar-clearance` (96px measured) |
+| DATA_PERSISTENCE | **PASS** | WOD `wodResult` in `forma-session-v1` draft |
+| USER_DATA_ISOLATION | **PASS*** | Code path; live two-account needs Supabase |
+| PRODUCTION_BUILD | **PASS** | `pnpm build` OK |
+| MOBILE_FLOW | **PASS** | 375 / 390 |
 
 ---
 
-## Fixes applied in this PR
+## Fixes in this iteration
 
-1. **`lib/localMemberData.ts`** — `clearLocalMemberData()` wipes member localStorage on sign-out.
-2. **`FormaApp` cloud boot** — skips merging local history unless profile belongs to signed-in user; never seeds Hayley into cloud accounts; rebuilds Cracker workouts when `challengeMode === "cracker"`.
-3. **`lib/sync.ts`** — `crackerMoveCheckIns` stored in `user_state.programme` for cross-device sync when Auth is configured.
-4. **`AuthScreen`** — member-friendly errors; copy no longer claims meal sync.
-
----
-
-## Issues
-
-### CRITICAL
-
-| Issue | Screen | Repro | Cause | Fix | Retest |
-|-------|--------|-------|-------|-----|--------|
-| Live account create/login not verified | Auth | No Supabase env | Missing `NEXT_PUBLIC_SUPABASE_*` | Configure project env + retest two real accounts | **Blocked in VM** |
-
-### HIGH (pre-fix → fixed)
-
-| Issue | Screen | Repro | Cause | Fix | Retest |
-|-------|--------|-------|-------|-----|--------|
-| User A data visible to User B on same browser | Sign-out / Sign-in | Complete workout as A, sign out, sign in as B | Global localStorage keys + history merge | Clear on sign-out; refuse cross-user merge | Unit wipe + code path **PASS** |
-| Empty cloud login could seed Hayley demo | Cloud first login | New account, empty cloud | `seedHayley: !localProfile` | Always `seedHayley: false` on cloud empty path | Code review **PASS** |
-| Fitness/InBody not in cloud sync | MOVE check-ins | Sign in on device 2 | Check-ins local-only | Sync via `programme.crackerMoveCheckIns` | Needs Supabase env to fully retest |
-
-### HIGH (open)
-
-| Issue | Screen | Repro | Cause | Fix / recommendation | Retest |
-|-------|--------|-------|-------|----------------------|--------|
-| WOD logging not format-specific | Live session | Start workout → WOD exercise | Single `SetResult` {reps,weight,rpe} | Add WOD result shape: AMRAP rounds+reps, FOR TIME seconds, EMOM/Death By minute | Still **FAIL** |
-
-### MEDIUM
-
-| Issue | Screen | Detail |
-|-------|--------|--------|
-| Incomplete challenge dates in UI | Home / Profile | Shows 12 Oct–22 Nov 2026; missing registration close, party weekend (27–29 Nov), champion (5 Dec) |
-| Sticky Move sub-nav can obscure “YOUR RESULTS” | Fitness / InBody | Add scroll padding under sticky pills |
-| Bottom nav overlaps tappable cards when scrolling | InBody / long Move screens | Tab bar can intercept taps (e.g. WAIST card) — add bottom content padding |
-| Auth copy previously overclaimed meals | Auth | Fixed in this PR |
-| Jess weekly videos all Coming Soon | MOVE education | Expected until URLs provided |
-
-### LOW
-
-| Issue | Detail |
-|-------|--------|
-| Onboarding name defaults to “Friend” | No name step in Cracker onboarding |
-| Playwright sometimes showed stray “N” near tab bar | Likely tooling chrome; not found in Cracker components |
+1. **WOD logging** — `lib/wod.ts` + `components/WodLogger.tsx`; `ExerciseResult.wodResult` separate from `SetResult`
+2. **Session drafts** — WOD scores persist in existing `forma-session-v1` (live timer is in-memory only)
+3. **Auth staging readiness** — `supabaseConfigDiagnostics()`; AuthScreen lists missing env **names** only
+4. **Challenge dates** — `lib/challengeDates.ts` + Home milestones (registration close, party, champion)
+5. **MOVE sticky / bottom nav** — scroll-margin on results; `--cracker-tabbar-clearance` padding
 
 ---
 
-## Manual GUI pass (390px) — follow-up
+## WOD formats supported
 
-Completed after automated audit ([Manual Cracker workout QA](bc-91b78ccc-b2ca-5f33-b633-dab729231c3b)):
+| Kind | UI fields |
+|------|-----------|
+| AMRAP | Timer, rounds, extra reps, loads, save → `6 rounds + 14 reps` |
+| FOR TIME / Ladder | Timer, MM:SS, loads, save |
+| EMOM | Optional rounds, loads, mark completed |
+| Death By | Last completed minute, optional incomplete reps, loads |
+| Tabata | Optional score, loads, mark completed |
+| Every X min (interval) | Per-set MM:SS, loads |
 
-| Check | Result |
-|-------|--------|
-| MOVE sticky sub-tabs | **PASS** |
-| Start Lower Body + log set (12 kg / 8 / RPE 7) | **PASS** |
-| Fitness Testing INITIAL/FINAL + deltas | **PASS** |
-| InBody + Measurements cards + WAIST modal | **PASS** |
-| Nourish → `christmas-cracker-2026.netlify.app` | **PASS** |
-| Connect Facebook CTA | **PASS** |
-| Profile Beginner → Intermediate updates MOVE badge | **PASS** |
-| Format-specific WOD fields in session | **FAIL** (confirmed: KG/REPS/RPE only) |
-
-Artifacts: `qa_manual_workout_session_set_logged.webp`, `qa_manual_fitness_testing_initial_final.webp`, `qa_manual_inbody_measurements.webp`, `qa_manual_nourish_external_link.webp`, `qa_manual_connect_facebook.webp`, `qa_manual_profile_intermediate_updated.webp`
+**Timer limitation:** Start/Pause/Reset work in-session; refresh resets the live clock. Saved scores and loads survive via session draft.
 
 ---
 
-## Storage map
+## Staging Auth checklist (when keys present)
 
-| Data | Store |
-|------|--------|
-| Auth users | **DATABASE** Supabase Auth (when configured) |
-| Profile (name, club, experienceLevel) | **LOCAL_STORAGE** `forma-profile-v1` + **DATABASE** `profiles` |
-| Workouts / history / week | **LOCAL_STORAGE** `forma-workouts-v12` / `forma-history-v12` + **DATABASE** `user_state` |
-| Session draft | **LOCAL_STORAGE** `forma-session-v1` + cloud `session_draft` |
-| Fitness / InBody / Measurements | **LOCAL_STORAGE** `forma-cracker-move-checkins-v1` + **DATABASE** `user_state.programme.crackerMoveCheckIns` (after fix) |
-| Move checklist / sub-tab | **LOCAL_STORAGE** only |
+USER A: create → Beginner → partial workout + Fitness + InBody → logout  
+USER B: create → confirm empty → Intermediate → log → logout  
+USER A: login → Beginner + data restored  
 
-Anything important that was **in-memory only**: live workout timer state (expected — document limitation).
+Do **not** mark AUTH PASS until that run succeeds.
 
 ---
 
-## Challenge dates audit
+## Evidence
 
-| Milestone | Expected | In app |
-|-----------|----------|--------|
-| Registration close | 12 Oct 2026 | **Missing** as labelled milestone |
-| Pre-challenge scans | 5–12 Oct 2026 | **Yes** (InBody tab) |
-| Initial fitness | 10 Oct 2026 | **Yes** |
-| Starts | 12 Oct 2026 | **Yes** |
-| End fitness | 22 Nov 2026 | **Yes** |
-| Final scans | 22–26 Nov 2026 | **Yes** |
-| Party weekend | 27–29 Nov 2026 | **Missing** |
-| Champion announcement | 5 Dec 2026 | **Missing** |
-
-No outdated 2025 dates found.
-
----
-
-## NOURISH / CONNECT
-
-- **NOURISH:** External gateway only → `https://christmas-cracker-2026.netlify.app/` — **PASS**
-- **CONNECT:** Facebook share URL configured — **PASS**; no fake event calendar
-
----
-
-## Recommended next steps (priority order)
-
-1. Configure Supabase in staging and retest **two real accounts** end-to-end (create, logout, login, isolation).
-2. Implement format-specific **WOD logging** (highest remaining product gap).
-3. Surface missing **challenge dates** on Home.
-4. Add scroll-padding under sticky Move sub-nav.
-
----
-
-## Evidence artifacts
-
-- `qa_auth_gate.png` — Continue on this device / setup gate  
-- `qa_home_after_onboarding.png` — post-onboarding Home  
-- `qa_move_training.png` / `qa_move_tab.png` — Move sub-tabs  
-- `qa_fitness_persisted.png` / `qa_fitness_editor.png` — Fitness Testing + editor  
-- `qa_inbody_persisted.png` — InBody + Measurements  
-- `qa_nourish.png` / `qa_connect.png` — external links  
-- `cracker_qa_report.json` — machine-readable scorecard  
-- Production build: `pnpm build` OK  
+- `qa_wod_logger.png` — AMRAP rounds / extra reps  
+- `qa_challenge_dates_home.png` — milestones  
+- `qa_move_scroll_fitness.png` — sticky clearance  
+- `qa_bottom_nav_inbody.png` — bottom padding  
+- Prior: `qa_manual_*` GUI pass artifacts  
