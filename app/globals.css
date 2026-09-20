@@ -980,14 +980,61 @@ textarea::placeholder {
 }
 
 .cracker-shell {
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  /* Tab bar (~72px) + bottom offset (12px) + safe area — keep cards tappable */
+  --cracker-tabbar-clearance: calc(84px + 12px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: var(--cracker-tabbar-clearance);
 }
 
 .cracker-screen {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding-bottom: 12px;
+  padding-bottom: 24px;
+}
+
+.cracker-milestones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 2px 8px;
+}
+
+.cracker-milestone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cracker-milestone-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(36, 63, 130, 0.08);
+}
+
+.cracker-milestone-list strong {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.cracker-milestone-list span {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 16px;
+  color: var(--text);
+}
+
+.cracker-milestone-list em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-2);
 }
 
 .cracker-topbar {
@@ -3548,6 +3595,24 @@ button.avatar { padding: 0; }
 }
 .move-subnav::-webkit-scrollbar { display: none; }
 
+/* Keep section headings / YOUR RESULTS clear of sticky sub-nav */
+.cracker-move-panel,
+.cracker-checkin-screen,
+.move-fitness-screen,
+.move-inbody-screen {
+  scroll-margin-top: 72px;
+}
+
+.cracker-move-with-subnav .cracker-screen {
+  padding-top: 4px;
+}
+
+.cracker-move-with-subnav .cracker-topbar,
+.cracker-move-with-subnav .move-results-card,
+.cracker-move-with-subnav h1 {
+  scroll-margin-top: 72px;
+}
+
 .move-subnav-btn {
   flex: 1 1 0;
   min-width: max-content;
@@ -3634,6 +3699,7 @@ button.avatar { padding: 0; }
   border-radius: 14px;
   background: #fff;
   border: 1px solid rgba(36, 63, 130, 0.12);
+  scroll-margin-top: 76px;
 }
 .move-results-summary ul {
   list-style: none;
@@ -3824,4 +3890,76 @@ button.avatar { padding: 0; }
     padding-bottom: 0;
     text-align: left;
   }
+}
+
+/* —— WOD logger (format-specific, not strength sets) —— */
+.wod-logger {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.wod-prescription {
+  white-space: pre-line;
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+}
+.wod-compare {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(36, 63, 130, 0.06);
+  font-size: 14px;
+}
+.wod-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.wod-timer strong {
+  display: block;
+  font-size: 36px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.wod-timer.running strong {
+  color: var(--cracker-blue);
+}
+.wod-timer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wod-timer-actions .secondary-btn,
+.wod-timer-actions .ghost-btn {
+  margin: 0;
+  min-width: 96px;
+}
+.wod-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.wod-loads,
+.wod-interval-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wod-score-preview {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 20px;
+}
+.wod-saved {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cracker-blue);
+}
+
+.auth-diag {
+  margin-top: 8px;
+  font-size: 12px;
 }

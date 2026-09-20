@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabaseConfigDiagnostics } from "@/lib/supabase";
 import { signIn, signUp } from "@/lib/sync";
 
 function friendlyAuthError(raw: string): string {
@@ -50,6 +50,7 @@ export function AuthScreen({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const configured = isSupabaseConfigured();
+  const diagnostics = supabaseConfigDiagnostics();
 
   const submit = async () => {
     setError(null);
@@ -100,10 +101,17 @@ export function AuthScreen({
             <article className="card">
               <span className="eyebrow">Setup needed</span>
               <p className="muted">
-                Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-                <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> to enable accounts. You can still
-                continue on this device for now.
+                Accounts need Supabase environment variables. Add{" "}
+                <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+                <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> (or{" "}
+                <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>). You can still continue on this device.
               </p>
+              {process.env.NODE_ENV !== "production" && diagnostics.missing.length > 0 ? (
+                <p className="muted auth-diag">
+                  Missing in this environment: {diagnostics.missing.join(", ")}. Values are never
+                  shown here.
+                </p>
+              ) : null}
             </article>
           )}
 

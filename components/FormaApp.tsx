@@ -142,6 +142,13 @@ import {
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
 import { CrackerShell } from "@/components/cracker/CrackerShell";
+import { WodLogger } from "@/components/WodLogger";
+import {
+  formatWodScore,
+  isWodExerciseName,
+  isWodResultComplete,
+  type WodResult,
+} from "@/lib/wod";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -1620,9 +1627,33 @@ export default function FormaApp() {
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
     const setsAddressed = result.sets.filter((set) => set.complete || set.skipped).length;
-    const progressPct = Math.round((setsAddressed / result.sets.length) * 100);
+    const isWod = isWodExerciseName(exercise.name);
+    const wodComplete = isWod && isWodResultComplete(result.wodResult);
+    const progressPct = isWod
+      ? wodComplete
+        ? 100
+        : 0
+      : Math.round((setsAddressed / Math.max(1, result.sets.length)) * 100);
     const isLastExercise = session.exerciseIndex >= sessionWorkout.exercises.length - 1;
-    const allSetsAddressed = setsAddressed === result.sets.length;
+    const allSetsAddressed = isWod ? Boolean(wodComplete) : setsAddressed === result.sets.length;
+    const previousWodScore = (() => {
+      if (!isWod) return undefined;
+      for (let i = history.length - 1; i >= 0; i--) {
+        const hit = history[i].exercises.find(
+          (ex) => isWodExerciseName(ex.name) && ex.name === exercise.name && ex.wodResult,
+        );
+        if (hit?.wodResult) return formatWodScore(hit.wodResult);
+      }
+      return undefined;
+    })();
+    const updateWodResult = (wodResult: WodResult) => {
+      setSession({
+        ...session,
+        results: session.results.map((item, index) =>
+          index === session.exerciseIndex ? { ...item, wodResult } : item,
+        ),
+      });
+    };
     const goNextExercise = () => {
       setSessionSwapOpen(false);
       setRestRemaining(0);
@@ -1688,6 +1719,7 @@ export default function FormaApp() {
               )}
             </div>
 
+            {!isWod ? (
             <article className="card coach-prev">
               <div className="coach-prev-head">
                 <span className="eyebrow">Last session</span>
@@ -1705,7 +1737,16 @@ export default function FormaApp() {
               )}
               <p className="coach-prev-rec"><strong>Today:</strong> {recommendation.title}. {recommendation.detail}</p>
             </article>
+            ) : null}
 
+            {isWod ? (
+              <WodLogger
+                exercise={exercise}
+                result={result}
+                previousScore={previousWodScore}
+                onChange={updateWodResult}
+              />
+            ) : (
             <article className="card session-card">
               <div className="session-meta">
                 <span>{exercise.sets} sets</span>
@@ -1812,7 +1853,9 @@ export default function FormaApp() {
 
               {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
             </article>
+            )}
 
+            {!isWod ? (
             <article className="card coach-guide">
               <span className="eyebrow">Coaching · {exercise.name}</span>
               <div className="coach-guide-meta">
@@ -1886,7 +1929,9 @@ export default function FormaApp() {
                 );
               })()}
             </article>
+            ) : null}
 
+            {!isWod ? (
             <article className={`card rest-card${restRemaining > 0 ? " active" : ""}`}>
               <div>
                 <span className="eyebrow">{restRemaining > 0 ? "Resting" : "Rest timer"}</span>
@@ -1909,6 +1954,7 @@ export default function FormaApp() {
                 </button>
               </div>
             </article>
+            ) : null}
           </div>
         </div>
       </div>
