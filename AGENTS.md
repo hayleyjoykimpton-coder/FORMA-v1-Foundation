@@ -25,7 +25,12 @@ Supabase Free often rate-limits confirmation emails. For local testing, turn off
 
 ## Cursor Cloud specific instructions
 
-- Dev: `pnpm install` then `pnpm dev` (port 3000). Lint/test via `pnpm lint` / `pnpm test` when present.
+FORMA is a browser-only Next.js 16 / React 19 app (TypeScript). No backend DB is required — state lives in `localStorage` (`components/FormaApp.tsx`). Optional Supabase Auth syncs when keys are present.
+
+- Package manager: pnpm (`packageManager: pnpm@10.12.1`); Node 22. Install: `pnpm install` (idempotent). Dev server: `pnpm dev` → `http://localhost:3000`.
+- No lint script / ESLint config in this repo. Typecheck: `npx tsc --noEmit`. `next build` / `next dev` may rewrite `next-env.d.ts` / `tsconfig.json` include paths — treat as noise; do not commit.
+- Secrets: Supabase (`NEXT_PUBLIC_SUPABASE_URL` + publishable/anon key) is **optional** — without it, use **Continue on this device only**. `OPENAI_API_KEY` is optional (AI meal / InBody); manual logging still works.
+- Hello-world: continue local-only → finish Cracker onboarding if shown → **Start workout** → log weight/reps/RPE → **Done**. A workout only lands in Progress/history after finishing all exercises.
 - Auth is **client-side** (`lib/supabase.ts`, `lib/sync.ts`). `middleware.ts` is a pass-through — do **not** re-wire Supabase Edge session refresh without verifying Vercel preview; it previously caused `MIDDLEWARE_INVOCATION_FAILED` (500) on `/`.
 - For cloud auth on Vercel preview/prod, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or anon key) in the Vercel project env, then redeploy. Without keys the site still loads in local-only mode.
 - Wellness foundations: daily gratitude on Today (`lib/wellness.ts`); guided breathwork on Recovery (`components/Breathwork.tsx`). Recovery readiness % comes from recent session readiness **and** standalone check-ins — not a hardcoded score.
