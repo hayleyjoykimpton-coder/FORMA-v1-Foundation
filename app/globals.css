@@ -3599,7 +3599,8 @@ button.avatar { padding: 0; }
 .cracker-move-panel,
 .cracker-checkin-screen,
 .move-fitness-screen,
-.move-inbody-screen {
+.move-inbody-screen,
+.move-photos-screen {
   scroll-margin-top: 72px;
 }
 
@@ -3718,12 +3719,62 @@ button.avatar { padding: 0; }
 
 .move-fitness-screen,
 .move-inbody-screen,
-.move-recap-screen {
+.move-recap-screen,
+.move-photos-screen {
   scroll-margin-top: 72px;
 }
 
 .cracker-move-panel .cracker-topbar {
   padding-top: 4px;
+}
+
+.move-photos-add,
+.move-photos-compare,
+.move-photos-week {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.move-photos-week-heading {
+  padding: 0 4px;
+}
+
+.move-photos-week-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.move-photos-compare-grid .compare-cell {
+  position: relative;
+}
+
+.move-photos-empty-slot {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px dashed rgba(36, 63, 130, 0.22);
+  background: rgba(36, 63, 130, 0.04);
+  color: var(--cracker-navy);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.compare-placeholder.move-photos-empty-slot {
+  border-radius: 16px;
+  gap: 10px;
+  padding: 16px;
+}
+
+.move-photos-add .photo-upload-cta {
+  margin-top: 8px;
 }
 
 .move-checkin-periods {

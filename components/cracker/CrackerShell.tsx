@@ -8,6 +8,7 @@ import { CrackerNourish } from "@/components/cracker/CrackerNourish";
 import { CrackerTabBar } from "@/components/cracker/CrackerTabBar";
 import type { CrackerTab } from "@/components/cracker/types";
 import { loadCrackerTab, saveCrackerTab } from "@/lib/crackerNav";
+import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
 
@@ -23,6 +24,9 @@ type Props = {
   profilePhoto?: string;
   onOpenProfile: () => void;
   onStartWorkout: (workout: Workout) => void;
+  photos: ProgressPhoto[];
+  onAddPhoto: (photo: ProgressPhoto) => void;
+  onDeletePhoto: (id: string) => void;
 };
 
 export function CrackerShell({
@@ -37,6 +41,9 @@ export function CrackerShell({
   profilePhoto,
   onOpenProfile,
   onStartWorkout,
+  photos,
+  onAddPhoto,
+  onDeletePhoto,
 }: Props) {
   const [tab, setTab] = useState<CrackerTab>("home");
 
@@ -73,6 +80,9 @@ export function CrackerShell({
           onOpenProfile={onOpenProfile}
           profileInitial={profileInitial}
           profilePhoto={profilePhoto}
+          photos={photos}
+          onAddPhoto={onAddPhoto}
+          onDeletePhoto={onDeletePhoto}
         />
       ) : null}
 

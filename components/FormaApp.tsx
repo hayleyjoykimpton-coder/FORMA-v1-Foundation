@@ -2126,6 +2126,9 @@ export default function FormaApp() {
           profilePhoto={profile.profilePhoto}
           onOpenProfile={() => setProfileOpen(true)}
           onStartWorkout={startWorkout}
+          photos={progressPhotos}
+          onAddPhoto={handleAddPhoto}
+          onDeletePhoto={handleDeletePhoto}
         />
       </div>
     );

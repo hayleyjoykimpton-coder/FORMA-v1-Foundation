@@ -19,6 +19,7 @@ import {
 import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
 import { MoveFitnessTesting } from "@/components/cracker/MoveFitnessTesting";
 import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasurements";
+import { MoveProgressPhotos } from "@/components/cracker/MoveProgressPhotos";
 import { MoveWorkoutRecap } from "@/components/cracker/MoveWorkoutRecap";
 import {
   loadMoveSubTab,
@@ -26,6 +27,7 @@ import {
   type MoveSubTab,
 } from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
+import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
 
@@ -36,6 +38,7 @@ const MOVE_SUBTABS: { key: MoveSubTab; label: string }[] = [
   { key: "recap", label: "RECAP" },
   { key: "fitness", label: "FITNESS TESTING" },
   { key: "inbody", label: "INBODY + MEASUREMENTS" },
+  { key: "photos", label: "PHOTOS" },
 ];
 
 type Props = {
@@ -47,6 +50,9 @@ type Props = {
   onOpenProfile: () => void;
   profileInitial: string;
   profilePhoto?: string;
+  photos: ProgressPhoto[];
+  onAddPhoto: (photo: ProgressPhoto) => void;
+  onDeletePhoto: (id: string) => void;
 };
 
 function shortSummary(workout: Workout): string {
@@ -109,6 +115,9 @@ export function CrackerMove({
   onOpenProfile,
   profileInitial,
   profilePhoto,
+  photos,
+  onAddPhoto,
+  onDeletePhoto,
 }: Props) {
   const [subTab, setSubTab] = useState<MoveSubTab>("training");
   const [viewWeek, setViewWeek] = useState(currentWeek);
@@ -193,6 +202,23 @@ export function CrackerMove({
       <div className="cracker-move-with-subnav">
         <MoveSubNav active={subTab} onChange={selectSubTab} />
         <MoveInBodyMeasurements
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
+  if (subTab === "photos") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveProgressPhotos
+          currentWeek={currentWeek}
+          photos={photos}
+          onAddPhoto={onAddPhoto}
+          onDeletePhoto={onDeletePhoto}
           profileInitial={profileInitial}
           profilePhoto={profilePhoto}
           onOpenProfile={onOpenProfile}
