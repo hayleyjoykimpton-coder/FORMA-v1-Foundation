@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Life & Soul · Christmas Cracker 2026",
     start_url: "/",
     display: "standalone",
-    background_color: "#000000",
-    theme_color: "#c41218",
+    background_color: "#c40021",
+    theme_color: "#c40021",
     icons: [
       {
         src: "/brand/cracker-app-icon-192.png",

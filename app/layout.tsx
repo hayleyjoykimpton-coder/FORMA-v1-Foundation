@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   other: {
-    "theme-color": "#c41218",
+    "theme-color": "#c40021",
     "apple-mobile-web-app-title": "CC",
   },
 };
