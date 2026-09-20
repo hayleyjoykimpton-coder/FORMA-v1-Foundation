@@ -75,6 +75,46 @@ export function ProfileScreen({
     }
   };
 
+  const confirmResetHistory = () => {
+    if (typeof window === "undefined") return false;
+    return window.confirm(
+      "Clear all completed workouts? This week’s session count will go back to 0. Fitness Testing, InBody, and meals stay.",
+    );
+  };
+
+  const programmeTools = (
+    <>
+      {onRebuildProgramme ? (
+        <button
+          type="button"
+          className="secondary-btn"
+          style={{ marginTop: 12 }}
+          onClick={onRebuildProgramme}
+        >
+          Rebuild this week&apos;s programme
+        </button>
+      ) : null}
+      {onResetWorkoutHistory ? (
+        <>
+          <button
+            type="button"
+            className="secondary-btn"
+            style={{ marginTop: 12 }}
+            onClick={() => {
+              if (!confirmResetHistory()) return;
+              void onResetWorkoutHistory();
+            }}
+          >
+            Reset workout history
+          </button>
+          <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+            Use this if this week&apos;s session count looks wrong (for example 9/3 when you haven&apos;t trained).
+          </p>
+        </>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="app">
       <div className="shell">
@@ -120,7 +160,9 @@ export function ProfileScreen({
             />
           </div>
 
-          <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
+          {challengeMode !== "cracker" ? (
+            <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
+          ) : null}
 
           {challengeMode === "cracker" ? (
             <article className="card profile-section">
@@ -136,6 +178,7 @@ export function ProfileScreen({
                 }
                 onSelect={(v) => set("experienceLevel", v)}
               />
+              {programmeTools}
               <p className="auth-info">Christmas Cracker season · 12 Oct – 22 Nov 2026</p>
             </article>
           ) : onChallengeModeChange ? (
@@ -192,6 +235,8 @@ export function ProfileScreen({
             />
           </article>
 
+          {challengeMode !== "cracker" ? (
+            <>
           <article className="card profile-section">
             <span className="eyebrow">Goal</span>
             <ChoiceRow
@@ -203,60 +248,22 @@ export function ProfileScreen({
 
           <article className="card profile-section">
             <span className="eyebrow">Training</span>
-            {challengeMode !== "cracker" ? (
-              <>
-                <label className="mini-label">Experience</label>
-                <ChoiceRow
-                  options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({
-                    value: v,
-                    label: EXPERIENCE_LABELS[v],
-                  }))}
-                  selected={draft.experienceLevel}
-                  onSelect={(v) => set("experienceLevel", v)}
-                />
-              </>
-            ) : null}
+            <label className="mini-label">Experience</label>
+            <ChoiceRow
+              options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({
+                value: v,
+                label: EXPERIENCE_LABELS[v],
+              }))}
+              selected={draft.experienceLevel}
+              onSelect={(v) => set("experienceLevel", v)}
+            />
             <label className="mini-label">Days per week</label>
             <ChoiceRow
               options={([3, 4, 5] as TrainingDays[]).map((v) => ({ value: v, label: `${v} days` }))}
               selected={draft.trainingDays}
               onSelect={(v) => set("trainingDays", v)}
             />
-            {onRebuildProgramme ? (
-              <button
-                type="button"
-                className="secondary-btn"
-                style={{ marginTop: 12 }}
-                onClick={onRebuildProgramme}
-              >
-                Rebuild this week&apos;s programme
-              </button>
-            ) : null}
-            {onResetWorkoutHistory ? (
-              <button
-                type="button"
-                className="secondary-btn"
-                style={{ marginTop: 12 }}
-                onClick={() => {
-                  if (
-                    typeof window !== "undefined" &&
-                    !window.confirm(
-                      "Clear all completed workouts? This week’s session count will go back to 0. Fitness Testing, InBody, and meals stay.",
-                    )
-                  ) {
-                    return;
-                  }
-                  void onResetWorkoutHistory();
-                }}
-              >
-                Reset workout history
-              </button>
-            ) : null}
-            {onResetWorkoutHistory ? (
-              <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
-                Use this if this week&apos;s session count looks wrong (for example 9/3 when you haven&apos;t trained).
-              </p>
-            ) : null}
+            {programmeTools}
             <label className="mini-label">Equipment</label>
             <ChoiceRow
               options={(Object.keys(EQUIPMENT_LABELS) as EquipmentAccess[]).map((v) => ({ value: v, label: EQUIPMENT_LABELS[v] }))}
@@ -303,23 +310,15 @@ export function ProfileScreen({
               selected={draft.preferredTrainingStyle}
               onSelect={(v) => set("preferredTrainingStyle", v)}
             />
-            {challengeMode === "cracker" ? (
-              <p className="muted" style={{ fontSize: 13, marginTop: 8, marginBottom: 4 }}>
-                Nutrition goals are managed on the CRACKER Nutrition platform (NOURISH tab) — not in FORMA.
-              </p>
-            ) : (
-              <>
-                <label className="mini-label">Nutrition goal</label>
-                <ChoiceRow
-                  options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({
-                    value: v,
-                    label: NUTRITION_LABELS[v],
-                  }))}
-                  selected={draft.nutritionGoal}
-                  onSelect={(v) => set("nutritionGoal", v)}
-                />
-              </>
-            )}
+            <label className="mini-label">Nutrition goal</label>
+            <ChoiceRow
+              options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({
+                value: v,
+                label: NUTRITION_LABELS[v],
+              }))}
+              selected={draft.nutritionGoal}
+              onSelect={(v) => set("nutritionGoal", v)}
+            />
             <div className="profile-fields">
               <label className="field">
                 <span>Sleep (hrs)</span>
@@ -339,6 +338,8 @@ export function ProfileScreen({
               <textarea value={draft.limitations} onChange={(event) => set("limitations", event.target.value)} placeholder="Movements to avoid, time constraints…" />
             </label>
           </article>
+            </>
+          ) : null}
 
           <button className="cta-btn" onClick={() => onSave(draft)}>Save profile</button>
         </div>
