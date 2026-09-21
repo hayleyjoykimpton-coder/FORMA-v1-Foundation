@@ -1573,12 +1573,17 @@ textarea::placeholder {
   overflow: hidden;
 }
 
+.nourish-naomi-cover {
+  overflow: hidden;
+  background: #f7f7f7;
+}
+
 .nourish-naomi-cover img {
   display: block;
   width: 100%;
-  height: 180px;
+  height: 240px;
   object-fit: cover;
-  object-position: center 22%;
+  object-position: 38% 18%;
 }
 
 .nourish-program-body {
