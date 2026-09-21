@@ -9,7 +9,10 @@ export type MoveSubTab =
   | "recap"
   | "photos";
 
+export type ConnectSubTab = "community" | "events" | "included";
+
 export const MOVE_SUBTAB_KEY = "forma-cracker-move-subtab-v1";
+export const CONNECT_SUBTAB_KEY = "forma-cracker-connect-subtab-v1";
 export const CRACKER_TAB_KEY = "forma-cracker-tab-v1";
 export const RECAP_FOCUS_KEY = "forma-cracker-recap-focus-v1";
 
@@ -38,6 +41,26 @@ export function saveMoveSubTab(tab: MoveSubTab): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(MOVE_SUBTAB_KEY, tab);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function loadConnectSubTab(): ConnectSubTab {
+  if (typeof window === "undefined") return "community";
+  try {
+    const raw = window.localStorage.getItem(CONNECT_SUBTAB_KEY);
+    if (raw === "community" || raw === "events" || raw === "included") return raw;
+  } catch {
+    /* ignore */
+  }
+  return "community";
+}
+
+export function saveConnectSubTab(tab: ConnectSubTab): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CONNECT_SUBTAB_KEY, tab);
   } catch {
     /* ignore */
   }

@@ -2041,6 +2041,147 @@ textarea::placeholder {
   background-position: 38% 42%;
 }
 
+.connect-subnav {
+  margin: 0 -18px;
+}
+
+.connect-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.connect-live-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--cracker-navy);
+}
+
+.connect-live-list li {
+  margin: 4px 0;
+}
+
+.connect-spirit-tags,
+.connect-format-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.connect-spirit-tags span,
+.connect-format-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(36, 63, 130, 0.08);
+  color: var(--cracker-navy);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.connect-week-stack,
+.connect-included-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.connect-week-card h2 {
+  font-size: 18px;
+}
+
+.connect-more-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.connect-more-grid h2 {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.connect-party-date {
+  font-size: 18px;
+}
+
+.connect-live-note {
+  margin-top: 4px;
+}
+
+.connect-include-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.connect-include-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+}
+
+.connect-include-toggle strong {
+  display: block;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--cracker-navy);
+}
+
+.connect-include-toggle small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.connect-include-chevron {
+  flex: 0 0 auto;
+  font-size: 22px;
+  color: var(--cracker-navy);
+}
+
+.connect-include-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.connect-include-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  color: var(--cracker-navy);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.connect-include-flag {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--cracker-blue);
+}
+
+@media (max-width: 420px) {
+  .connect-more-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cracker-gateway {
   display: flex;
   flex-direction: column;
