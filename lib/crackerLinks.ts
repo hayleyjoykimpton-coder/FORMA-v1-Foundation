@@ -33,6 +33,9 @@ export const CRACKER_EXTERNAL_LINKS = {
     week5: "",
     week6: "",
   },
+  naomiVideos: {
+    intro: "https://youtube.com/shorts/UjnC8Fp6Mxs?feature=share",
+  },
   /** Naomi workshop / education links — render Nourish education only when a URL is set. */
   nutritionEducation: [] as { title: string; url: string }[],
 } as const;
@@ -58,6 +61,10 @@ export function jessVideoUrl(week: number): string | null {
   const w = Math.min(6, Math.max(1, Math.floor(week) || 1));
   const key = `week${w}` as keyof typeof CRACKER_EXTERNAL_LINKS.jessVideos;
   return configuredUrl(CRACKER_EXTERNAL_LINKS.jessVideos[key]);
+}
+
+export function naomiIntroVideoUrl(): string | null {
+  return configuredUrl(CRACKER_EXTERNAL_LINKS.naomiVideos.intro);
 }
 
 export function personalisedNutritionUrl(): string | null {

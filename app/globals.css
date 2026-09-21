@@ -1500,6 +1500,24 @@ textarea::placeholder {
   border: 0;
 }
 
+.in-app-video.is-short {
+  aspect-ratio: 9 / 16;
+  max-width: 220px;
+  margin-inline: auto;
+}
+
+.nourish-naomi-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.nourish-naomi-intro .in-app-video {
+  width: 100%;
+}
+
 .cracker-intro-card {
   display: flex;
   flex-direction: column;

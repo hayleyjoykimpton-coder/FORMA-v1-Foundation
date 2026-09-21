@@ -10,6 +10,7 @@ export function InAppVideo({
   title: string;
 }) {
   const embed = toEmbedUrl(url);
+  const isShort = /\/shorts\//i.test(url);
   if (!embed) {
     return (
       <a className="secondary-btn" href={url} target="_blank" rel="noopener noreferrer">
@@ -18,7 +19,7 @@ export function InAppVideo({
     );
   }
   return (
-    <div className="in-app-video">
+    <div className={`in-app-video${isShort ? " is-short" : ""}`}>
       <iframe
         src={embed}
         title={title}

@@ -1,5 +1,6 @@
 "use client";
 
+import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { ExternalLinkIcon } from "@/components/cracker/icons";
 import {
   CRACKER_EXTERNAL_LINKS,
@@ -7,6 +8,7 @@ import {
   configuredUrl,
   facebookCommunityUrl,
   isWellnessClub,
+  naomiIntroVideoUrl,
   nutritionEducationLinks,
   nutritionSupportMailto,
   personalisedNutritionUrl,
@@ -35,6 +37,7 @@ export function CrackerNourish({
   const education = nutritionEducationLinks();
   const supportMail = nutritionSupportMailto();
   const facebook = facebookCommunityUrl();
+  const naomiIntro = naomiIntroVideoUrl();
 
   return (
     <div className="screen cracker-screen cracker-nourish">
@@ -72,6 +75,13 @@ export function CrackerNourish({
           <p className="muted">
             Your base nutrition plan, recipes and weekly nutrition education with Naomi Gillespie.
           </p>
+          {naomiIntro ? (
+            <div className="nourish-naomi-intro">
+              <p className="eyebrow">{NOURISH_COPY.introEyebrow}</p>
+              <p className="muted">{NOURISH_COPY.introTitle}</p>
+              <InAppVideo url={naomiIntro} title="Naomi intro to CRACKER nutrition" />
+            </div>
+          ) : null}
           <ExternalCta href={nutritionUrl} label="OPEN NUTRITION PROGRAM" />
         </div>
       </article>

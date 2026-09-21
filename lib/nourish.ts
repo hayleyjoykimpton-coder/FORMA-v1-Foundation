@@ -28,4 +28,6 @@ export const NOURISH_COPY = {
     "Email Origin Wellness or message the CRACKER page. Naomi also hosts Thursday Question Bomb — live Q&A every Thursday.",
   supportEmailCta: "EMAIL ORIGIN WELLNESS",
   supportMessageCta: "MESSAGE CRACKER PAGE",
+  introEyebrow: "WATCH NAOMI",
+  introTitle: "Intro to CRACKER nutrition",
 } as const;
