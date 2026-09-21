@@ -17,6 +17,8 @@ export const NOURISH_COPY = {
   personalisedPrice: "$25",
   wellnessPrice: "$10",
   pricePeriod: "per week",
+  wellnessHowTo:
+    "On the signup page: select your club, choose weekly payments, then add Wellness $10 per week.",
   supportEyebrow: "NUTRITION SUPPORT",
   supportTitle: "ASK NAOMI",
   supportBody:

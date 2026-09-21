@@ -14,7 +14,11 @@ export const CRACKER_EXTERNAL_LINKS = {
   facebookCommunity: CRACKER_FACEBOOK_URL,
   /** Existing Jess / JMK Training link-in-bio. Leave "" to hide Follow / Contact Jess. */
   jessInstagram: "https://linktr.ee/JMKTrainingClub",
+  /** Happy Healthy Nutrition / Jess Lowe — https://lifeandsoul.com.au/nutrition/ */
   personalisedNutrition: "https://lifeandsoul.com.au/nutrition/",
+  /** Shared Christmas Cracker signup — select club, weekly payments, Wellness $10 add-on. */
+  wellnessSignup: "https://lifeandsoul.com.au/christmascracker/",
+  /** Optional per-club GymMaster links. Empty = use wellnessSignup. */
   wellness: {
     fremantle: "",
     broome: "",
@@ -74,7 +78,10 @@ export function isWellnessClub(club: string): club is WellnessClub {
 
 export function wellnessUpgradeUrl(club: string): string | null {
   if (!isWellnessClub(club)) return null;
-  return configuredUrl(CRACKER_EXTERNAL_LINKS.wellness[club]);
+  return (
+    configuredUrl(CRACKER_EXTERNAL_LINKS.wellness[club]) ??
+    configuredUrl(CRACKER_EXTERNAL_LINKS.wellnessSignup)
+  );
 }
 
 export function nutritionEducationLinks(): { title: string; url: string }[] {

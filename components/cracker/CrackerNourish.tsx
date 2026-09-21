@@ -98,6 +98,7 @@ export function CrackerNourish({
             {NOURISH_COPY.wellnessPrice}{" "}
             <span className="nourish-price-period">{NOURISH_COPY.pricePeriod}</span>
           </p>
+          <p className="muted">{NOURISH_COPY.wellnessHowTo}</p>
           <p className="muted">
             Fremantle · Broome · Karratha
             <br />
