@@ -13,7 +13,7 @@ import {
   wellnessUpgradeUrl,
 } from "@/lib/crackerLinks";
 import { CLUB_LABELS, type LifeSoulClub } from "@/lib/user";
-import { NOURISH_COPY, NOURISH_HERO_IMAGE } from "@/lib/nourish";
+import { NOURISH_COPY, NOURISH_HERO_IMAGE, NOURISH_NAOMI_IMAGE } from "@/lib/nourish";
 
 type Props = {
   club: LifeSoulClub;
@@ -61,12 +61,19 @@ export function CrackerNourish({
         aria-label="Fresh whole foods"
       />
 
-      <article className="card nourish-hub-card">
-        <h2>YOUR 6-WEEK NUTRITION PROGRAM</h2>
-        <p className="muted">
-          Your base nutrition plan, recipes and weekly nutrition education with Naomi Gillespie.
-        </p>
-        <ExternalCta href={nutritionUrl} label="OPEN NUTRITION PROGRAM" />
+      <article className="card nourish-hub-card nourish-program-card">
+        <div className="nourish-naomi-cover">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={NOURISH_NAOMI_IMAGE} alt="Naomi Gillespie, CRACKER nutrition coach" />
+        </div>
+        <div className="nourish-program-body">
+          <p className="eyebrow">NAOMI GILLESPIE</p>
+          <h2>YOUR 6-WEEK NUTRITION PROGRAM</h2>
+          <p className="muted">
+            Your base nutrition plan, recipes and weekly nutrition education with Naomi Gillespie.
+          </p>
+          <ExternalCta href={nutritionUrl} label="OPEN NUTRITION PROGRAM" />
+        </div>
       </article>
 
       <article className="card nourish-hub-card">

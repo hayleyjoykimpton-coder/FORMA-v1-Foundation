@@ -1550,6 +1550,28 @@ textarea::placeholder {
   gap: 8px;
 }
 
+.nourish-program-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.nourish-naomi-cover img {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  object-position: center 22%;
+}
+
+.nourish-program-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+}
+
 .nourish-hub-card h2 {
   margin: 0;
   font-size: 22px;

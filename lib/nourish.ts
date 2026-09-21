@@ -7,6 +7,9 @@ export const NOURISH_PROGRAM_URL = CRACKER_EXTERNAL_LINKS.nutritionProgram;
 /** Real flat-lay whole-foods photo for the Cracker NOURISH gateway hero. */
 export const NOURISH_HERO_IMAGE = "/cracker/nourish/nourish-hero-flatlay.jpg";
 
+/** Naomi Gillespie — supplied portrait for the nutrition program card. */
+export const NOURISH_NAOMI_IMAGE = "/cracker/nourish/naomi-gillespie.jpg";
+
 export const NOURISH_COPY = {
   title: "NOURISH",
   supporting: "Fuel your six weeks.",
