@@ -14,7 +14,7 @@ export const CRACKER_EXTERNAL_LINKS = {
   facebookCommunity: CRACKER_FACEBOOK_URL,
   /** Existing Jess / JMK Training link-in-bio. Leave "" to hide Follow / Contact Jess. */
   jessInstagram: "https://linktr.ee/JMKTrainingClub",
-  personalisedNutrition: "",
+  personalisedNutrition: "https://lifeandsoul.com.au/nutrition/",
   wellness: {
     fremantle: "",
     broome: "",

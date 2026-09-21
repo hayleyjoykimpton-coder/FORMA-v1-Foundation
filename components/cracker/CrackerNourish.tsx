@@ -81,12 +81,12 @@ export function CrackerNourish({
       <article className="card nourish-hub-card">
         <p className="eyebrow">OPTIONAL UPGRADE</p>
         <h2>WANT MORE SUPPORT?</h2>
-        <p className="muted">Upgrade to personalised nutrition coaching with Jess Lowe.</p>
+        <p className="muted">Upgrade to Happy Healthy Nutrition with Jess Lowe.</p>
         <p className="nourish-price">
           {NOURISH_COPY.personalisedPrice}{" "}
           <span className="nourish-price-period">{NOURISH_COPY.pricePeriod}</span>
         </p>
-        <ExternalCta href={personalised} label="UPGRADE NUTRITION" />
+        <ExternalCta href={personalised} label="UPGRADE TO HAPPY HEALTHY NUTRITION" />
       </article>
 
       {showWellness ? (
