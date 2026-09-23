@@ -47,7 +47,19 @@
   --font-body: var(--font-sans), Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-* { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
 html, body {
   margin: 0;
@@ -59,9 +71,39 @@ html, body {
   text-rendering: optimizeLegibility;
 }
 
-button, input, textarea { font: inherit; color: inherit; }
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#__next,
+.app {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
 input, textarea { outline-color: rgba(63, 44, 36, 0.28); }
+/* 16px+ stops iOS from zooming the page on focus */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+h1, h2, h3, h4, p, span, button, a {
+  overflow-wrap: break-word;
+}
+
+img,
+video,
+svg,
+canvas {
+  max-width: 100%;
+}
 
 /* ---------- App shell ---------------------------------------------------- */
 
@@ -79,6 +121,8 @@ input, textarea { outline-color: rgba(63, 44, 36, 0.28); }
 .shell {
   position: relative;
   width: min(100%, 468px);
+  max-width: 100%;
+  min-width: 0;
   min-height: 100vh;
   padding: 0;
   background: var(--bg);
@@ -88,8 +132,19 @@ input, textarea { outline-color: rgba(63, 44, 36, 0.28); }
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 22px 18px 120px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 22px 16px calc(110px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   animation: fade-up 0.5s ease both;
+}
+
+.screen > *,
+.cracker-screen > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* ---------- Typography --------------------------------------------------- */
@@ -982,6 +1037,10 @@ textarea::placeholder {
 .cracker-shell {
   /* Tab bar (~72px) + bottom offset (12px) + safe area — keep cards tappable */
   --cracker-tabbar-clearance: calc(84px + 12px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   padding-bottom: var(--cracker-tabbar-clearance);
 }
 
@@ -2111,7 +2170,10 @@ textarea::placeholder {
 }
 
 .connect-week-card h2 {
-  font-size: 18px;
+  margin: 0 0 8px;
+  color: #07165a;
+  font-size: clamp(20px, 6vw, 28px);
+  line-height: 1.05;
 }
 
 .connect-more-grid {
@@ -2239,30 +2301,39 @@ textarea::placeholder {
   left: 50%;
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
-  width: min(100% - 24px, 436px);
+  width: calc(100% - 28px);
+  max-width: 436px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
-  padding: 8px 6px;
+  padding: 8px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(36, 63, 130, 0.1);
   backdrop-filter: blur(18px);
   box-shadow: 0 14px 36px rgba(26, 28, 34, 0.12);
-  z-index: 30;
+  z-index: 100;
 }
 
 .cracker-tabbar button {
+  min-width: 0;
+  min-height: 64px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  gap: 4px;
   padding: 8px 4px;
   border-radius: 16px;
   color: var(--text-2);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.cracker-tabbar button span {
+  white-space: nowrap;
+  font-size: clamp(11px, 3vw, 13px);
 }
 
 .cracker-tabbar button.active {
@@ -2274,6 +2345,33 @@ textarea::placeholder {
   .cracker-screen-title,
   .cracker-week-line { font-size: 28px; }
   .cracker-pillar-card { grid-template-rows: 120px auto; }
+}
+
+@media (max-width: 480px) {
+  .screen {
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+  }
+}
+
+@media (max-width: 360px) {
+  .screen {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .cracker-tabbar {
+    width: calc(100% - 20px);
+    padding: 6px;
+  }
+
+  .cracker-tabbar button {
+    min-height: 58px;
+  }
+
+  .cracker-tabbar button span {
+    font-size: 11px;
+  }
 }
 
 /* ---------- Top bar ------------------------------------------------------ */
@@ -2314,6 +2412,10 @@ textarea::placeholder {
 /* ---------- Cards -------------------------------------------------------- */
 
 .card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
@@ -2325,13 +2427,19 @@ textarea::placeholder {
 
 .cta-btn {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 52px;
   margin-top: 16px;
-  padding: 16px 20px;
+  padding: 12px 18px;
   border-radius: var(--r-btn);
   background: var(--cta);
   color: var(--on-cta);
   font-weight: 600;
   letter-spacing: 0.01em;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.2;
   box-shadow: 0 10px 24px rgba(36, 25, 19, 0.18);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
@@ -4212,10 +4320,14 @@ button.avatar { padding: 0; }
   position: sticky;
   top: 0;
   z-index: 8;
-  display: flex;
-  gap: 6px;
-  padding: 10px 18px 12px;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 12px;
   scrollbar-width: none;
   background: linear-gradient(180deg, var(--cracker-cream) 72%, transparent);
   border-bottom: 1px solid rgba(36, 63, 130, 0.08);
@@ -4244,7 +4356,7 @@ button.avatar { padding: 0; }
 }
 
 .move-subnav-btn {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: max-content;
   padding: 10px 12px;
   border-radius: 999px;
