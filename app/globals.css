@@ -100,7 +100,11 @@ h1, h2, h3, h4, p, span, button, a {
 }
 
 img,
-video,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
 svg,
 canvas {
   max-width: 100%;
@@ -110,8 +114,9 @@ canvas {
 
 .app {
   min-height: 100vh;
-  display: grid;
-  place-items: start center;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   background:
     radial-gradient(circle at 12% -8%, rgba(212, 184, 162, 0.14) 0%, transparent 42%),
     radial-gradient(circle at 100% 0%, rgba(95, 117, 138, 0.06) 0%, transparent 40%),
@@ -121,10 +126,11 @@ canvas {
 
 .shell {
   position: relative;
-  width: min(100%, 468px);
-  max-width: 100%;
+  width: 100%;
+  max-width: 468px;
   min-width: 0;
   min-height: 100vh;
+  flex: 0 1 468px;
   padding: 0;
   background: var(--bg);
 }
@@ -136,7 +142,7 @@ canvas {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 22px var(--screen-gutter) calc(110px + env(safe-area-inset-bottom, 0px));
+  padding: calc(22px + env(safe-area-inset-top, 0px)) var(--screen-gutter) calc(110px + env(safe-area-inset-bottom, 0px));
   padding-left: max(var(--screen-gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--screen-gutter), env(safe-area-inset-right, 0px));
   animation: fade-up 0.5s ease both;
@@ -188,6 +194,7 @@ textarea::placeholder {
   object-fit: contain;
   border-radius: 0;
   background: transparent;
+  flex-shrink: 0;
 }
 .brand-logo-wordmark {
   width: auto;
@@ -1404,10 +1411,14 @@ textarea::placeholder {
 }
 
 .home-feature-card img {
+  display: block;
   width: 100%;
+  height: auto;
+  min-height: 140px;
   aspect-ratio: 16 / 8;
   object-fit: cover;
   object-position: center;
+  flex-shrink: 0;
 }
 
 .home-feature-card img.cracker-pillar-media--move-hero {
@@ -1587,6 +1598,7 @@ textarea::placeholder {
   background: #f4f4f4;
   max-height: 160px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .cracker-learn-media img {
@@ -1715,6 +1727,7 @@ textarea::placeholder {
 .nourish-naomi-cover {
   overflow: hidden;
   background: #f7f7f7;
+  flex-shrink: 0;
 }
 
 .nourish-naomi-cover img {
@@ -1794,6 +1807,10 @@ textarea::placeholder {
 .move-learn-card {
   padding: 0;
   overflow: hidden;
+}
+
+.move-learn-cover {
+  flex-shrink: 0;
 }
 
 .move-learn-cover img {
@@ -1948,6 +1965,7 @@ textarea::placeholder {
   overflow: hidden;
   background: #1a1c22;
   min-height: 140px;
+  flex-shrink: 0;
 }
 
 .cracker-move-banner-image {
@@ -1992,6 +2010,7 @@ textarea::placeholder {
   position: relative;
   min-height: 120px;
   background: #eee;
+  flex-shrink: 0;
 }
 
 .cracker-workout-media--photo img {
@@ -2062,6 +2081,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   min-height: 180px;
+  flex-shrink: 0;
 }
 
 .cracker-jess-image {
@@ -2207,6 +2227,8 @@ textarea::placeholder {
   width: 100%;
   max-width: 100%;
   margin: 0;
+  top: env(safe-area-inset-top, 0px);
+  background: var(--cracker-cream);
 }
 
 .connect-panel {
@@ -3606,7 +3628,7 @@ input, textarea {
 /* ---------- Responsive --------------------------------------------------- */
 
 @media (min-width: 540px) {
-  .app { place-items: start center; padding: 0; }
+  .app { padding: 0; }
   .shell {
     border-left: 1px solid var(--line);
     border-right: 1px solid var(--line);
@@ -3631,7 +3653,7 @@ button.avatar { padding: 0; }
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 28px 20px 40px;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 40px;
   animation: fade-up 0.5s ease both;
 }
 .onboard-top { display: flex; align-items: center; gap: 14px; }
@@ -3681,7 +3703,7 @@ button.avatar { padding: 0; }
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 22px 18px 48px;
+  padding: calc(22px + env(safe-area-inset-top, 0px)) 18px 48px;
   animation: fade-up 0.5s ease both;
 }
 .profile-head { display: flex; align-items: center; justify-content: space-between; }
@@ -4392,7 +4414,7 @@ button.avatar { padding: 0; }
   background: linear-gradient(160deg, var(--wash-earth), var(--wash-blue));
 }
 .rest-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-.session-done-screen { gap: 16px; padding-top: 48px; }
+.session-done-screen { gap: 16px; padding-top: calc(48px + env(safe-area-inset-top, 0px)); }
 .session-done-screen h1 { font-size: 40px; }
 .session-done-card { display: flex; flex-direction: column; gap: 14px; }
 .session-done-lines { display: grid; gap: 10px; }
@@ -4488,13 +4510,19 @@ button.avatar { padding: 0; }
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 10px 16px 12px;
   scrollbar-width: none;
-  background: linear-gradient(180deg, var(--cracker-cream) 72%, transparent);
+  background: var(--cracker-cream);
   border-bottom: 1px solid rgba(36, 63, 130, 0.08);
 }
 .move-subnav::-webkit-scrollbar { display: none; }
+
+/* PWA / iPhone notch: keep TRAINING / LEARN / … below the status bar */
+.cracker-move-with-subnav > .move-subnav {
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
 
 /* Keep section headings / YOUR RESULTS clear of sticky sub-nav */
 .cracker-move-panel,
@@ -4504,7 +4532,7 @@ button.avatar { padding: 0; }
 .move-photos-screen,
 .move-learn-screen,
 .move-progress-screen {
-  scroll-margin-top: 72px;
+  scroll-margin-top: calc(88px + env(safe-area-inset-top, 0px));
 }
 
 .cracker-move-with-subnav .cracker-screen {
@@ -4514,12 +4542,13 @@ button.avatar { padding: 0; }
 .cracker-move-with-subnav .cracker-topbar,
 .cracker-move-with-subnav .move-results-card,
 .cracker-move-with-subnav h1 {
-  scroll-margin-top: 72px;
+  scroll-margin-top: calc(88px + env(safe-area-inset-top, 0px));
 }
 
 .move-subnav-btn {
   flex: 0 0 auto;
   min-width: max-content;
+  min-height: 44px;
   padding: 10px 12px;
   border-radius: 999px;
   border: 1px solid rgba(36, 63, 130, 0.18);
@@ -4925,7 +4954,8 @@ button.avatar { padding: 0; }
 @media (max-width: 420px) {
   .move-subnav-btn {
     font-size: 10px;
-    padding: 9px 10px;
+    min-height: 44px;
+    padding: 10px 10px;
   }
   .move-compare-grid {
     grid-template-columns: 1fr 1fr;
