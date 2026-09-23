@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
 import { ChallengeTimeline } from "@/components/cracker/ChallengeTimeline";
+import { HomeFeatureCard } from "@/components/cracker/HomeFeatureCard";
 import { CONNECT_HERO_IMAGE } from "@/lib/connect";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
 import {
@@ -171,20 +172,15 @@ export function CrackerHome({
 
       <div className="cracker-pillar-stack">
         {PILLARS.map((pillar) => (
-          <article key={pillar.key} className="cracker-pillar-card">
-            <div
-              className={`cracker-pillar-media${pillar.mediaClass ? ` ${pillar.mediaClass}` : ""}`}
-              style={{ backgroundImage: `url(${pillar.image})` }}
-              aria-hidden="true"
-            />
-            <div className="cracker-pillar-body">
-              <h2>{pillar.title}</h2>
-              <p>{pillar.line}</p>
-              <button type="button" className="cta-btn" onClick={() => onNavigate(pillar.key)}>
-                {pillar.cta}
-              </button>
-            </div>
-          </article>
+          <HomeFeatureCard
+            key={pillar.key}
+            image={pillar.image}
+            title={pillar.title}
+            description={pillar.line}
+            buttonText={pillar.cta}
+            imageClass={pillar.mediaClass}
+            onClick={() => onNavigate(pillar.key)}
+          />
         ))}
       </div>
     </div>
