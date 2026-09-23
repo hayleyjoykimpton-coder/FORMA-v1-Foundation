@@ -170,7 +170,7 @@ export function CrackerHome({
 
       <ChallengeTimeline />
 
-      <div className="cracker-pillar-stack">
+      <div className="home-features cracker-pillar-stack">
         {PILLARS.map((pillar) => (
           <HomeFeatureCard
             key={pillar.key}

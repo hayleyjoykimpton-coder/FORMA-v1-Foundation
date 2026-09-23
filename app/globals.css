@@ -1330,10 +1330,12 @@ textarea::placeholder {
   color: var(--text-2);
 }
 
-.cracker-pillar-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.cracker-pillar-stack,
+.home-features {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  width: 100%;
 }
 
 .cracker-pillar-card {
@@ -1420,17 +1422,21 @@ textarea::placeholder {
   padding: 20px;
 }
 
+.home-features h2,
 .home-feature-card h2 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: var(--cracker-blue);
+  margin: 0 0 8px;
+  font-size: clamp(22px, 6vw, 30px);
+  line-height: 1.1;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--cracker-navy);
 }
 
+.home-features p,
 .home-feature-card p {
-  margin: 0;
-  font-size: 16px;
+  margin: 0 0 18px;
+  font-size: clamp(17px, 4vw, 21px);
+  line-height: 1.4;
   color: var(--text);
 }
 
