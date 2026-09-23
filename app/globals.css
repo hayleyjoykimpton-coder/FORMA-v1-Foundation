@@ -2162,18 +2162,62 @@ textarea::placeholder {
 }
 
 .connect-week-stack,
-.connect-included-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.connect-included-stack,
+.events-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  width: 100%;
   margin-top: 6px;
 }
 
-.connect-week-card h2 {
-  margin: 0 0 8px;
+.content-container {
+  width: 100%;
+  max-width: 720px;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.event-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 24px 20px;
+  border-radius: 26px;
+  background: #fff;
+  border: 1px solid rgba(36, 63, 130, 0.1);
+  overflow: hidden;
+}
+
+.event-week {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #5d6370;
+}
+
+.event-title {
+  margin: 0 0 12px;
   color: #07165a;
-  font-size: clamp(20px, 6vw, 28px);
+  font-size: clamp(24px, 6vw, 32px);
   line-height: 1.05;
+}
+
+.event-description {
+  margin: 0;
+  color: #636873;
+  font-size: clamp(17px, 4.5vw, 21px);
+  line-height: 1.45;
+}
+
+.event-action {
+  margin-top: 22px;
+}
+
+.event-action .cta-btn,
+.event-action .secondary-btn {
+  margin-top: 0;
 }
 
 .connect-more-grid {
