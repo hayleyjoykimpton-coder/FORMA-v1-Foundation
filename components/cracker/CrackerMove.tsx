@@ -267,7 +267,7 @@ export function CrackerMove({
   return (
     <div className="cracker-move-with-subnav">
       <MoveSubNav active={subTab} onChange={selectSubTab} />
-      <div className="screen cracker-screen cracker-move training-page">
+      <div className="screen cracker-screen cracker-move training-page training-layout">
         <header className="cracker-topbar">
           <div>
             <p className="cracker-screen-kicker">MOVE</p>

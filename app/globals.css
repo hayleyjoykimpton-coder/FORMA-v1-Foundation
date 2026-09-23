@@ -4444,6 +4444,12 @@ button.avatar { padding: 0; }
   padding-bottom: 24px;
 }
 
+.training-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
 .cracker-move-with-subnav {
   display: flex;
   flex-direction: column;
