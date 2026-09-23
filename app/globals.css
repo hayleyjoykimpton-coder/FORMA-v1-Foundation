@@ -45,6 +45,7 @@
 
   --font-heading: var(--font-serif), Georgia, "Times New Roman", serif;
   --font-body: var(--font-sans), Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --screen-gutter: 16px;
 }
 
 *,
@@ -135,9 +136,9 @@ canvas {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 22px 16px calc(110px + env(safe-area-inset-bottom, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding: 22px var(--screen-gutter) calc(110px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--screen-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--screen-gutter), env(safe-area-inset-right, 0px));
   animation: fade-up 0.5s ease both;
 }
 
@@ -1028,6 +1029,7 @@ textarea::placeholder {
 /* ---------- Cracker v2 shell (HOME / MOVE / NOURISH / CONNECT) ------------ */
 
 .app.cracker-v2 {
+  overflow-x: clip;
   background:
     radial-gradient(circle at 10% -10%, rgba(36, 63, 130, 0.1) 0%, transparent 42%),
     radial-gradient(circle at 100% 0%, rgba(195, 168, 102, 0.12) 0%, transparent 38%),
@@ -1098,8 +1100,10 @@ textarea::placeholder {
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  margin-inline: -18px;
-  padding: 2px 18px 10px;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  padding: 2px 0 10px;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -1871,7 +1875,7 @@ textarea::placeholder {
 
 .move-progress-triple-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 4px;
 }
@@ -2200,7 +2204,9 @@ textarea::placeholder {
 }
 
 .connect-subnav {
-  margin: 0 -18px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 
 .connect-panel {
@@ -2276,8 +2282,9 @@ textarea::placeholder {
 .event-title {
   margin: 0 0 12px;
   color: #07165a;
-  font-size: clamp(24px, 6vw, 32px);
+  font-size: clamp(22px, 6vw, 32px);
   line-height: 1.05;
+  overflow-wrap: anywhere;
 }
 
 .event-description {
@@ -2468,16 +2475,25 @@ textarea::placeholder {
 }
 
 @media (max-width: 480px) {
-  .screen {
-    padding-left: max(14px, env(safe-area-inset-left, 0px));
-    padding-right: max(14px, env(safe-area-inset-right, 0px));
+  :root,
+  .app.challenge-cracker {
+    --screen-gutter: 14px;
   }
 }
 
 @media (max-width: 360px) {
-  .screen {
-    padding-left: max(12px, env(safe-area-inset-left, 0px));
-    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  :root,
+  .app.challenge-cracker {
+    --screen-gutter: 12px;
+  }
+
+  h1 {
+    font-size: 32px;
+  }
+
+  .cracker-screen-title,
+  .cracker-week-line {
+    font-size: 24px;
   }
 
   .cracker-tabbar {
@@ -4441,6 +4457,8 @@ button.avatar { padding: 0; }
 
 .screen.training-page {
   padding: 16px;
+  padding-left: max(var(--screen-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--screen-gutter), env(safe-area-inset-right, 0px));
   padding-bottom: 24px;
 }
 
