@@ -60,38 +60,76 @@ export const CONNECT_EVENT_FORMATS = [
   "FRIDAY NIGHT LIGHTS",
 ] as const;
 
-export const CONNECT_EVENT_WEEKS = [
+export type ConnectEventAction = {
+  label: string;
+  /** Empty = not ready. Never use a placeholder URL. */
+  url: string;
+  type: "external" | "internal" | "facebook";
+};
+
+export type ConnectEvent = {
+  id: number;
+  week: string;
+  title: string;
+  description: string;
+  action: ConnectEventAction | null;
+};
+
+export const CONNECT_EVENTS: ConnectEvent[] = [
   {
-    week: 1,
-    theme: "KICK-OFF / MANAGER'S CHOICE",
-    summary: "Fitness Check-In or a community training session.",
+    id: 1,
+    week: "WEEK 1",
+    title: "KICK-OFF / MANAGER'S CHOICE",
+    description: "Fitness Check-In or a community training session.",
+    action: null,
   },
   {
-    week: 2,
-    theme: "MANAGER'S CHOICE",
-    summary: "Local club activity / community session.",
+    id: 2,
+    week: "WEEK 2",
+    title: "MANAGER'S CHOICE",
+    description: "Local club activity / community session.",
+    action: null,
   },
   {
-    week: 3,
-    theme: "TYG PAYDAY / MAJOR COMMUNITY SESSION",
-    summary: "Community training + catch-up.",
+    id: 3,
+    week: "WEEK 3",
+    title: "TYG PAYDAY / MAJOR COMMUNITY SESSION",
+    description: "Community training + catch-up.",
+    action: {
+      label: "BOOK SESSION",
+      url: "",
+      type: "external",
+    },
   },
   {
-    week: 4,
-    theme: "WELLNESS FOCUS",
-    summary: "Possible wellness, recovery, breathwork or community activity.",
+    id: 4,
+    week: "WEEK 4",
+    title: "WELLNESS FOCUS",
+    description: "Wellness, recovery, breathwork or community activity.",
+    action: null,
   },
   {
-    week: 5,
-    theme: "AMAZING RACE",
-    summary: "Community challenge event.",
+    id: 5,
+    week: "WEEK 5",
+    title: "AMAZING RACE",
+    description: "Team-based challenge and community session.",
+    action: {
+      label: "VIEW EVENT DETAILS",
+      url: "",
+      type: "facebook",
+    },
   },
   {
-    week: 6,
-    theme: "FINAL FITNESS CHECK-IN",
-    summary: "End-of-challenge community session and catch-up.",
+    id: 6,
+    week: "WEEK 6",
+    title: "FINAL FITNESS CHECK-IN",
+    description: "Complete your final fitness testing and celebrate your six weeks.",
+    action: null,
   },
-] as const;
+];
+
+/** @deprecated use CONNECT_EVENTS */
+export const CONNECT_EVENT_WEEKS = CONNECT_EVENTS;
 
 export const CONNECT_MORE_WAYS = [
   {

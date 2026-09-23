@@ -1,12 +1,17 @@
 "use client";
 
 import { ConnectFacebookCta } from "@/components/cracker/ConnectFacebookCta";
+import { ExternalLinkIcon } from "@/components/cracker/icons";
 import {
   CONNECT_COPY,
   CONNECT_EVENT_FORMATS,
-  CONNECT_EVENT_WEEKS,
+  CONNECT_EVENTS,
   CONNECT_MORE_WAYS,
+  CRACKER_FACEBOOK_URL,
+  type ConnectEvent,
+  type ConnectEventAction,
 } from "@/lib/connect";
+import { configuredUrl, tygPaydayBookingUrl } from "@/lib/crackerLinks";
 
 export function ConnectEvents() {
   return (
@@ -28,13 +33,15 @@ export function ConnectEvents() {
 
       <section aria-label="Six-week event line-up">
         <p className="eyebrow">SIX-WEEK LINE-UP</p>
-        <div className="connect-week-stack">
-          {CONNECT_EVENT_WEEKS.map((item) => (
-            <article key={item.week} className="card nourish-hub-card connect-week-card">
-              <p className="eyebrow">WEEK {item.week}</p>
-              <h2>{item.theme}</h2>
-              <p className="muted">{item.summary}</p>
-              <ConnectFacebookCta label={CONNECT_COPY.eventDetailsCta} secondary />
+        <div className="connect-week-stack events-list">
+          {CONNECT_EVENTS.map((item) => (
+            <article key={item.id} className="card nourish-hub-card connect-week-card event-card">
+              <p className="eyebrow event-week">{item.week}</p>
+              <h2 className="event-title">{item.title}</h2>
+              <p className="muted event-description">{item.description}</p>
+              <div className="event-action">
+                <EventActionButton event={item} />
+              </div>
             </article>
           ))}
         </div>
@@ -64,4 +71,61 @@ export function ConnectEvents() {
       <ConnectFacebookCta label={CONNECT_COPY.viewEventDetailsCta} secondary />
     </div>
   );
+}
+
+function EventActionButton({ event }: { event: ConnectEvent }) {
+  const action = resolveEventAction(event);
+  if (!action) return null;
+
+  if (action.type === "facebook" || action.url === CRACKER_FACEBOOK_URL) {
+    return <ConnectFacebookCta label={action.label} secondary />;
+  }
+
+  if (!action.url) {
+    return (
+      <button type="button" className="secondary-btn" disabled>
+        COMING SOON
+      </button>
+    );
+  }
+
+  if (action.type === "internal") {
+    return (
+      <a className="secondary-btn cracker-external-cta" href={action.url}>
+        <span>{action.label}</span>
+      </a>
+    );
+  }
+
+  return (
+    <a
+      className="cta-btn cracker-external-cta"
+      href={action.url}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span>{action.label}</span>
+      <ExternalLinkIcon size={16} />
+    </a>
+  );
+}
+
+function resolveEventAction(event: ConnectEvent): ConnectEventAction | null {
+  if (!event.action) return null;
+  if (event.id === 3) {
+    return {
+      ...event.action,
+      url: tygPaydayBookingUrl() ?? "",
+    };
+  }
+  if (event.action.type === "facebook") {
+    return {
+      ...event.action,
+      url: configuredUrl(event.action.url) ?? CRACKER_FACEBOOK_URL,
+    };
+  }
+  return {
+    ...event.action,
+    url: configuredUrl(event.action.url) ?? "",
+  };
 }

@@ -38,6 +38,8 @@ export const CRACKER_EXTERNAL_LINKS = {
   },
   /** Naomi workshop / education links — render Nourish education only when a URL is set. */
   nutritionEducation: [] as { title: string; url: string }[],
+  /** Week 3 TYG Payday booking. Empty = Coming soon, never a placeholder. */
+  tygPaydayBooking: "",
 } as const;
 
 export type WellnessClub = keyof typeof CRACKER_EXTERNAL_LINKS.wellness;
@@ -93,6 +95,10 @@ export function wellnessUpgradeUrl(club: string): string | null {
 
 export function nutritionEducationLinks(): { title: string; url: string }[] {
   return CRACKER_EXTERNAL_LINKS.nutritionEducation.filter((item) => configuredUrl(item.url));
+}
+
+export function tygPaydayBookingUrl(): string | null {
+  return configuredUrl(CRACKER_EXTERNAL_LINKS.tygPaydayBooking);
 }
 
 /** Spec name — same object as CRACKER_EXTERNAL_LINKS. */
