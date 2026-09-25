@@ -1,15 +1,44 @@
 "use client";
 
+import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { ExternalLinkIcon } from "@/components/cracker/icons";
-import { NOURISH_COPY, NOURISH_HERO_IMAGE, NOURISH_PROGRAM_URL } from "@/lib/nourish";
+import {
+  CRACKER_EXTERNAL_LINKS,
+  CRACKER_NUTRITION_SUPPORT_EMAIL,
+  configuredUrl,
+  facebookCommunityUrl,
+  isWellnessClub,
+  naomiIntroVideoUrl,
+  nutritionEducationLinks,
+  nutritionSupportMailto,
+  personalisedNutritionUrl,
+  wellnessUpgradeUrl,
+} from "@/lib/crackerLinks";
+import { CLUB_LABELS, type LifeSoulClub } from "@/lib/user";
+import { NOURISH_COPY, NOURISH_HERO_IMAGE, NOURISH_NAOMI_IMAGE } from "@/lib/nourish";
 
 type Props = {
+  club: LifeSoulClub;
   onOpenProfile: () => void;
   profileInitial: string;
   profilePhoto?: string;
 };
 
-export function CrackerNourish({ onOpenProfile, profileInitial, profilePhoto }: Props) {
+export function CrackerNourish({
+  club,
+  onOpenProfile,
+  profileInitial,
+  profilePhoto,
+}: Props) {
+  const nutritionUrl = configuredUrl(CRACKER_EXTERNAL_LINKS.nutritionProgram);
+  const personalised = personalisedNutritionUrl();
+  const showWellness = isWellnessClub(club);
+  const wellnessUrl = showWellness ? wellnessUpgradeUrl(club) : null;
+  const education = nutritionEducationLinks();
+  const supportMail = nutritionSupportMailto();
+  const facebook = facebookCommunityUrl();
+  const naomiIntro = naomiIntroVideoUrl();
+
   return (
     <div className="screen cracker-screen cracker-nourish">
       <header className="cracker-topbar">
@@ -35,20 +64,106 @@ export function CrackerNourish({ onOpenProfile, profileInitial, profilePhoto }: 
         aria-label="Fresh whole foods"
       />
 
-      <section className="cracker-gateway">
-        <p className="eyebrow">YOUR NUTRITION PROGRAM</p>
-        <h2>{NOURISH_COPY.description}</h2>
-        <a
-          className="cta-btn cracker-external-cta"
-          href={NOURISH_PROGRAM_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span>{NOURISH_COPY.ctaPrimary}</span>
-          <ExternalLinkIcon size={18} />
-        </a>
-        <p className="muted cracker-gateway-note">{NOURISH_COPY.note}</p>
-      </section>
+      <article className="card nourish-hub-card nourish-program-card">
+        <div className="nourish-naomi-cover">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={NOURISH_NAOMI_IMAGE} alt="Naomi Gillespie, CRACKER nutrition coach" />
+        </div>
+        <div className="nourish-program-body">
+          <p className="eyebrow">NAOMI GILLESPIE</p>
+          <h2>YOUR 6-WEEK NUTRITION PROGRAM</h2>
+          <p className="muted">
+            Your base nutrition plan, recipes and weekly nutrition education with Naomi Gillespie.
+          </p>
+          {naomiIntro ? (
+            <div className="nourish-naomi-intro">
+              <p className="eyebrow">{NOURISH_COPY.introEyebrow}</p>
+              <p className="muted">{NOURISH_COPY.introTitle}</p>
+              <InAppVideo url={naomiIntro} title="Naomi intro to CRACKER nutrition" />
+            </div>
+          ) : null}
+          <ExternalCta href={nutritionUrl} label="OPEN NUTRITION PROGRAM" />
+        </div>
+      </article>
+
+      <article className="card nourish-hub-card">
+        <p className="eyebrow">{NOURISH_COPY.supportEyebrow}</p>
+        <h2>{NOURISH_COPY.supportTitle}</h2>
+        <p className="muted">{NOURISH_COPY.supportBody}</p>
+        <p className="profile-help-detail nourish-support-email">{CRACKER_NUTRITION_SUPPORT_EMAIL}</p>
+        <ExternalCta href={supportMail} label={NOURISH_COPY.supportEmailCta} />
+        <ExternalCta href={facebook} label={NOURISH_COPY.supportMessageCta} secondary />
+      </article>
+
+      <article className="card nourish-hub-card">
+        <p className="eyebrow">OPTIONAL UPGRADE</p>
+        <h2>WANT MORE SUPPORT?</h2>
+        <p className="muted">Upgrade to Happy Healthy Nutrition with Jess Lowe.</p>
+        <p className="nourish-price">
+          {NOURISH_COPY.personalisedPrice}{" "}
+          <span className="nourish-price-period">{NOURISH_COPY.pricePeriod}</span>
+        </p>
+        <ExternalCta href={personalised} label="UPGRADE TO HAPPY HEALTHY NUTRITION" />
+      </article>
+
+      {showWellness ? (
+        <article className="card nourish-hub-card">
+          <p className="eyebrow">OPTIONAL UPGRADE</p>
+          <h2>ADD SOUL WELLNESS</h2>
+          <p className="muted">Upgrade your CRACKER experience with Soul Wellness access.</p>
+          <p className="nourish-price">
+            {NOURISH_COPY.wellnessPrice}{" "}
+            <span className="nourish-price-period">{NOURISH_COPY.pricePeriod}</span>
+          </p>
+          <p className="muted">{NOURISH_COPY.wellnessHowTo}</p>
+          <p className="muted">
+            Fremantle · Broome · Karratha
+            <br />
+            Available at participating clubs only.
+            {club ? ` Your club: ${CLUB_LABELS[club]}.` : ""}
+          </p>
+          <ExternalCta href={wellnessUrl} label="ADD WELLNESS" />
+        </article>
+      ) : null}
+
+      {education.length ? (
+        <section className="nourish-hub-education" aria-label="Nutrition education">
+          <p className="eyebrow">NUTRITION EDUCATION</p>
+          {education.map((item) => (
+            <ExternalCta key={item.url} href={item.url} label={item.title} />
+          ))}
+        </section>
+      ) : null}
     </div>
+  );
+}
+
+function ExternalCta({
+  href,
+  label,
+  secondary = false,
+}: {
+  href: string | null;
+  label: string;
+  secondary?: boolean;
+}) {
+  if (!href) {
+    return (
+      <button type="button" className="secondary-btn" disabled>
+        COMING SOON
+      </button>
+    );
+  }
+  const isMail = href.startsWith("mailto:");
+  return (
+    <a
+      className={`${secondary ? "secondary-btn" : "cta-btn"} cracker-external-cta`}
+      href={href}
+      target={isMail ? undefined : "_blank"}
+      rel={isMail ? undefined : "noopener noreferrer"}
+    >
+      <span>{label}</span>
+      <ExternalLinkIcon size={16} />
+    </a>
   );
 }

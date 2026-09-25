@@ -25,6 +25,20 @@ import type {
   WorkoutLocation,
 } from "@/lib/user";
 import { fileToResizedDataUrl } from "@/lib/images";
+import {
+  CRACKER_EXTERNAL_LINKS,
+  CRACKER_NUTRITION_SUPPORT_EMAIL,
+  CRACKER_SUPPORT_EMAIL,
+  configuredUrl,
+  jessInstagramUrl,
+} from "@/lib/crackerLinks";
+import {
+  ExternalLinkIcon,
+  IconHelpCommunity,
+  IconHelpMail,
+  IconHelpNourish,
+  IconHelpTraining,
+} from "@/components/cracker/icons";
 
 function numberOrNull(value: string): number | null {
   if (value.trim() === "") return null;
@@ -38,8 +52,7 @@ export function ProfileScreen({
   onClose,
   onViewProgress,
   onRebuildProgramme,
-  reminderPrefs,
-  onReminderPrefsChange,
+  onResetWorkoutHistory,
   challengeMode = "forma",
   onChallengeModeChange,
   accountMode = "local",
@@ -52,16 +65,7 @@ export function ProfileScreen({
   onClose: () => void;
   onViewProgress: () => void;
   onRebuildProgramme?: () => void;
-  reminderPrefs?: {
-    enabled: boolean;
-    browserNotify: boolean;
-    preferredWindow?: "anytime" | "morning" | "afternoon" | "evening";
-  };
-  onReminderPrefsChange?: (prefs: {
-    enabled: boolean;
-    browserNotify: boolean;
-    preferredWindow?: "anytime" | "morning" | "afternoon" | "evening";
-  }) => void;
+  onResetWorkoutHistory?: () => void | Promise<void>;
   challengeMode?: "forma" | "cracker";
   onChallengeModeChange?: (mode: "forma" | "cracker") => void;
   accountMode?: "local" | "cloud" | "gate" | "booting";
@@ -84,6 +88,46 @@ export function ProfileScreen({
       // Keep current photo if the file cannot be read.
     }
   };
+
+  const confirmResetHistory = () => {
+    if (typeof window === "undefined") return false;
+    return window.confirm(
+      "Clear all completed workouts? This week’s session count will go back to 0. Fitness Testing, InBody, and meals stay.",
+    );
+  };
+
+  const programmeTools = (
+    <>
+      {onRebuildProgramme ? (
+        <button
+          type="button"
+          className="secondary-btn"
+          style={{ marginTop: 12 }}
+          onClick={onRebuildProgramme}
+        >
+          Rebuild this week&apos;s programme
+        </button>
+      ) : null}
+      {onResetWorkoutHistory ? (
+        <>
+          <button
+            type="button"
+            className="secondary-btn"
+            style={{ marginTop: 12 }}
+            onClick={() => {
+              if (!confirmResetHistory()) return;
+              void onResetWorkoutHistory();
+            }}
+          >
+            Reset workout history
+          </button>
+          <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+            Use this if this week&apos;s session count looks wrong (for example 9/3 when you haven&apos;t trained).
+          </p>
+        </>
+      ) : null}
+    </>
+  );
 
   return (
     <div className="app">
@@ -130,7 +174,9 @@ export function ProfileScreen({
             />
           </div>
 
-          <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
+          {challengeMode !== "cracker" ? (
+            <button className="secondary-btn" onClick={onViewProgress}>View Progress ›</button>
+          ) : null}
 
           {challengeMode === "cracker" ? (
             <article className="card profile-section">
@@ -146,6 +192,7 @@ export function ProfileScreen({
                 }
                 onSelect={(v) => set("experienceLevel", v)}
               />
+              {programmeTools}
               <p className="auth-info">Christmas Cracker season · 12 Oct – 22 Nov 2026</p>
             </article>
           ) : onChallengeModeChange ? (
@@ -202,6 +249,10 @@ export function ProfileScreen({
             />
           </article>
 
+          {challengeMode === "cracker" ? <NeedHelpList /> : null}
+
+          {challengeMode !== "cracker" ? (
+            <>
           <article className="card profile-section">
             <span className="eyebrow">Goal</span>
             <ChoiceRow
@@ -213,35 +264,22 @@ export function ProfileScreen({
 
           <article className="card profile-section">
             <span className="eyebrow">Training</span>
-            {challengeMode !== "cracker" ? (
-              <>
-                <label className="mini-label">Experience</label>
-                <ChoiceRow
-                  options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({
-                    value: v,
-                    label: EXPERIENCE_LABELS[v],
-                  }))}
-                  selected={draft.experienceLevel}
-                  onSelect={(v) => set("experienceLevel", v)}
-                />
-              </>
-            ) : null}
+            <label className="mini-label">Experience</label>
+            <ChoiceRow
+              options={(Object.keys(EXPERIENCE_LABELS) as ExperienceLevel[]).map((v) => ({
+                value: v,
+                label: EXPERIENCE_LABELS[v],
+              }))}
+              selected={draft.experienceLevel}
+              onSelect={(v) => set("experienceLevel", v)}
+            />
             <label className="mini-label">Days per week</label>
             <ChoiceRow
               options={([3, 4, 5] as TrainingDays[]).map((v) => ({ value: v, label: `${v} days` }))}
               selected={draft.trainingDays}
               onSelect={(v) => set("trainingDays", v)}
             />
-            {onRebuildProgramme ? (
-              <button
-                type="button"
-                className="secondary-btn"
-                style={{ marginTop: 12 }}
-                onClick={onRebuildProgramme}
-              >
-                Rebuild this week&apos;s programme
-              </button>
-            ) : null}
+            {programmeTools}
             <label className="mini-label">Equipment</label>
             <ChoiceRow
               options={(Object.keys(EQUIPMENT_LABELS) as EquipmentAccess[]).map((v) => ({ value: v, label: EQUIPMENT_LABELS[v] }))}
@@ -288,67 +326,15 @@ export function ProfileScreen({
               selected={draft.preferredTrainingStyle}
               onSelect={(v) => set("preferredTrainingStyle", v)}
             />
-            {challengeMode === "cracker" ? (
-              <p className="muted" style={{ fontSize: 13, marginTop: 8, marginBottom: 4 }}>
-                Nutrition goals are managed on the CRACKER Nutrition platform (NOURISH tab) — not in FORMA.
-              </p>
-            ) : (
-              <>
-                <label className="mini-label">Nutrition goal</label>
-                <ChoiceRow
-                  options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({
-                    value: v,
-                    label: NUTRITION_LABELS[v],
-                  }))}
-                  selected={draft.nutritionGoal}
-                  onSelect={(v) => set("nutritionGoal", v)}
-                />
-              </>
-            )}
-            {reminderPrefs && onReminderPrefsChange ? (
-              <>
-                <label className="mini-label">Reminders</label>
-                <ChoiceRow
-                  options={[
-                    { value: "on", label: "Training day reminders on" },
-                    { value: "off", label: "Reminders off" },
-                  ]}
-                  selected={reminderPrefs.enabled ? "on" : "off"}
-                  onSelect={(v) =>
-                    onReminderPrefsChange({ ...reminderPrefs, enabled: v === "on" })
-                  }
-                />
-                <label className="mini-label">Preferred time</label>
-                <ChoiceRow
-                  options={[
-                    { value: "anytime", label: "Any time" },
-                    { value: "morning", label: "Morning" },
-                    { value: "afternoon", label: "Afternoon" },
-                    { value: "evening", label: "Evening" },
-                  ]}
-                  selected={reminderPrefs.preferredWindow ?? "anytime"}
-                  onSelect={(v) =>
-                    onReminderPrefsChange({
-                      ...reminderPrefs,
-                      preferredWindow: v as "anytime" | "morning" | "afternoon" | "evening",
-                    })
-                  }
-                />
-                <ChoiceRow
-                  options={[
-                    { value: "on", label: "Browser notify while open" },
-                    { value: "off", label: "No browser notify" },
-                  ]}
-                  selected={reminderPrefs.browserNotify ? "on" : "off"}
-                  onSelect={(v) =>
-                    onReminderPrefsChange({ ...reminderPrefs, browserNotify: v === "on" })
-                  }
-                />
-                <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-                  Quiet in-app nudge on gym days after your preferred window. Browser notify only while FORMA is open.
-                </p>
-              </>
-            ) : null}
+            <label className="mini-label">Nutrition goal</label>
+            <ChoiceRow
+              options={(Object.keys(NUTRITION_LABELS) as NutritionGoal[]).map((v) => ({
+                value: v,
+                label: NUTRITION_LABELS[v],
+              }))}
+              selected={draft.nutritionGoal}
+              onSelect={(v) => set("nutritionGoal", v)}
+            />
             <div className="profile-fields">
               <label className="field">
                 <span>Sleep (hrs)</span>
@@ -368,11 +354,97 @@ export function ProfileScreen({
               <textarea value={draft.limitations} onChange={(event) => set("limitations", event.target.value)} placeholder="Movements to avoid, time constraints…" />
             </label>
           </article>
+            </>
+          ) : null}
 
           <button className="cta-btn" onClick={() => onSave(draft)}>Save profile</button>
         </div>
       </div>
     </div>
+  );
+}
+
+function NeedHelpList() {
+  const instagram = jessInstagramUrl();
+  const facebook = configuredUrl(CRACKER_EXTERNAL_LINKS.facebookCommunity);
+
+  const rows = [
+    {
+      key: "app",
+      icon: <IconHelpMail />,
+      title: "App support",
+      subtitle: "Having trouble with your account or the CRACKER app?",
+      href: `mailto:${CRACKER_SUPPORT_EMAIL}`,
+      action: "Email Hayley",
+      detail: CRACKER_SUPPORT_EMAIL,
+    },
+    {
+      key: "training",
+      icon: <IconHelpTraining />,
+      title: "Training",
+      subtitle: "Questions about the training program?",
+      href: instagram,
+      action: "Contact Jess",
+    },
+    {
+      key: "nutrition",
+      icon: <IconHelpNourish />,
+      title: "Nutrition",
+      subtitle: "Questions about your nutrition plan? Email Origin Wellness or message the CRACKER page.",
+      href: `mailto:${CRACKER_NUTRITION_SUPPORT_EMAIL}`,
+      action: "Email Origin Wellness",
+      detail: CRACKER_NUTRITION_SUPPORT_EMAIL,
+    },
+    {
+      key: "community",
+      icon: <IconHelpCommunity />,
+      title: "Community & events",
+      subtitle: "Message the CRACKER page for events, updates and Thursday Question Bomb.",
+      href: facebook,
+      action: "Open Facebook group",
+    },
+  ] as const;
+
+  return (
+    <article className="card profile-section">
+      <span className="eyebrow">Need help?</span>
+      <ul className="profile-help-list">
+        {rows.map((row) => (
+          <li key={row.key}>
+            {row.href ? (
+              <a
+                href={row.href}
+                target={row.href.startsWith("mailto:") ? undefined : "_blank"}
+                rel={row.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+                aria-label={row.action}
+              >
+                <span className="profile-help-icon" aria-hidden="true">
+                  {row.icon}
+                </span>
+                <span>
+                  <strong>{row.title}</strong>
+                  <small>{row.subtitle}</small>
+                  {"detail" in row && row.detail ? (
+                    <small className="profile-help-detail">{row.detail}</small>
+                  ) : null}
+                </span>
+                <ExternalLinkIcon size={14} />
+              </a>
+            ) : (
+              <div className="profile-help-soon">
+                <span className="profile-help-icon" aria-hidden="true">
+                  {row.icon}
+                </span>
+                <span>
+                  <strong>{row.title}</strong>
+                  <small>Coming soon</small>
+                </span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }
 

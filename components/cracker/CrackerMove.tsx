@@ -17,32 +17,35 @@ import {
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
 import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
+import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { MoveFitnessTesting } from "@/components/cracker/MoveFitnessTesting";
 import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasurements";
+import { MoveLearnLibrary } from "@/components/cracker/MoveLearnLibrary";
+import { MoveMyProgress } from "@/components/cracker/MoveMyProgress";
+import { MoveProgressPhotos } from "@/components/cracker/MoveProgressPhotos";
+import { MoveWorkoutRecap } from "@/components/cracker/MoveWorkoutRecap";
+import {
+  loadMoveSubTab,
+  saveMoveSubTab,
+  type MoveSubTab,
+} from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
+import { crackerWeeklyTrainingVideoUrl } from "@/lib/jessTrainer";
+import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
 
-export type MoveSubTab = "training" | "fitness" | "inbody";
+export type { MoveSubTab };
 
 const MOVE_SUBTABS: { key: MoveSubTab; label: string }[] = [
   { key: "training", label: "TRAINING" },
+  { key: "learn", label: "LEARN" },
+  { key: "progress", label: "MY PROGRESS" },
+  { key: "recap", label: "RECAP" },
   { key: "fitness", label: "FITNESS TESTING" },
   { key: "inbody", label: "INBODY + MEASUREMENTS" },
+  { key: "photos", label: "PHOTOS" },
 ];
-
-const MOVE_SUBTAB_KEY = "forma-cracker-move-subtab-v1";
-
-function loadMoveSubTab(): MoveSubTab {
-  if (typeof window === "undefined") return "training";
-  try {
-    const raw = window.localStorage.getItem(MOVE_SUBTAB_KEY);
-    if (raw === "fitness" || raw === "inbody" || raw === "training") return raw;
-  } catch {
-    /* ignore */
-  }
-  return "training";
-}
 
 type Props = {
   currentWeek: number;
@@ -53,6 +56,9 @@ type Props = {
   onOpenProfile: () => void;
   profileInitial: string;
   profilePhoto?: string;
+  photos: ProgressPhoto[];
+  onAddPhoto: (photo: ProgressPhoto) => void;
+  onDeletePhoto: (id: string) => void;
 };
 
 function shortSummary(workout: Workout): string {
@@ -115,8 +121,11 @@ export function CrackerMove({
   onOpenProfile,
   profileInitial,
   profilePhoto,
+  photos,
+  onAddPhoto,
+  onDeletePhoto,
 }: Props) {
-  const [subTab, setSubTab] = useState<MoveSubTab>("training");
+  const [subTab, setSubTab] = useState<MoveSubTab>(() => loadMoveSubTab());
   const [viewWeek, setViewWeek] = useState(currentWeek);
   const [checklist, setChecklist] = useState<MoveChecklistState>({ weeks: {} });
   const level: CrackerLevel = crackerLevelFromExperience(experience);
@@ -125,6 +134,7 @@ export function CrackerMove({
   const weekChecks = getWeekChecklist(checklist, level, viewWeek);
   const weekBanner = moveWeekImage(viewWeek);
   const learnImage = moveImage("learnWithJess");
+  const educationVideo = crackerWeeklyTrainingVideoUrl(viewWeek);
 
   useEffect(() => {
     setChecklist(loadMoveChecklist());
@@ -137,11 +147,7 @@ export function CrackerMove({
 
   const selectSubTab = (tab: MoveSubTab) => {
     setSubTab(tab);
-    try {
-      window.localStorage.setItem(MOVE_SUBTAB_KEY, tab);
-    } catch {
-      /* ignore */
-    }
+    saveMoveSubTab(tab);
   };
 
   const workouts = useMemo(() => {
@@ -171,6 +177,50 @@ export function CrackerMove({
     });
   };
 
+  if (subTab === "learn") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveLearnLibrary
+          level={level}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
+  if (subTab === "progress") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveMyProgress
+          currentWeek={currentWeek}
+          experience={experience}
+          history={history}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
+  if (subTab === "recap") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveWorkoutRecap
+          history={history}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
   if (subTab === "fitness") {
     return (
       <div className="cracker-move-with-subnav">
@@ -197,10 +247,27 @@ export function CrackerMove({
     );
   }
 
+  if (subTab === "photos") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveProgressPhotos
+          currentWeek={currentWeek}
+          photos={photos}
+          onAddPhoto={onAddPhoto}
+          onDeletePhoto={onDeletePhoto}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="cracker-move-with-subnav">
       <MoveSubNav active={subTab} onChange={selectSubTab} />
-      <div className="screen cracker-screen cracker-move">
+      <div className="screen cracker-screen cracker-move training-page training-layout">
         <header className="cracker-topbar">
           <div>
             <p className="cracker-screen-kicker">MOVE</p>
@@ -296,7 +363,11 @@ export function CrackerMove({
         </section>
 
         <article className="cracker-learn-card">
-          {learnImage ? (
+          {educationVideo ? (
+            <div className="cracker-learn-media cracker-learn-media--video">
+              <InAppVideo url={educationVideo} title={`Learn with Jess · ${education.title}`} />
+            </div>
+          ) : learnImage ? (
             <div className="cracker-learn-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={learnImage} alt="" />
@@ -306,17 +377,20 @@ export function CrackerMove({
             <p className="eyebrow">LEARN WITH JESS</p>
             <h2>{education.title}</h2>
             <p>{education.summary}</p>
+            {educationVideo ? null : (
+              <p className="muted">This week&apos;s video will play here once Jess&apos;s link is in.</p>
+            )}
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => patchChecklist({ education: true })}
+              onClick={() => patchChecklist({ education: !weekChecks.education })}
             >
               {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
             </button>
           </div>
         </article>
 
-        <JessHeadTrainerCard week={viewWeek} />
+        <JessHeadTrainerCard />
 
         <div className="cracker-workout-stack">
           {ordered.map((workout, orderIdx) => {

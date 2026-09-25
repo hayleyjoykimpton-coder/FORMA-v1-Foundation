@@ -45,8 +45,11 @@ export type CrackerOnboardingResult = {
 
 export function CrackerOnboarding({
   onComplete,
+  existing,
 }: {
   onComplete: (result: CrackerOnboardingResult) => void;
+  /** Signed-in stub profile (name/email/id from Auth) when present. */
+  existing?: UserProfile | null;
 }) {
   const [step, setStep] = useState(0);
   const [club, setClub] = useState<Exclude<LifeSoulClub, ""> | "">("");
@@ -59,7 +62,10 @@ export function CrackerOnboarding({
     onComplete({
       joinCracker: true,
       profile: createProfile({
-        firstName: "Friend",
+        ...(existing ?? {}),
+        firstName: existing?.firstName?.trim() || "Friend",
+        email: existing?.email || "",
+        id: existing?.id,
         club: club || "",
         experienceLevel: experienceLevel === "advanced" ? "intermediate" : experienceLevel,
         trainingDays: 3,

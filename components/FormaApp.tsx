@@ -44,6 +44,7 @@ import {
   computeStreak,
   computeStrengthProgress,
   plannedWeeklySets,
+  sessionVolume,
   totalCompletedSets,
   weekSessionCount,
 } from "@/lib/analytics";
@@ -66,17 +67,22 @@ import {
   signOut,
 } from "@/lib/sync";
 import {
-  dismissTrainingReminderToday,
-  loadReminderPrefs,
-  markTrainingDoneToday,
-  maybeNotifyTrainingDay,
-  requestBrowserNotifyPermission,
-  saveReminderPrefs,
-  shouldShowTrainingReminder,
-  todaysScheduledWorkout,
-  trainingReminderCopy,
-  type ReminderPrefs,
-} from "@/lib/reminders";
+  clearLocalMemberData,
+  localProfileBelongsToUser,
+} from "@/lib/localMemberData";
+import {
+  loadMoveCheckIns,
+  saveMoveCheckIns,
+  emptyMoveCheckIns,
+  MOVE_CHECKINS_CHANGED_EVENT,
+} from "@/lib/crackerMoveCheckIns";
+import {
+  emptyMoveChecklist,
+  loadMoveChecklist,
+  mergeMoveChecklists,
+  MOVE_CHECKLIST_CHANGED_EVENT,
+  saveMoveChecklist,
+} from "@/lib/crackerMoveChecklist";
 import { exportProgressBundle } from "@/lib/exportProgress";
 import {
   dismissWeeklyReviewNudge,
@@ -91,6 +97,7 @@ import { WEEKDAYS, moveWorkoutWithDays, putWorkoutOnDay } from "@/lib/workoutSch
 import {
   completedWorkoutIdsThisWeek,
   mergeHistories,
+  sessionsCompletedThisCalendarWeek,
 } from "@/lib/historyMerge";
 import {
   adjustResultsForReadiness,
@@ -122,6 +129,7 @@ import {
   CRACKER_SEASON_ACTIVE,
   CRACKER_WEEKS,
   challengeWeekLabel,
+  cloudMemberNeedsCrackerOnboarding,
   crackerWeek,
   isCrackerFitnessTestWeek,
   loadChallengeMode,
@@ -133,6 +141,14 @@ import {
   crackerLevelFromExperience,
 } from "@/lib/crackerProgram";
 import { CrackerShell } from "@/components/cracker/CrackerShell";
+import { saveCrackerTab, saveMoveSubTab, saveRecapFocus } from "@/lib/crackerNav";
+import { WodLogger } from "@/components/WodLogger";
+import {
+  formatWodScore,
+  isWodExerciseName,
+  isWodResultComplete,
+  type WodResult,
+} from "@/lib/wod";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -281,6 +297,7 @@ export default function FormaApp() {
   const [pausedDraft, setPausedDraft] = useState<SessionDraftStored | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("booting");
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
+  const [checkInsRevision, setCheckInsRevision] = useState(0);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [cueSessionId, setCueSessionId] = useState<string | null>(null);
   const [sessionCelebration, setSessionCelebration] = useState<{
@@ -288,12 +305,9 @@ export default function FormaApp() {
     lines: string[];
     setsDone: number;
     setsTotal: number;
+    volumeKg: number;
+    sessionId: string;
   } | null>(null);
-  const [reminderPrefs, setReminderPrefs] = useState<ReminderPrefs>({
-    enabled: true,
-    browserNotify: false,
-    preferredWindow: "anytime",
-  });
   const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => defaultHomePrefs());
   const [homeCustomiseOpen, setHomeCustomiseOpen] = useState(false);
   const [weeklyReviewDismissed, setWeeklyReviewDismissed] = useState(false);
@@ -301,6 +315,7 @@ export default function FormaApp() {
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
+  const [needsCrackerOnboarding, setNeedsCrackerOnboarding] = useState(false);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
@@ -343,7 +358,6 @@ export default function FormaApp() {
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
-    setReminderPrefs(loadReminderPrefs());
     setHomePrefs(loadHomePrefs());
     setProgressSubTab(loadProgressSubTab());
     setChallengeMode(mode);
@@ -364,13 +378,64 @@ export default function FormaApp() {
     const cloud = await pullCloudState(userId);
     const local = loadForma();
     const localProfile = loadProfile();
+    const mode = loadChallengeMode();
+    const canMergeLocal = localProfileBelongsToUser(
+      localProfile,
+      userId,
+      cloud?.profile?.email || localProfile?.email,
+    );
 
     // Prefer cloud when it has a profile; otherwise keep local and upload.
     if (cloud?.profile) {
-      const sourceWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
+      if (cloudMemberNeedsCrackerOnboarding(cloud)) {
+        const seeded = {
+          ...cloud.profile,
+          firstName: cloud.profile.firstName?.trim() || "",
+          email: cloud.profile.email || "",
+        };
+        if (seeded.firstName || seeded.email) saveProfile(seeded);
+        setProfile(seeded.firstName ? seeded : cloud.profile);
+        setWorkouts([]);
+        setHistory([]);
+        setWeek(1);
+        setAlignActive(false);
+        setNeedsCrackerOnboarding(true);
+        setCloudUserId(userId);
+        setAuthMode("cloud");
+        window.localStorage.removeItem(LOCAL_ONLY_KEY);
+        setSyncNote("Choose your club and training level to start.");
+        return;
+      }
+      setNeedsCrackerOnboarding(false);
+
+      // Never merge another member's local cache into this account.
+      if (!canMergeLocal) {
+        clearLocalMemberData();
+      }
+
+      const sourceHistory = canMergeLocal
+        ? mergeHistories(local.history, cloud.history)
+        : cloud.history;
+      const sourceWorkouts = cloud.workouts.length
+        ? cloud.workouts
+        : canMergeLocal
+          ? local.workouts
+          : [];
       let nextWorkouts = sourceWorkouts;
       let didUpgrade = false;
-      if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
+      const weekForMode =
+        mode === "cracker" ? crackerWeek(cloud.week) : cycleWeek(cloud.week);
+
+      if (mode === "cracker") {
+        nextWorkouts = transferExerciseWeights(
+          sourceWorkouts,
+          buildCrackerWorkouts(
+            crackerLevelFromExperience(cloud.profile.experienceLevel),
+            weekForMode,
+          ),
+        );
+        didUpgrade = true;
+      } else if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
         nextWorkouts = transferExerciseWeights(
           sourceWorkouts,
           generateProgram(cloud.profile, {
@@ -380,14 +445,21 @@ export default function FormaApp() {
         );
         didUpgrade = true;
       }
-      const mergedHistory = mergeHistories(local.history, cloud.history);
+
       const liveSession = sessionRef.current;
+      const cloudCheckIns = cloud.crackerMoveCheckIns;
+      const localCheckIns = canMergeLocal ? loadMoveCheckIns() : emptyMoveCheckIns();
+      const mergedCheckIns =
+        Object.keys(cloudCheckIns).length > 0 ? cloudCheckIns : localCheckIns;
+      const mergedChecklist = canMergeLocal
+        ? mergeMoveChecklists(cloud.moveChecklist, loadMoveChecklist())
+        : cloud.moveChecklist ?? emptyMoveChecklist();
 
       setProfile(cloud.profile);
       setWorkouts(nextWorkouts);
-      setHistory(mergedHistory);
-      setWeek(cycleWeek(cloud.week));
-      setAlignActive(cloud.alignActive);
+      setHistory(sourceHistory);
+      setWeek(weekForMode);
+      setAlignActive(mode === "cracker" ? false : cloud.alignActive);
       setProgressEntries(cloud.progress);
       setProgressPhotos(cloud.photos);
       setJournal(cloud.journal);
@@ -412,15 +484,17 @@ export default function FormaApp() {
       saveWellness(cloud.wellness);
       saveMeals(cloud.meals);
       saveInBody(cloud.inbody);
+      saveMoveCheckIns(mergedCheckIns);
+      saveMoveChecklist(mergedChecklist);
       window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
-      window.localStorage.setItem(STORAGE.history, JSON.stringify(mergedHistory));
+      window.localStorage.setItem(STORAGE.history, JSON.stringify(sourceHistory));
       window.localStorage.setItem(
         STORAGE.program,
         JSON.stringify({
-          week: cloud.week,
+          week: weekForMode,
           programId: FORMA_PROGRAM.id,
           schemaVersion: PROGRAM_SCHEMA_VERSION,
-          alignActive: cloud.alignActive,
+          alignActive: mode === "cracker" ? false : cloud.alignActive,
         }),
       );
       saveProgress(cloud.progress);
@@ -430,9 +504,9 @@ export default function FormaApp() {
       if (didUpgrade) {
         await pushUserState({
           workouts: nextWorkouts,
-          history: mergedHistory,
-          week: cloud.week,
-          alignActive: cloud.alignActive,
+          history: sourceHistory,
+          week: weekForMode,
+          alignActive: mode === "cracker" ? false : cloud.alignActive,
           progress: cloud.progress,
           photos: cloud.photos,
           water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
@@ -440,28 +514,39 @@ export default function FormaApp() {
           wellness: cloud.wellness,
           meals: cloud.meals,
           inbody: cloud.inbody,
+          crackerMoveCheckIns: mergedCheckIns,
+          moveChecklist: mergedChecklist,
           sessionDraft: cloud.sessionDraft,
         });
       }
     } else {
-      applyLocalBundle({ seedHayley: !localProfile });
+      // Empty cloud: never seed demo/Hayley data into a real account.
+      if (!canMergeLocal) {
+        clearLocalMemberData();
+        applyLocalBundle({ seedHayley: false });
+      } else {
+        applyLocalBundle({ seedHayley: false });
+      }
       const profileToSave = loadProfile();
       if (profileToSave) {
         await pushProfile({ ...profileToSave, id: userId, email: profileToSave.email || "" });
       }
+      const freshLocal = loadForma();
       await pushUserState({
-        workouts: local.workouts,
-        history: local.history,
-        week: local.week,
-        alignActive: local.alignActive,
+        workouts: freshLocal.workouts,
+        history: freshLocal.history,
+        week: freshLocal.week,
+        alignActive: freshLocal.alignActive,
         progress: loadProgress(),
         photos: loadPhotos(),
-        water: { date: new Date().toDateString(), count: local.water },
-        journal: local.journal,
-        wellness: local.wellness,
+        water: { date: new Date().toDateString(), count: freshLocal.water },
+        journal: freshLocal.journal,
+        wellness: freshLocal.wellness,
         meals: loadMeals(),
         inbody: loadInBody(),
-        sessionDraft: local.sessionDraft,
+        crackerMoveCheckIns: loadMoveCheckIns(),
+        moveChecklist: loadMoveChecklist(),
+        sessionDraft: freshLocal.sessionDraft,
       });
     }
 
@@ -515,8 +600,16 @@ export default function FormaApp() {
     const supabase = getSupabase();
     const subscription = supabase?.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
+        clearLocalMemberData();
         setCloudUserId(null);
-        setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
+        setProfile(null);
+        setWorkouts([]);
+        setHistory([]);
+        setSession(null);
+        setPausedDraft(null);
+        persistSessionDraft(null);
+        setNeedsCrackerOnboarding(false);
+        setAuthMode("gate");
         return;
       }
       // TOKEN_REFRESHED used to re-pull and overwrite activeWorkoutId / history mid-session.
@@ -535,6 +628,8 @@ export default function FormaApp() {
     };
   }, []);
 
+  const allowEmptyHistoryWrite = useRef(false);
+
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
@@ -542,13 +637,18 @@ export default function FormaApp() {
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
-    // Never persist an empty history over a non-empty store (guards sync races / parse blips).
+    // Never persist an empty history over a non-empty store (guards sync races / parse blips),
+    // unless the member explicitly reset history in Profile.
     try {
       const raw = window.localStorage.getItem(STORAGE.history);
       const previous = raw ? (JSON.parse(raw) as WorkoutSession[]) : [];
-      if (!(history.length === 0 && Array.isArray(previous) && previous.length > 0)) {
+      const skipEmptyGuard =
+        allowEmptyHistoryWrite.current ||
+        !(history.length === 0 && Array.isArray(previous) && previous.length > 0);
+      if (skipEmptyGuard) {
         window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
       }
+      if (history.length === 0) allowEmptyHistoryWrite.current = false;
     } catch {
       window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
     }
@@ -570,6 +670,17 @@ export default function FormaApp() {
     setPausedDraft({ ...session, restRemaining });
   }, [session, restRemaining, hydrated]);
 
+  // Fitness / InBody check-ins live in localStorage; bump so cloud sync includes them.
+  useEffect(() => {
+    const bump = () => setCheckInsRevision((n) => n + 1);
+    window.addEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+    window.addEventListener(MOVE_CHECKLIST_CHANGED_EVENT, bump);
+    return () => {
+      window.removeEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+      window.removeEventListener(MOVE_CHECKLIST_CHANGED_EVENT, bump);
+    };
+  }, []);
+
   // Cloud sync (debounced) whenever signed-in state changes.
   useEffect(() => {
     if (!hydrated || authMode !== "cloud" || !cloudUserId || !profile) return;
@@ -588,6 +699,8 @@ export default function FormaApp() {
           wellness,
           meals,
           inbody,
+          crackerMoveCheckIns: loadMoveCheckIns(),
+          moveChecklist: loadMoveChecklist(),
           sessionDraft: pausedDraft,
         });
         if (profileResult.error || stateResult.error) {
@@ -614,6 +727,7 @@ export default function FormaApp() {
     meals,
     inbody,
     pausedDraft,
+    checkInsRevision,
     hydrated,
   ]);
 
@@ -683,53 +797,6 @@ export default function FormaApp() {
     ? workouts.find((workout) => workout.id === session.workoutId) ?? null
     : null;
   const todaysWorkout = useMemo(() => pickTodaysWorkout(workouts), [workouts]);
-  const scheduledToday = useMemo(() => todaysScheduledWorkout(workouts), [workouts]);
-  const showTrainingReminder = useMemo(
-    () =>
-      shouldShowTrainingReminder({
-        workouts,
-        history,
-        prefs: reminderPrefs,
-      }),
-    [workouts, history, reminderPrefs],
-  );
-  const trainingReminder = useMemo(
-    () => trainingReminderCopy(scheduledToday),
-    [scheduledToday],
-  );
-
-  useEffect(() => {
-    if (!hydrated || !showTrainingReminder || !reminderPrefs.browserNotify) return;
-    void maybeNotifyTrainingDay({
-      prefs: reminderPrefs,
-      workout: scheduledToday,
-      history,
-      workouts,
-    }).then((next) => {
-      if (next.lastNotifiedDate !== reminderPrefs.lastNotifiedDate) {
-        setReminderPrefs(next);
-      }
-    });
-  }, [hydrated, showTrainingReminder, reminderPrefs, scheduledToday, history, workouts]);
-
-  const updateReminderPrefs = async (patch: Partial<ReminderPrefs>) => {
-    let next: ReminderPrefs = { ...reminderPrefs, ...patch };
-    if (patch.browserNotify === true) {
-      const permission = await requestBrowserNotifyPermission();
-      if (permission !== "granted") {
-        next = { ...next, browserNotify: false };
-        setSyncNote(
-          permission === "denied"
-            ? "Browser notifications blocked — in-app reminders still work"
-            : "Browser notifications unavailable here",
-        );
-      } else {
-        setSyncNote("Browser notify on while FORMA is open");
-      }
-    }
-    saveReminderPrefs(next);
-    setReminderPrefs(next);
-  };
   const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
   const streak = useMemo(() => computeStreak(history), [history]);
   const completedSets = useMemo(() => totalCompletedSets(history), [history]);
@@ -779,7 +846,7 @@ export default function FormaApp() {
   const linearPhase = getPhaseForWeek(weekInCycle);
   const journeyStatuses = phaseJourneyStatuses(weekInCycle, alignActive);
   const upcomingPhase = nextLinearPhase(linearPhase.id);
-  const sessionsThisWeek = history.filter((entry) => cycleWeek(entry.week ?? 1) === weekInCycle).length;
+  const sessionsThisWeek = sessionsCompletedThisCalendarWeek(history);
   const sessionsTarget =
     challengeMode === "cracker" ? Math.max(1, workouts.length) : profile?.trainingDays ?? 3;
   const weekComplete =
@@ -885,17 +952,24 @@ export default function FormaApp() {
 
   const handleOnboardingComplete = (result: CrackerOnboardingResult) => {
     const { profile: nextProfile } = result;
-    saveProfile(nextProfile);
-    setProfile(nextProfile);
+    const merged = {
+      ...nextProfile,
+      id: profile?.id || nextProfile.id,
+      firstName: (profile?.firstName || nextProfile.firstName || "Friend").trim(),
+      email: profile?.email || nextProfile.email || "",
+    };
+    saveProfile(merged);
+    setProfile(merged);
+    setNeedsCrackerOnboarding(false);
     saveChallengeMode("cracker");
     setChallengeMode("cracker");
     setWeek(1);
     setAlignActive(false);
-    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false, mode: "cracker" });
+    applyGeneratedProgram(merged, { week: 1, alignActive: false, mode: "cracker" });
     setTab("today");
     const clubLabel =
-      nextProfile.club && nextProfile.club in CLUB_LABELS
-        ? CLUB_LABELS[nextProfile.club as keyof typeof CLUB_LABELS]
+      merged.club && merged.club in CLUB_LABELS
+        ? CLUB_LABELS[merged.club as keyof typeof CLUB_LABELS]
         : "";
     setSyncNote(
       clubLabel
@@ -1067,6 +1141,8 @@ export default function FormaApp() {
       lines: postWorkoutSummary(completed, nextHistory),
       setsDone,
       setsTotal,
+      volumeKg: Math.round(sessionVolume(completed)),
+      sessionId: completed.id,
     });
   };
 
@@ -1368,9 +1444,10 @@ export default function FormaApp() {
     );
   }
 
-  if (!profile) {
+  if (!profile || needsCrackerOnboarding) {
     return (
       <CrackerOnboarding
+        existing={profile}
         onComplete={(result: CrackerOnboardingResult) => {
           handleOnboardingComplete(result);
         }}
@@ -1393,23 +1470,72 @@ export default function FormaApp() {
             challengeMode === "cracker" ? "Cracker programme rebuilt" : "Programme rebuilt",
           );
         }}
+        onResetWorkoutHistory={async () => {
+          allowEmptyHistoryWrite.current = true;
+          setHistory([]);
+          setSession(null);
+          setPausedDraft(null);
+          persistSessionDraft(null);
+          window.localStorage.setItem(STORAGE.history, JSON.stringify([]));
+          if (authMode === "cloud") {
+            const result = await pushUserState({
+              workouts,
+              history: [],
+              week,
+              alignActive,
+              progress: progressEntries,
+              photos: progressPhotos,
+              water: { date: new Date().toDateString(), count: water },
+              journal,
+              wellness,
+              meals,
+              inbody,
+              crackerMoveCheckIns: loadMoveCheckIns(),
+              moveChecklist: loadMoveChecklist(),
+              sessionDraft: null,
+            });
+            setSyncNote(result.error ? `History cleared on this device. Cloud: ${result.error}` : "Workout history cleared");
+          } else {
+            setSyncNote("Workout history cleared");
+          }
+          setProfileOpen(false);
+          setTab("today");
+        }}
         challengeMode={challengeMode}
         // Seasonal lock: FORMA programmes disabled — no toggle back to FORMA workouts.
         onChallengeModeChange={undefined}
-        reminderPrefs={{
-          enabled: reminderPrefs.enabled,
-          browserNotify: reminderPrefs.browserNotify,
-          preferredWindow: reminderPrefs.preferredWindow,
-        }}
-        onReminderPrefsChange={(prefs) => {
-          void updateReminderPrefs(prefs);
-        }}
         accountMode={authMode}
         syncNote={syncNote}
         onSignOut={async () => {
+          if (authMode === "cloud" && profile) {
+            await pushProfile(profile);
+            await pushUserState({
+              workouts,
+              history,
+              week,
+              alignActive,
+              progress: progressEntries,
+              photos: progressPhotos,
+              water: { date: new Date().toDateString(), count: water },
+              journal,
+              wellness,
+              meals,
+              inbody,
+              crackerMoveCheckIns: loadMoveCheckIns(),
+              moveChecklist: loadMoveChecklist(),
+              sessionDraft: pausedDraft,
+            });
+          }
           await signOut();
-          window.localStorage.removeItem(LOCAL_ONLY_KEY);
+          clearLocalMemberData();
           setCloudUserId(null);
+          setProfile(null);
+          setWorkouts([]);
+          setHistory([]);
+          setSession(null);
+          setPausedDraft(null);
+          persistSessionDraft(null);
+          setNeedsCrackerOnboarding(false);
           setAuthMode("gate");
           setProfileOpen(false);
         }}
@@ -1498,13 +1624,17 @@ export default function FormaApp() {
                   accent="sage"
                 />
                 <StatTile
-                  label="Completion"
-                  value={`${
-                    sessionCelebration.setsTotal
-                      ? Math.round((sessionCelebration.setsDone / sessionCelebration.setsTotal) * 100)
-                      : 0
-                  }%`}
-                  note="working sets"
+                  label={sessionCelebration.volumeKg > 0 ? "Volume" : "Completion"}
+                  value={
+                    sessionCelebration.volumeKg > 0
+                      ? `${sessionCelebration.volumeKg.toLocaleString()} kg`
+                      : `${
+                          sessionCelebration.setsTotal
+                            ? Math.round((sessionCelebration.setsDone / sessionCelebration.setsTotal) * 100)
+                            : 0
+                        }%`
+                  }
+                  note={sessionCelebration.volumeKg > 0 ? "working sets" : "working sets"}
                   accent="mocha"
                 />
               </div>
@@ -1517,22 +1647,30 @@ export default function FormaApp() {
                 type="button"
                 className="cta-btn"
                 onClick={() => {
+                  saveCrackerTab("move");
+                  saveMoveSubTab("recap");
+                  saveRecapFocus(sessionCelebration.sessionId);
                   setSessionCelebration(null);
-                  setProgressSubTab("overview");
-                  setTab("progress");
+                  if (challengeMode !== "cracker") {
+                    setProgressSubTab("overview");
+                    setTab("progress");
+                  }
                 }}
               >
-                See your progress
+                See workout recap
               </button>
               <button
                 type="button"
                 className="secondary-btn"
                 onClick={() => {
+                  saveCrackerTab("move");
+                  saveMoveSubTab("recap");
+                  saveRecapFocus(sessionCelebration.sessionId);
                   setSessionCelebration(null);
-                  setTab("today");
+                  if (challengeMode !== "cracker") setTab("today");
                 }}
               >
-                Back to Home
+                {challengeMode === "cracker" ? "Back to MOVE" : "Back to Home"}
               </button>
             </article>
           </div>
@@ -1553,9 +1691,33 @@ export default function FormaApp() {
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
     const setsAddressed = result.sets.filter((set) => set.complete || set.skipped).length;
-    const progressPct = Math.round((setsAddressed / result.sets.length) * 100);
+    const isWod = isWodExerciseName(exercise.name);
+    const wodComplete = isWod && isWodResultComplete(result.wodResult);
+    const progressPct = isWod
+      ? wodComplete
+        ? 100
+        : 0
+      : Math.round((setsAddressed / Math.max(1, result.sets.length)) * 100);
     const isLastExercise = session.exerciseIndex >= sessionWorkout.exercises.length - 1;
-    const allSetsAddressed = setsAddressed === result.sets.length;
+    const allSetsAddressed = isWod ? Boolean(wodComplete) : setsAddressed === result.sets.length;
+    const previousWodScore = (() => {
+      if (!isWod) return undefined;
+      for (let i = history.length - 1; i >= 0; i--) {
+        const hit = history[i].exercises.find(
+          (ex) => isWodExerciseName(ex.name) && ex.name === exercise.name && ex.wodResult,
+        );
+        if (hit?.wodResult) return formatWodScore(hit.wodResult);
+      }
+      return undefined;
+    })();
+    const updateWodResult = (wodResult: WodResult) => {
+      setSession({
+        ...session,
+        results: session.results.map((item, index) =>
+          index === session.exerciseIndex ? { ...item, wodResult } : item,
+        ),
+      });
+    };
     const goNextExercise = () => {
       setSessionSwapOpen(false);
       setRestRemaining(0);
@@ -1621,6 +1783,7 @@ export default function FormaApp() {
               )}
             </div>
 
+            {!isWod ? (
             <article className="card coach-prev">
               <div className="coach-prev-head">
                 <span className="eyebrow">Last session</span>
@@ -1638,7 +1801,16 @@ export default function FormaApp() {
               )}
               <p className="coach-prev-rec"><strong>Today:</strong> {recommendation.title}. {recommendation.detail}</p>
             </article>
+            ) : null}
 
+            {isWod ? (
+              <WodLogger
+                exercise={exercise}
+                result={result}
+                previousScore={previousWodScore}
+                onChange={updateWodResult}
+              />
+            ) : (
             <article className="card session-card">
               <div className="session-meta">
                 <span>{exercise.sets} sets</span>
@@ -1745,7 +1917,9 @@ export default function FormaApp() {
 
               {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
             </article>
+            )}
 
+            {!isWod ? (
             <article className="card coach-guide">
               <span className="eyebrow">Coaching · {exercise.name}</span>
               <div className="coach-guide-meta">
@@ -1819,7 +1993,9 @@ export default function FormaApp() {
                 );
               })()}
             </article>
+            ) : null}
 
+            {!isWod ? (
             <article className={`card rest-card${restRemaining > 0 ? " active" : ""}`}>
               <div>
                 <span className="eyebrow">{restRemaining > 0 ? "Resting" : "Rest timer"}</span>
@@ -1842,6 +2018,7 @@ export default function FormaApp() {
                 </button>
               </div>
             </article>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1969,6 +2146,10 @@ export default function FormaApp() {
           profilePhoto={profile.profilePhoto}
           onOpenProfile={() => setProfileOpen(true)}
           onStartWorkout={startWorkout}
+          photos={progressPhotos}
+          onAddPhoto={handleAddPhoto}
+          onDeletePhoto={handleDeletePhoto}
+          club={profile.club}
         />
       </div>
     );
@@ -2070,52 +2251,6 @@ export default function FormaApp() {
                       Log InBody
                     </button>
                   ) : null}
-                </div>
-              </article>
-            ) : null}
-
-            {showTrainingReminder ? (
-              <article className="card training-reminder-card">
-                <div className="training-reminder-copy">
-                  <span className="eyebrow">Training day</span>
-                  <strong>{trainingReminder.title}</strong>
-                  <p className="muted">{trainingReminder.text}</p>
-                  <div className={`reminder accent-${trainingReminder.tip.accent}`}>
-                    <strong>{trainingReminder.tip.title}</strong>
-                    <small>{trainingReminder.tip.text}</small>
-                  </div>
-                </div>
-                <div className="training-reminder-actions">
-                  {scheduledToday && scheduledToday.exercises.length > 0 ? (
-                    <button
-                      type="button"
-                      className="cta-btn"
-                      onClick={() => startWorkout(scheduledToday)}
-                    >
-                      Start workout
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => setSessionPickerOpen(true)}
-                  >
-                    Choose session
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => setReminderPrefs(markTrainingDoneToday(reminderPrefs))}
-                  >
-                    Mark done
-                  </button>
-                  <button
-                    type="button"
-                    className="text-btn"
-                    onClick={() => setReminderPrefs(dismissTrainingReminderToday(reminderPrefs))}
-                  >
-                    Later
-                  </button>
                 </div>
               </article>
             ) : null}

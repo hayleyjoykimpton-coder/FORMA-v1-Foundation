@@ -775,32 +775,32 @@ export const CRACKER_TRAINING_EDUCATION = [
   {
     week: 1,
     title: "Gym Confidence",
-    summary: "Show up, learn the floor, and own your space.",
+    summary: "Build confidence using equipment and training independently.",
   },
   {
     week: 2,
     title: "Training Intensity & Progressive Overload",
-    summary: "How to add reps and load without losing form.",
+    summary: "Learn how hard to train and how to progress your workouts safely.",
   },
   {
     week: 3,
     title: "Recovery",
-    summary: "Sleep, rest days, and bouncing back ready to train.",
+    summary: "Understand sleep, recovery, soreness and managing your training load.",
   },
   {
     week: 4,
     title: "Mindset & Habit Building",
-    summary: "Consistency beats perfection across six weeks.",
+    summary: "Build systems and habits that make consistency easier.",
   },
   {
     week: 5,
     title: "Strength Training & Why It Matters",
-    summary: "Why getting stronger changes how you feel every day.",
+    summary: "Understand why strength training supports long-term health and performance.",
   },
   {
     week: 6,
     title: "What Happens After CRACKER?",
-    summary: "How to keep the momentum when the challenge ends.",
+    summary: "Set your next goals and plan how to continue beyond the six weeks.",
   },
 ] as const;
 

@@ -7,6 +7,13 @@
  */
 
 import type { BrandMode } from "./brand";
+import { CRACKER_SEASON_WINDOW_LABEL } from "./challengeDates";
+
+export {
+  CRACKER_CHALLENGE_MILESTONES,
+  CRACKER_SEASON_WINDOW_LABEL as CRACKER_DATES_LABEL,
+} from "./challengeDates";
+export type { ChallengeMilestone } from "./challengeDates";
 
 const KEY = "forma-challenge-mode-v1";
 
@@ -19,7 +26,8 @@ export const CRACKER_WEEKS = 6;
 export const CRACKER_START_ISO = "2026-10-12";
 export const CRACKER_END_ISO = "2026-11-22";
 
-export const CRACKER_DATES_LABEL = "12 Oct – 22 Nov 2026";
+/** @deprecated Prefer importing CRACKER_DATES_LABEL from the re-export above. */
+void CRACKER_SEASON_WINDOW_LABEL;
 
 function parseLocalISO(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
@@ -86,4 +94,29 @@ export function nextCrackerWeek(week: number): { week: number; rolled: boolean }
 export function isCrackerFitnessTestWeek(week: number): boolean {
   const w = crackerWeek(week);
   return w === 1 || w === 6;
+}
+
+/**
+ * True when Auth created a stub `profiles` row (handle_new_user) but the member
+ * has not finished club + level onboarding or logged any Cracker data yet.
+ * Must run before we auto-generate and push workouts, or Home skips onboarding.
+ */
+export function cloudMemberNeedsCrackerOnboarding(cloud: {
+  history: unknown[];
+  workouts: unknown[];
+  progress: unknown[];
+  sessionDraft: unknown;
+  crackerMoveCheckIns: Record<string, unknown>;
+}): boolean {
+  if (!CRACKER_SEASON_ACTIVE) return false;
+  const hasCheckIns = Object.values(cloud.crackerMoveCheckIns || {}).some(
+    (entry) => entry && typeof entry === "object" && Object.keys(entry as object).length > 0,
+  );
+  return (
+    cloud.history.length === 0 &&
+    cloud.workouts.length === 0 &&
+    cloud.progress.length === 0 &&
+    !cloud.sessionDraft &&
+    !hasCheckIns
+  );
 }

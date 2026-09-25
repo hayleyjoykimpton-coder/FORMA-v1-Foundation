@@ -53,6 +53,11 @@ export type ExerciseResult = {
   sets: SetResult[];
   note?: string;
   discomfort?: number;
+  /**
+   * Format-specific WOD score (AMRAP / FOR TIME / EMOM / …).
+   * Present only for Cracker WOD finishers — never reuse SetResult for WODs.
+   */
+  wodResult?: import("./wod").WodResult;
 };
 
 export type WorkoutSession = {
