@@ -25,7 +25,7 @@ export const CRACKER_EXTERNAL_LINKS = {
     karratha: "",
   },
   jessVideos: {
-    intro: "",
+    intro: "https://youtu.be/oc93hzf6l8A",
     week1: "",
     week2: "",
     week3: "",
