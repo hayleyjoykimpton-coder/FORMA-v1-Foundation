@@ -22,6 +22,10 @@ export type Exercise = {
    * Overrides the library default when set.
    */
   videoUrl?: string;
+  /** Shared key for a programmed superset (e.g. "D"). */
+  supersetKey?: string;
+  /** Slot label inside that group (e.g. "D1", "D2"). */
+  supersetMark?: string;
 };
 
 export type Workout = {

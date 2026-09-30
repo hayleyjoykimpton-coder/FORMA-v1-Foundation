@@ -4,6 +4,7 @@
  */
 
 import { defaultIncrement } from "./exercises";
+import { stampSupersetFields } from "./superset";
 import type { Exercise, Workout } from "./types";
 import type { ExperienceLevel } from "./user";
 
@@ -745,7 +746,7 @@ export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout
       rpe: 8,
     });
 
-    const exercises = [...strength, wodExercise];
+    const exercises = stampSupersetFields([...strength, wodExercise]);
     const duration = Math.max(45, strength.length * 8 + 15);
     const slug = day.title.toLowerCase().replace(/\s+/g, "-");
 

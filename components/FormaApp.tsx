@@ -148,6 +148,17 @@ import {
 import { CrackerShell } from "@/components/cracker/CrackerShell";
 import { saveCrackerTab, saveMoveSubTab, saveRecapFocus } from "@/lib/crackerNav";
 import { WodLogger } from "@/components/WodLogger";
+import { SessionExerciseLog } from "@/components/SessionExerciseLog";
+import {
+  blockContaining,
+  blockIndexOf,
+  blockIsComplete,
+  blockProgressPct,
+  buildSessionBlocks,
+  sharedSupersetRestLabel,
+  sharedSupersetRestSeconds,
+  supersetMarkFor,
+} from "@/lib/superset";
 import {
   formatWodScore,
   isWodExerciseName,
@@ -1446,11 +1457,11 @@ export default function FormaApp() {
   };
 
   /** Mid-session swap: update programme row + live set log together. */
-  const swapExerciseInSession = (candidateId: string) => {
+  const swapExerciseInSession = (candidateId: string, exerciseIndex = session?.exerciseIndex ?? 0) => {
     if (!session) return;
     const workoutForSession = workouts.find((workout) => workout.id === session.workoutId);
     if (!workoutForSession) return;
-    const current = workoutForSession.exercises[session.exerciseIndex];
+    const current = workoutForSession.exercises[exerciseIndex];
     if (!current) return;
     const swapped = applyExerciseSwap(current, candidateId);
 
@@ -1472,7 +1483,7 @@ export default function FormaApp() {
       return {
         ...currentSession,
         results: currentSession.results.map((result, index) => {
-          if (index !== currentSession.exerciseIndex) return result;
+          if (index !== exerciseIndex) return result;
           return {
             ...result,
             libraryId: swapped.exerciseId,
@@ -1798,13 +1809,19 @@ export default function FormaApp() {
   }
 
   if (session && sessionWorkout) {
+    const blocks = buildSessionBlocks(sessionWorkout.exercises);
     const safeIndex = Math.min(
       Math.max(0, session.exerciseIndex),
       Math.max(0, sessionWorkout.exercises.length - 1, session.results.length - 1),
     );
-    const exercise = sessionWorkout.exercises[safeIndex];
-    const result = session.results[safeIndex];
-    if (!exercise || !result) {
+    const currentBlock = blockContaining(blocks, safeIndex);
+    const currentBlockIndex = blockIndexOf(blocks, safeIndex);
+    const blockExercises = currentBlock.indices
+      .map((index) => sessionWorkout.exercises[index])
+      .filter(Boolean);
+    const leadExercise = sessionWorkout.exercises[currentBlock.indices[0]];
+    const leadResult = session.results[currentBlock.indices[0]];
+    if (!leadExercise || !leadResult || blockExercises.length === 0) {
       return (
         <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
           <div className="shell">
@@ -1818,26 +1835,32 @@ export default function FormaApp() {
         </div>
       );
     }
-    const recommendation = getRecommendation(exercise, history, phaseDef);
-    const prev = previousPerformance(exercise, history);
-    const coaching = exerciseCoaching(exercise);
+    const recommendation = getRecommendation(leadExercise, history, phaseDef);
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
-    const setsAddressed = result.sets.filter((set) => set.complete || set.skipped).length;
-    const isWod = isWodExerciseName(exercise.name);
-    const wodComplete = isWod && isWodResultComplete(result.wodResult);
+    const isWod = isWodExerciseName(leadExercise.name);
+    const wodComplete = isWod && isWodResultComplete(leadResult.wodResult);
+    const isSuperset = currentBlock.kind === "superset";
     const progressPct = isWod
       ? wodComplete
         ? 100
         : 0
-      : Math.round((setsAddressed / Math.max(1, result.sets.length)) * 100);
-    const isLastExercise = session.exerciseIndex >= sessionWorkout.exercises.length - 1;
-    const allSetsAddressed = isWod ? Boolean(wodComplete) : setsAddressed === result.sets.length;
+      : blockProgressPct(currentBlock, sessionWorkout.exercises, session.results, (item) =>
+          Boolean(item.wodResult && isWodResultComplete(item.wodResult)),
+        );
+    const isLastBlock = currentBlockIndex >= blocks.length - 1;
+    const allSetsAddressed = isWod
+      ? Boolean(wodComplete)
+      : blockIsComplete(currentBlock, sessionWorkout.exercises, session.results, (item) =>
+          Boolean(item.wodResult && isWodResultComplete(item.wodResult)),
+        );
+    const sharedRest = sharedSupersetRestSeconds(blockExercises);
+    const lastIndexInBlock = currentBlock.indices[currentBlock.indices.length - 1];
     const previousWodScore = (() => {
       if (!isWod) return undefined;
       for (let i = history.length - 1; i >= 0; i--) {
         const hit = history[i].exercises.find(
-          (ex) => isWodExerciseName(ex.name) && ex.name === exercise.name && ex.wodResult,
+          (ex) => isWodExerciseName(ex.name) && ex.name === leadExercise.name && ex.wodResult,
         );
         if (hit?.wodResult) return formatWodScore(hit.wodResult);
       }
@@ -1847,14 +1870,28 @@ export default function FormaApp() {
       setSession({
         ...session,
         results: session.results.map((item, index) =>
-          index === session.exerciseIndex ? { ...item, wodResult } : item,
+          index === currentBlock.indices[0] ? { ...item, wodResult } : item,
         ),
       });
     };
-    const goNextExercise = () => {
+    const goToBlock = (nextIndex: number) => {
+      const next = blocks[nextIndex];
+      if (!next) return;
       setSessionSwapOpen(false);
       setRestRemaining(0);
-      setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 });
+      setSession({ ...session, exerciseIndex: next.indices[0] });
+    };
+    const handleCompleteSet = (exerciseIndex: number, setIndex: number, nextComplete: boolean) => {
+      updateSet(exerciseIndex, setIndex, { complete: nextComplete, skipped: false });
+      if (nextComplete && (!isSuperset || exerciseIndex === lastIndexInBlock)) {
+        setRestRemaining(isSuperset ? sharedRest : sessionWorkout.exercises[exerciseIndex]?.restSeconds ?? 0);
+      }
+    };
+    const handleSkipSet = (exerciseIndex: number, setIndex: number) => {
+      skipSet(exerciseIndex, setIndex);
+      if (isSuperset && exerciseIndex === lastIndexInBlock) {
+        setRestRemaining(sharedRest);
+      }
     };
 
     return (
@@ -1865,7 +1902,7 @@ export default function FormaApp() {
               <button className="ghost-btn" onClick={exitSession}>‹ Exit</button>
               <div className="session-count">
                 <span className="eyebrow">{sessionWorkout.title}</span>
-                <strong>{session.exerciseIndex + 1} / {sessionWorkout.exercises.length}</strong>
+                <strong>{currentBlockIndex + 1} / {blocks.length}</strong>
               </div>
               <button className="ghost-btn strong" onClick={finishWorkout}>Finish</button>
             </header>
@@ -1874,10 +1911,34 @@ export default function FormaApp() {
               className="session-hero"
               style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${workoutCoverImage(sessionWorkout.title)})` }}
             >
-              <span className="eyebrow light">{season} · Primary target</span>
-              <h1>{exercise.name}</h1>
-              <p>{recommendation.title}</p>
-              <small>{recommendation.detail}</small>
+              <span className="eyebrow light">
+                {isSuperset ? `SUPERSET ${currentBlock.letter}` : `${season} · Primary target`}
+              </span>
+              <h1>
+                {isSuperset
+                  ? currentBlock.indices
+                      .map((index, position) =>
+                        `${supersetMarkFor(sessionWorkout.exercises[index], currentBlock.letter, position + 1)} ${sessionWorkout.exercises[index]?.name ?? ""}`,
+                      )
+                      .join(" + ")
+                  : leadExercise.name}
+              </h1>
+              <p>{isSuperset ? "Complete both, then rest. Repeat each round." : recommendation.title}</p>
+              <small>
+                {isSuperset
+                  ? currentBlock.indices
+                      .map((index, position) => {
+                        const mark = supersetMarkFor(
+                          sessionWorkout.exercises[index],
+                          currentBlock.letter,
+                          position + 1,
+                        );
+                        return `${position + 1}. Complete ${mark}`;
+                      })
+                      .concat(["Then rest", "Repeat for the next round"])
+                      .join(" · ")
+                  : recommendation.detail}
+              </small>
               <div className="session-progress">
                 <span style={{ width: `${progressPct}%` }} />
               </div>
@@ -1887,15 +1948,12 @@ export default function FormaApp() {
               <button
                 type="button"
                 className="secondary-btn"
-                disabled={session.exerciseIndex === 0}
-                onClick={() => {
-                  setSessionSwapOpen(false);
-                  setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 });
-                }}
+                disabled={currentBlockIndex === 0}
+                onClick={() => goToBlock(currentBlockIndex - 1)}
               >
                 Previous
               </button>
-              {isLastExercise ? (
+              {isLastBlock ? (
                 <button
                   type="button"
                   className="cta-btn"
@@ -1908,239 +1966,120 @@ export default function FormaApp() {
                 <button
                   type="button"
                   className="cta-btn"
-                  onClick={goNextExercise}
+                  onClick={() => goToBlock(currentBlockIndex + 1)}
                   disabled={!allSetsAddressed}
                 >
-                  Next exercise →
+                  Next →
                 </button>
               )}
             </div>
 
-            {!isWod ? (
-            <article className="card coach-prev">
-              <div className="coach-prev-head">
-                <span className="eyebrow">Last session</span>
-                {prev.pbWeight > 0 && <span className="season-pill">PB {prev.pbWeight}kg × {prev.pbReps}</span>}
-              </div>
-              {prev.hasData ? (
-                <div className="coach-prev-stats">
-                  <div><small>Weight</small><strong>{Math.max(...prev.weights)}kg</strong></div>
-                  <div><small>Reps</small><strong>{prev.reps.join(" / ")}</strong></div>
-                  <div><small>Avg RPE</small><strong>{prev.avgRpe}</strong></div>
-                  <div><small>Volume</small><strong>{Math.round(prev.volume)}kg</strong></div>
-                </div>
-              ) : (
-                <p className="muted">First time logging this exercise — today sets your baseline.</p>
-              )}
-              <p className="coach-prev-rec"><strong>Today:</strong> {recommendation.title}. {recommendation.detail}</p>
-            </article>
-            ) : null}
-
             {isWod ? (
               <WodLogger
-                exercise={exercise}
-                result={result}
+                exercise={leadExercise}
+                result={leadResult}
                 previousScore={previousWodScore}
                 onChange={updateWodResult}
               />
+            ) : isSuperset ? (
+              <article className="card session-superset">
+                <div className="session-superset-banner">
+                  <span className="session-superset-kicker">SUPERSET {currentBlock.letter}</span>
+                  <strong>
+                    {currentBlock.indices
+                      .map((index, position) =>
+                        supersetMarkFor(
+                          sessionWorkout.exercises[index],
+                          currentBlock.letter,
+                          position + 1,
+                        ),
+                      )
+                      .join(" + ")}
+                  </strong>
+                  <ol className="session-superset-sequence">
+                    {currentBlock.indices.map((index, position) => {
+                      const mark = supersetMarkFor(
+                        sessionWorkout.exercises[index],
+                        currentBlock.letter,
+                        position + 1,
+                      );
+                      return (
+                        <li key={index}>
+                          Complete {mark} {sessionWorkout.exercises[index]?.name}
+                          {position === 0 ? " first" : " immediately after"}
+                        </li>
+                      );
+                    })}
+                    <li>Rest</li>
+                    <li>Repeat for the next round</li>
+                  </ol>
+                </div>
+                {currentBlock.indices.map((index, position) => {
+                  const exercise = sessionWorkout.exercises[index];
+                  const result = session.results[index];
+                  if (!exercise || !result) return null;
+                  return (
+                    <div key={exercise.id}>
+                      {position > 0 ? <div className="session-superset-divider" aria-hidden="true" /> : null}
+                      <SessionExerciseLog
+                        exercise={exercise}
+                        result={result}
+                        exerciseIndex={index}
+                        history={history}
+                        phaseDef={phaseDef}
+                        mark={supersetMarkFor(exercise, currentBlock.letter, position + 1)}
+                        equipmentAccess={profile?.equipmentAccess}
+                        onSwap={swapExerciseInSession}
+                        onUpdateSet={updateSet}
+                        onSkipSet={handleSkipSet}
+                        onNote={updateExerciseNote}
+                        onCompleteSet={handleCompleteSet}
+                        parseNumberInput={parseNumberInput}
+                      />
+                    </div>
+                  );
+                })}
+                <p className="session-superset-rest-note">{sharedSupersetRestLabel(blockExercises)}</p>
+              </article>
             ) : (
-            <article className="card session-card">
-              <div className="session-meta">
-                <span>{exercise.sets} sets</span>
-                <span>{exercise.repMin}–{exercise.repMax} reps</span>
-                <span>RPE {exercise.rpe}</span>
-              </div>
-
-              <div className="set-list">
-                {result.sets.map((set, setIndex) => (
-                  <article
-                    className={`set-row ${set.complete ? "complete" : ""}${set.skipped && !set.complete ? " skipped" : ""}`}
-                    key={setIndex}
-                  >
-                    <strong>Set {setIndex + 1}</strong>
-                    <label>
-                      <span>kg</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.5"
-                        value={set.weight === 0 ? "" : set.weight}
-                        placeholder="0"
-                        onFocus={(event) => event.target.select()}
-                        onChange={(event) =>
-                          updateSet(session.exerciseIndex, setIndex, {
-                            weight: parseNumberInput(event.target.value),
-                            skipped: false,
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>reps</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        value={set.reps === 0 ? "" : set.reps}
-                        placeholder="0"
-                        onFocus={(event) => event.target.select()}
-                        onChange={(event) =>
-                          updateSet(session.exerciseIndex, setIndex, {
-                            reps: parseNumberInput(event.target.value),
-                            skipped: false,
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>RPE</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min="1"
-                        max="10"
-                        step="0.5"
-                        value={set.rpe === 0 ? "" : set.rpe}
-                        placeholder="0"
-                        onFocus={(event) => event.target.select()}
-                        onChange={(event) =>
-                          updateSet(session.exerciseIndex, setIndex, {
-                            rpe: parseNumberInput(event.target.value),
-                            skipped: false,
-                          })
-                        }
-                      />
-                    </label>
-                    <div className="set-row-actions">
-                      <button
-                        type="button"
-                        className="set-complete"
-                        onClick={() => {
-                          const nextComplete = !set.complete;
-                          updateSet(session.exerciseIndex, setIndex, {
-                            complete: nextComplete,
-                            skipped: false,
-                          });
-                          if (nextComplete) setRestRemaining(exercise.restSeconds);
-                        }}
-                      >
-                        {set.complete ? "✓" : "Done"}
-                      </button>
-                      {!set.complete ? (
-                        <button
-                          type="button"
-                          className="set-skip"
-                          onClick={() => skipSet(session.exerciseIndex, setIndex)}
-                        >
-                          {set.skipped ? "Skipped" : "Skip"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              <label className="field session-note-field">
-                <span>Note for this exercise</span>
-                <input
-                  value={result.note ?? ""}
-                  onChange={(event) => updateExerciseNote(session.exerciseIndex, event.target.value)}
-                  placeholder="Felt strong, form cue, leftover fatigue…"
-                />
-              </label>
-
-              {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
-            </article>
+              <SessionExerciseLog
+                exercise={leadExercise}
+                result={leadResult}
+                exerciseIndex={currentBlock.indices[0]}
+                history={history}
+                phaseDef={phaseDef}
+                equipmentAccess={profile?.equipmentAccess}
+                onSwap={swapExerciseInSession}
+                onUpdateSet={updateSet}
+                onSkipSet={handleSkipSet}
+                onNote={updateExerciseNote}
+                onCompleteSet={handleCompleteSet}
+                parseNumberInput={parseNumberInput}
+              />
             )}
-
-            {!isWod ? (
-            <article className="card coach-guide">
-              <span className="eyebrow">Coaching · {exercise.name}</span>
-              <div className="coach-guide-meta">
-                <span>{coaching.primary}</span>
-                <span>{coaching.equipment}</span>
-                <span>Tempo {coaching.tempo.split(" · ")[0]}</span>
-                <span>Rest {coaching.restSeconds}s</span>
-              </div>
-              <a
-                className="video-link-btn"
-                href={coaching.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Watch form · {coaching.videoLabel}
-              </a>
-              {coaching.secondary !== "—" ? <p className="muted coach-guide-sub">Secondary: {coaching.secondary}</p> : null}
-              {coaching.cues.length > 0 && (
-                <div className="coach-block">
-                  <strong>Focus</strong>
-                  <ul className="coach-list">
-                    {coaching.cues.map((cue) => <li key={cue}>{cue}</li>)}
-                  </ul>
-                </div>
-              )}
-              {coaching.mistakes.length > 0 && (
-                <div className="coach-block">
-                  <strong>Avoid</strong>
-                  <ul className="coach-list">
-                    {coaching.mistakes.map((mistake) => <li key={mistake}>{mistake}</li>)}
-                  </ul>
-                </div>
-              )}
-              {(() => {
-                const candidates = swapCandidates(
-                  exercise.exerciseId,
-                  profile?.equipmentAccess ?? "full_gym",
-                );
-                if (candidates.length === 0) return null;
-                return (
-                  <div className="swap-panel">
-                    <div className="swap-panel-head">
-                      <strong>Swap exercise</strong>
-                      <button
-                        type="button"
-                        className="text-btn"
-                        onClick={() => setSessionSwapOpen((open) => !open)}
-                      >
-                        {sessionSwapOpen ? "Hide" : "Show options"}
-                      </button>
-                    </div>
-                    {sessionSwapOpen && (
-                      <div className="swap-options">
-                        {candidates.map((candidate) => (
-                          <button
-                            key={candidate.id}
-                            type="button"
-                            className="swap-option"
-                            onClick={() => swapExerciseInSession(candidate.id)}
-                          >
-                            <span>{candidate.name}</span>
-                            <small>
-                              {swapReasonLabel(candidate.reason)}
-                              {candidate.preserveWeight ? " · keeps load" : " · reset load"}
-                            </small>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </article>
-            ) : null}
 
             {!isWod ? (
             <article className={`card rest-card${restRemaining > 0 ? " active" : ""}`}>
               <div>
-                <span className="eyebrow">{restRemaining > 0 ? "Resting" : "Rest timer"}</span>
+                <span className="eyebrow">
+                  {restRemaining > 0
+                    ? "Resting"
+                    : isSuperset
+                      ? "Rest after both exercises"
+                      : "Rest timer"}
+                </span>
                 <strong>
                   {minutes}:{seconds}
                 </strong>
+                {isSuperset ? (
+                  <small className="session-superset-rest-hint">{sharedSupersetRestLabel(blockExercises)}</small>
+                ) : null}
               </div>
               <div className="rest-actions">
                 <button type="button" onClick={() => setRestRemaining((current) => Math.max(0, current - 15))}>
                   −15s
                 </button>
-                <button type="button" onClick={() => setRestRemaining(exercise.restSeconds)}>
+                <button type="button" onClick={() => setRestRemaining(isSuperset ? sharedRest : leadExercise.restSeconds)}>
                   Restart
                 </button>
                 <button type="button" onClick={() => setRestRemaining((current) => current + 15)}>

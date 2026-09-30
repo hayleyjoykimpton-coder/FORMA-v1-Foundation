@@ -3453,6 +3453,97 @@ input, textarea {
 .session-progress span { display: block; height: 100%; border-radius: 999px; background: var(--cta); transition: width 0.35s ease; }
 
 .session-card { display: flex; flex-direction: column; gap: 14px; }
+
+.session-superset {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(36, 63, 130, 0.16);
+  background:
+    linear-gradient(180deg, rgba(36, 63, 130, 0.06), #fff 28%);
+}
+.session-superset-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.session-superset-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--cracker-blue, #243f82);
+}
+.session-superset-banner strong {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--cracker-navy, #000c4f);
+}
+.session-superset-sequence {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.session-superset-sequence li + li { margin-top: 2px; }
+.session-superset-divider {
+  height: 1px;
+  margin: 8px 0 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(36, 63, 130, 0.28) 0 8px,
+    transparent 8px 14px
+  );
+}
+.session-superset-leg {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.session-superset-leg-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.session-superset-mark {
+  flex-shrink: 0;
+  min-width: 40px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: var(--cracker-blue, #243f82);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+.session-superset-leg-head h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+.session-superset-leg .session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.session-superset-rest-note,
+.session-superset-rest-hint {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cracker-navy, #000c4f);
+}
+.session-superset-rest-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
 .session-meta { display: flex; flex-wrap: wrap; gap: 8px; }
 .session-meta span, .season-pill {
   border-radius: var(--r-pill);
