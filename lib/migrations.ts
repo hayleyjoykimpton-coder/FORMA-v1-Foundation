@@ -36,6 +36,12 @@ export type SessionDraftStored = {
   results: ExerciseResult[];
   readiness?: number;
   restRemaining?: number;
+  /** Used to rematch if programme ids change mid-week. */
+  workoutTitle?: string;
+  /** Snapshot so a programme rebuild cannot wipe an in-progress session. */
+  workout?: Workout;
+  /** True while the session screen is open — used to auto-resume after a reload. */
+  live?: boolean;
 };
 
 export type LoadedState = {

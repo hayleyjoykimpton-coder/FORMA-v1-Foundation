@@ -2785,6 +2785,21 @@ button:disabled { cursor: not-allowed; }
 .resume-card strong { display: block; color: var(--text); margin: 4px 0 6px; }
 .resume-card .muted { margin: 0; font-size: 0.92rem; }
 .resume-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+
+.cracker-resume-card {
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0;
+  background: #fff;
+}
+.cracker-resume-card .resume-actions {
+  width: 100%;
+}
+.cracker-resume-card .cta-btn,
+.cracker-resume-card .secondary-btn {
+  margin-top: 0;
+  width: 100%;
+}
 .resume-actions .primary-btn,
 .resume-actions button.primary-btn {
   border: 0;

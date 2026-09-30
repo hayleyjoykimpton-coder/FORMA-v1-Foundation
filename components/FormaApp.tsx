@@ -49,6 +49,11 @@ import {
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
+import {
+  draftMatchesWorkout,
+  findWorkoutForDraft,
+  storedSessionDraft,
+} from "@/lib/sessionDraft";
 import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS, CLUB_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import {
@@ -220,6 +225,7 @@ type SessionDraft = {
   exerciseIndex: number;
   results: ExerciseResult[];
   readiness?: number;
+  workoutSnapshot?: Workout;
 };
 type AuthMode = "booting" | "gate" | "local" | "cloud";
 
@@ -366,8 +372,31 @@ export default function FormaApp() {
     setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? INITIAL_WORKOUTS[0]?.id ?? "");
 
     const draft = state.sessionDraft;
-    if (draft && nextWorkouts.some((workout) => workout.id === draft.workoutId)) {
-      setPausedDraft(draft);
+    const liveWorkout = findWorkoutForDraft(nextWorkouts, draft);
+    if (draft && liveWorkout) {
+      const restored = {
+        ...draft,
+        workoutId: liveWorkout.id,
+        workoutTitle: liveWorkout.title,
+        workout: liveWorkout,
+      };
+      setPausedDraft(restored);
+      persistSessionDraft(restored);
+      setActiveWorkoutId(liveWorkout.id);
+      // Auto-open only when the session was live (reload / crash), not after Exit.
+      if (draft.live !== false) {
+        setSession({
+          workoutId: liveWorkout.id,
+          exerciseIndex: Math.min(
+            Math.max(0, draft.exerciseIndex),
+            Math.max(0, liveWorkout.exercises.length - 1),
+          ),
+          results: draft.results,
+          readiness: draft.readiness,
+          workoutSnapshot: liveWorkout,
+        });
+        setRestRemaining(draft.restRemaining ?? 0);
+      }
     } else if (draft) {
       persistSessionDraft(null);
       setPausedDraft(null);
@@ -375,6 +404,14 @@ export default function FormaApp() {
   };
 
   const applyCloudBundle = async (userId: string) => {
+    // Never rebuild the programme or overwrite the set log while a workout is live.
+    if (sessionRef.current) {
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      return;
+    }
+
     const cloud = await pullCloudState(userId);
     const local = loadForma();
     const localProfile = loadProfile();
@@ -446,7 +483,6 @@ export default function FormaApp() {
         didUpgrade = true;
       }
 
-      const liveSession = sessionRef.current;
       const cloudCheckIns = cloud.crackerMoveCheckIns;
       const localCheckIns = canMergeLocal ? loadMoveCheckIns() : emptyMoveCheckIns();
       const mergedCheckIns =
@@ -469,16 +505,34 @@ export default function FormaApp() {
       if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
       else setWater(0);
 
-      // Never yank the user onto "today's" workout mid-session.
-      if (liveSession && nextWorkouts.some((workout) => workout.id === liveSession.workoutId)) {
-        setActiveWorkoutId(liveSession.workoutId);
-      } else {
-        const today = pickTodaysWorkout(nextWorkouts);
-        setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
-      }
+      const today = pickTodaysWorkout(nextWorkouts);
+      setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
 
-      if (cloud.sessionDraft && nextWorkouts.some((w) => w.id === cloud.sessionDraft!.workoutId)) {
-        setPausedDraft(cloud.sessionDraft);
+      const incomingDraft = cloud.sessionDraft ?? (canMergeLocal ? local.sessionDraft : null);
+      const liveWorkout = findWorkoutForDraft(nextWorkouts, incomingDraft);
+      if (incomingDraft && liveWorkout && !sessionRef.current) {
+        const restored = {
+          ...incomingDraft,
+          workoutId: liveWorkout.id,
+          workoutTitle: liveWorkout.title,
+          workout: liveWorkout,
+        };
+        setPausedDraft(restored);
+        persistSessionDraft(restored);
+        setActiveWorkoutId(liveWorkout.id);
+        if (incomingDraft.live !== false) {
+          setSession({
+            workoutId: liveWorkout.id,
+            exerciseIndex: Math.min(
+              Math.max(0, incomingDraft.exerciseIndex),
+              Math.max(0, liveWorkout.exercises.length - 1),
+            ),
+            results: incomingDraft.results,
+            readiness: incomingDraft.readiness,
+            workoutSnapshot: liveWorkout,
+          });
+          setRestRemaining(incomingDraft.restRemaining ?? 0);
+        }
       }
       saveProfile(cloud.profile);
       saveWellness(cloud.wellness);
@@ -614,8 +668,14 @@ export default function FormaApp() {
       }
       // TOKEN_REFRESHED used to re-pull and overwrite activeWorkoutId / history mid-session.
       if (event === "SIGNED_IN" && session?.user.id) {
-        await applyCloudBundle(session.user.id);
-        setHydrated(true);
+        if (sessionRef.current) {
+          setCloudUserId(session.user.id);
+          setAuthMode("cloud");
+          setHydrated(true);
+        } else {
+          await applyCloudBundle(session.user.id);
+          setHydrated(true);
+        }
       } else if (event === "TOKEN_REFRESHED" && session?.user.id) {
         setCloudUserId(session.user.id);
         setAuthMode("cloud");
@@ -663,12 +723,35 @@ export default function FormaApp() {
     );
   }, [workouts, history, week, alignActive, hydrated]);
 
-  // Autosave live session so a mid-workout crash does not wipe progress.
+  // Autosave live session so a mid-workout crash / PWA reload does not wipe progress.
   useEffect(() => {
     if (!hydrated || !session) return;
-    persistSessionDraft({ ...session, restRemaining });
-    setPausedDraft({ ...session, restRemaining });
-  }, [session, restRemaining, hydrated]);
+    const workout =
+      session.workoutSnapshot ??
+      workouts.find((item) => item.id === session.workoutId) ??
+      null;
+    const stored = storedSessionDraft(session, workout, restRemaining);
+    persistSessionDraft(stored);
+    setPausedDraft(stored);
+  }, [session, restRemaining, hydrated, workouts]);
+
+  useEffect(() => {
+    const persistLive = () => {
+      const live = sessionRef.current;
+      if (!live) return;
+      const workout =
+        live.workoutSnapshot ??
+        workouts.find((item) => item.id === live.workoutId) ??
+        null;
+      persistSessionDraft(storedSessionDraft(live, workout, restRemaining));
+    };
+    window.addEventListener("pagehide", persistLive);
+    window.addEventListener("visibilitychange", persistLive);
+    return () => {
+      window.removeEventListener("pagehide", persistLive);
+      window.removeEventListener("visibilitychange", persistLive);
+    };
+  }, [workouts, restRemaining]);
 
   // Fitness / InBody check-ins live in localStorage; bump so cloud sync includes them.
   useEffect(() => {
@@ -794,7 +877,10 @@ export default function FormaApp() {
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
   /** Always bind the live session to session.workoutId — never silently switch to "today". */
   const sessionWorkout = session
-    ? workouts.find((workout) => workout.id === session.workoutId) ?? null
+    ? workouts.find((workout) => workout.id === session.workoutId) ??
+      session.workoutSnapshot ??
+      findWorkoutForDraft(workouts, pausedDraft) ??
+      null
     : null;
   const todaysWorkout = useMemo(() => pickTodaysWorkout(workouts), [workouts]);
   const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
@@ -888,9 +974,18 @@ export default function FormaApp() {
           });
     const generated = transferExerciseWeights(workouts, nextPlan);
     setWorkouts(generated);
+    if (sessionRef.current) {
+      const live = findWorkoutForDraft(generated, {
+        ...sessionRef.current,
+        restRemaining,
+        workoutTitle: sessionRef.current.workoutSnapshot?.title,
+        workout: sessionRef.current.workoutSnapshot,
+      });
+      if (live) setActiveWorkoutId(live.id);
+      return;
+    }
     const today = pickTodaysWorkout(generated);
     setActiveWorkoutId(today?.id ?? generated[0]?.id ?? "");
-    // New workout ids invalidate any in-progress draft.
     persistSessionDraft(null);
     setPausedDraft(null);
     setSession(null);
@@ -1038,14 +1133,29 @@ export default function FormaApp() {
   };
 
   const startWorkout = (workout: Workout) => {
+    if (pausedDraft && draftMatchesWorkout(pausedDraft, workout, workouts)) {
+      resumePausedSession();
+      return;
+    }
     setReadinessWorkout(workout);
   };
 
   const beginSession = (workout: Workout, readiness: Readiness) => {
+    if (pausedDraft && draftMatchesWorkout(pausedDraft, workout, workouts)) {
+      resumePausedSession();
+      setReadinessWorkout(null);
+      return;
+    }
     const base = createSessionResults(workout, history, phaseDef);
     const results = adjustResultsForReadiness(base, readiness);
     setActiveWorkoutId(workout.id);
-    setSession({ workoutId: workout.id, exerciseIndex: 0, results, readiness: readiness.score });
+    setSession({
+      workoutId: workout.id,
+      exerciseIndex: 0,
+      results,
+      readiness: readiness.score,
+      workoutSnapshot: workout,
+    });
     setPausedDraft(null);
     setReadinessWorkout(null);
     setTab("today");
@@ -1054,7 +1164,11 @@ export default function FormaApp() {
 
   const exitSession = () => {
     if (session) {
-      const draft = { ...session, restRemaining };
+      const workout =
+        session.workoutSnapshot ??
+        workouts.find((item) => item.id === session.workoutId) ??
+        null;
+      const draft = storedSessionDraft(session, workout, restRemaining, false);
       persistSessionDraft(draft);
       setPausedDraft(draft);
     }
@@ -1064,7 +1178,7 @@ export default function FormaApp() {
 
   const resumePausedSession = () => {
     if (!pausedDraft) return;
-    const workout = workouts.find((item) => item.id === pausedDraft.workoutId);
+    const workout = findWorkoutForDraft(workouts, pausedDraft);
     if (!workout) {
       persistSessionDraft(null);
       setPausedDraft(null);
@@ -1072,10 +1186,14 @@ export default function FormaApp() {
     }
     setActiveWorkoutId(workout.id);
     setSession({
-      workoutId: pausedDraft.workoutId,
-      exerciseIndex: pausedDraft.exerciseIndex,
+      workoutId: workout.id,
+      exerciseIndex: Math.min(
+        Math.max(0, pausedDraft.exerciseIndex),
+        Math.max(0, workout.exercises.length - 1),
+      ),
       results: pausedDraft.results,
       readiness: pausedDraft.readiness,
+      workoutSnapshot: workout,
     });
     setRestRemaining(pausedDraft.restRemaining ?? 0);
     setTab("today");
@@ -1680,10 +1798,25 @@ export default function FormaApp() {
   }
 
   if (session && sessionWorkout) {
-    const exercise = sessionWorkout.exercises[session.exerciseIndex];
-    const result = session.results[session.exerciseIndex];
+    const safeIndex = Math.min(
+      Math.max(0, session.exerciseIndex),
+      Math.max(0, sessionWorkout.exercises.length - 1, session.results.length - 1),
+    );
+    const exercise = sessionWorkout.exercises[safeIndex];
+    const result = session.results[safeIndex];
     if (!exercise || !result) {
-      return null;
+      return (
+        <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
+          <div className="shell">
+            <div className="screen session-screen">
+              <p className="muted">This session is still saved. Resume from MOVE when you are ready.</p>
+              <button type="button" className="cta-btn" onClick={exitSession}>
+                Back to MOVE
+              </button>
+            </div>
+          </div>
+        </div>
+      );
     }
     const recommendation = getRecommendation(exercise, history, phaseDef);
     const prev = previousPerformance(exercise, history);
@@ -2150,6 +2283,9 @@ export default function FormaApp() {
           onAddPhoto={handleAddPhoto}
           onDeletePhoto={handleDeletePhoto}
           club={profile.club}
+          pausedTitle={pausedTitle}
+          onResumeWorkout={resumePausedSession}
+          onDiscardWorkout={discardPausedSession}
         />
       </div>
     );

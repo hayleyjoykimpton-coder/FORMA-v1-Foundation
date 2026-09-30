@@ -23,6 +23,7 @@ import { buildChallengeProgress } from "@/lib/crackerProgress";
 import { loadMoveCheckIns } from "@/lib/crackerMoveCheckIns";
 import type { ExperienceLevel } from "@/lib/user";
 import type { WorkoutSession } from "@/lib/types";
+import { CrackerResumeCard } from "@/components/cracker/CrackerResumeCard";
 
 type Props = {
   week: number;
@@ -36,6 +37,9 @@ type Props = {
   onOpenProgress: () => void;
   history: WorkoutSession[];
   experience: ExperienceLevel;
+  pausedTitle?: string | null;
+  onResumeWorkout?: () => void;
+  onDiscardWorkout?: () => void;
 };
 
 const PILLARS: {
@@ -84,6 +88,9 @@ export function CrackerHome({
   onOpenProgress,
   history,
   experience,
+  pausedTitle,
+  onResumeWorkout,
+  onDiscardWorkout,
 }: Props) {
   const weekProgress =
     sessionsTarget > 0 ? Math.min(100, Math.round((sessionsDone / sessionsTarget) * 100)) : 0;
@@ -140,6 +147,14 @@ export function CrackerHome({
           {sessionsDone}/{sessionsTarget || "—"} sessions this week
         </p>
       </section>
+
+      {pausedTitle && onResumeWorkout && onDiscardWorkout ? (
+        <CrackerResumeCard
+          title={pausedTitle}
+          onResume={onResumeWorkout}
+          onDiscard={onDiscardWorkout}
+        />
+      ) : null}
 
       <article className="card cracker-intro-card" aria-label="Jess intro video">
         <p className="eyebrow">WATCH JESS</p>

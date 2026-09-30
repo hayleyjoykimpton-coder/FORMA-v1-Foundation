@@ -30,6 +30,7 @@ import {
   type MoveSubTab,
 } from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
+import { CrackerResumeCard } from "@/components/cracker/CrackerResumeCard";
 import { crackerWeeklyTrainingVideoUrl } from "@/lib/jessTrainer";
 import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
@@ -59,6 +60,9 @@ type Props = {
   photos: ProgressPhoto[];
   onAddPhoto: (photo: ProgressPhoto) => void;
   onDeletePhoto: (id: string) => void;
+  pausedTitle?: string | null;
+  onResumeWorkout?: () => void;
+  onDiscardWorkout?: () => void;
 };
 
 function shortSummary(workout: Workout): string {
@@ -124,6 +128,9 @@ export function CrackerMove({
   photos,
   onAddPhoto,
   onDeletePhoto,
+  pausedTitle,
+  onResumeWorkout,
+  onDiscardWorkout,
 }: Props) {
   const [subTab, setSubTab] = useState<MoveSubTab>(() => loadMoveSubTab());
   const [viewWeek, setViewWeek] = useState(currentWeek);
@@ -325,6 +332,14 @@ export function CrackerMove({
           </div>
         )}
 
+        {pausedTitle && onResumeWorkout && onDiscardWorkout ? (
+          <CrackerResumeCard
+            title={pausedTitle}
+            onResume={onResumeWorkout}
+            onDiscard={onDiscardWorkout}
+          />
+        ) : null}
+
         <section className="cracker-this-week" aria-label="This week">
           <p className="eyebrow">THIS WEEK</p>
           <ul className="cracker-week-checklist">
@@ -431,7 +446,11 @@ export function CrackerMove({
                   <h2>{workout.title.toUpperCase()}</h2>
                   <p className="muted">{shortSummary(workout)}</p>
                   <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
-                    {done ? "START AGAIN" : "START WORKOUT"}
+                    {pausedTitle && startTarget.title === pausedTitle
+                      ? "CONTINUE WORKOUT"
+                      : done
+                        ? "START AGAIN"
+                        : "START WORKOUT"}
                   </button>
                 </div>
               </article>

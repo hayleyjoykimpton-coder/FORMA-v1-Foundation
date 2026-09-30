@@ -28,6 +28,9 @@ type Props = {
   onAddPhoto: (photo: ProgressPhoto) => void;
   onDeletePhoto: (id: string) => void;
   club: LifeSoulClub;
+  pausedTitle?: string | null;
+  onResumeWorkout?: () => void;
+  onDiscardWorkout?: () => void;
 };
 
 export function CrackerShell({
@@ -46,6 +49,9 @@ export function CrackerShell({
   onAddPhoto,
   onDeletePhoto,
   club,
+  pausedTitle,
+  onResumeWorkout,
+  onDiscardWorkout,
 }: Props) {
   const [tab, setTab] = useState<CrackerTab>("home");
 
@@ -75,6 +81,9 @@ export function CrackerShell({
           }}
           history={history}
           experience={experience}
+          pausedTitle={pausedTitle}
+          onResumeWorkout={onResumeWorkout}
+          onDiscardWorkout={onDiscardWorkout}
         />
       ) : null}
 
@@ -91,6 +100,9 @@ export function CrackerShell({
           photos={photos}
           onAddPhoto={onAddPhoto}
           onDeletePhoto={onDeletePhoto}
+          pausedTitle={pausedTitle}
+          onResumeWorkout={onResumeWorkout}
+          onDiscardWorkout={onDiscardWorkout}
         />
       ) : null}
 
