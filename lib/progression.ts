@@ -11,6 +11,12 @@
 import type { Exercise, ExerciseResult, SetResult, Workout, WorkoutSession } from "./types";
 import type { PhaseDefinition } from "./program";
 import { getExercise } from "./exercises";
+import {
+  formatHoldDuration,
+  isHoldExercise,
+  parseHoldTargetSeconds,
+  setHoldSeconds,
+} from "./holdExercise";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -69,6 +75,92 @@ function lastResult(exercise: Exercise, history: WorkoutSession[]): ExerciseResu
     .at(-1);
 }
 
+function holdRecommendation(
+  exercise: Exercise,
+  previous: ExerciseResult | undefined,
+  increaseCeiling: number,
+  backoffFloor: number,
+): Recommendation {
+  const target = parseHoldTargetSeconds(exercise);
+  const targetLabel = target ? `${target}s` : "time";
+
+  if (!previous) {
+    return {
+      action: "baseline",
+      title: "Time this hold",
+      detail: target
+        ? `Aim for about ${targetLabel} per set at RPE ${exercise.rpe}. Today's hold sets your baseline.`
+        : `Start the timer, hold, then stop to log the time. Today's hold sets your baseline.`,
+      targetWeight: exercise.weight,
+    };
+  }
+
+  const completed = previous.sets.filter((set) => set.complete);
+  if (!completed.length) {
+    return {
+      action: "repeat",
+      title: "Repeat the planned target",
+      detail: "The previous session was not completed.",
+      targetWeight: exercise.weight,
+      previousWeight: exercise.weight,
+    };
+  }
+
+  const times = completed
+    .map((set) => setHoldSeconds(set))
+    .filter((seconds): seconds is number => seconds != null && seconds > 0);
+  const previousWeight = completed[0]?.weight ?? exercise.weight;
+  const averageRpe = completed.reduce((sum, set) => sum + set.rpe, 0) / completed.length;
+
+  if (!times.length) {
+    return {
+      action: "baseline",
+      title: "Time this hold",
+      detail: "Log how long you hold today — that becomes your comparison next time.",
+      targetWeight: previousWeight,
+      previousWeight,
+    };
+  }
+
+  const longest = Math.max(...times);
+  const listed = times.map(formatHoldDuration).join(" / ");
+
+  if (averageRpe >= backoffFloor) {
+    const next = Math.max(0, previousWeight - exercise.increment);
+    return {
+      action: "deload",
+      title: previousWeight > 0 ? `Reduce to ${next} kg` : "Shorten the hold slightly",
+      detail: "Effort was very high. Keep the position honest and rebuild time.",
+      targetWeight: next,
+      previousWeight,
+    };
+  }
+
+  if (
+    target &&
+    times.every((seconds) => seconds >= target) &&
+    averageRpe <= increaseCeiling &&
+    previousWeight > 0
+  ) {
+    const next = previousWeight + exercise.increment;
+    return {
+      action: "add",
+      title: `Increase to ${next} kg`,
+      detail: `You held ${targetLabel} with manageable effort — add a little load next time.`,
+      targetWeight: next,
+      previousWeight,
+    };
+  }
+
+  return {
+    action: "hold",
+    title: `Beat ${formatHoldDuration(longest)}`,
+    detail: `Last session: ${listed}. Match or beat that hold${previousWeight > 0 ? ", or add a little load if it felt easy" : ""}.`,
+    targetWeight: previousWeight,
+    previousWeight,
+  };
+}
+
 /**
  * Recommend how to load an exercise next, based on the previous session and
  * the current phase intensity ceiling.
@@ -83,6 +175,10 @@ export function getRecommendation(
   const backoffFloor = 9.5;
 
   const previous = lastResult(exercise, history);
+
+  if (isHoldExercise(exercise)) {
+    return holdRecommendation(exercise, previous, increaseCeiling, backoffFloor);
+  }
 
   if (!previous) {
     return {
@@ -155,7 +251,7 @@ export function createSessionResults(
       repMax: exercise.repMax,
       increment: exercise.increment,
       sets: Array.from({ length: exercise.sets }, () => ({
-        reps: exercise.repMin,
+        reps: isHoldExercise(exercise) ? 0 : exercise.repMin,
         weight: recommendation.targetWeight,
         rpe: exercise.rpe,
         complete: false,

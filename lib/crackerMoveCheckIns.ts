@@ -1,6 +1,7 @@
 /**
  * Christmas Cracker MOVE check-ins — fitness testing + InBody/measurements.
- * Browser-only persistence via localStorage (no server DB).
+ * Browser cache via localStorage; signed-in accounts also sync through
+ * `user_state.programme.crackerMoveCheckIns`.
  *
  * Fields:
  * - fitness_initial / fitness_final
@@ -50,6 +51,8 @@ export type CrackerMoveCheckIns = {
 };
 
 export const MOVE_CHECKINS_STORAGE = "forma-cracker-move-checkins-v1";
+/** Fired after local check-ins save so signed-in cloud sync can pick them up. */
+export const MOVE_CHECKINS_CHANGED_EVENT = "forma-move-checkins-changed";
 const LEGACY_FITNESS_KEY = "forma-cracker-fitness-v1";
 
 export const FITNESS_INITIAL_LABEL = "INITIAL · 10 OCTOBER 2026";
@@ -171,6 +174,10 @@ export function normalizeMoveCheckIns(raw: unknown): CrackerMoveCheckIns {
   };
 }
 
+export function emptyMoveCheckIns(): CrackerMoveCheckIns {
+  return {};
+}
+
 export function loadMoveCheckIns(): CrackerMoveCheckIns {
   if (typeof window === "undefined") return {};
   try {
@@ -191,6 +198,7 @@ export function saveMoveCheckIns(state: CrackerMoveCheckIns): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(MOVE_CHECKINS_STORAGE, JSON.stringify(normalizeMoveCheckIns(state)));
+    window.dispatchEvent(new Event(MOVE_CHECKINS_CHANGED_EVENT));
   } catch {
     /* ignore quota */
   }

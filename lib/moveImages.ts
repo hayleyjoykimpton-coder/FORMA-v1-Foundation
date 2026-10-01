@@ -89,7 +89,8 @@ export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   week1: JESS_COACHING_CLIENT_01,
   week2: JESS_COACHING_LATERAL_02,
   week3: JESS_COACHING_CLIENT,
-  week4: JMK_TRAINING_IMAGE,
+  // Real coaching photo — not the JMK "Real Results" promo graphic
+  week4: JESS_COACHING_FULL_BARBELL,
   week5: JESS_COACHING_LATERAL,
   week6: JESS_COACHING_PULLDOWN,
   lower: JESS_COACHING_CLIENT_01,

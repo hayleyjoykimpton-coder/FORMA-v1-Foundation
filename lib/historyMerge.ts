@@ -1,3 +1,5 @@
+import { mergeByIdPreferNewer } from "./cloudGuard";
+import type { ProgressEntry, ProgressPhoto } from "./progress";
 import type { WorkoutSession } from "./types";
 
 /**
@@ -34,6 +36,20 @@ export function mergeHistories(
   );
 }
 
+export function mergeProgress(
+  local: ProgressEntry[],
+  cloud: ProgressEntry[],
+): ProgressEntry[] {
+  return mergeByIdPreferNewer(local, cloud).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function mergePhotos(
+  local: ProgressPhoto[],
+  cloud: ProgressPhoto[],
+): ProgressPhoto[] {
+  return mergeByIdPreferNewer(local, cloud).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 /** Monday 00:00 local time for the week containing `date`. */
 export function startOfWeekMonday(date = new Date()): Date {
   const d = new Date(date);
@@ -63,4 +79,20 @@ export function completedWorkoutIdsThisWeek(
   }
 
   return ids;
+}
+
+/** Completed sessions in the current Mon–Sun calendar week (not programme week number). */
+export function sessionsCompletedThisCalendarWeek(
+  history: WorkoutSession[],
+  now = new Date(),
+): number {
+  const start = startOfWeekMonday(now).getTime();
+  const end = start + 7 * 24 * 60 * 60 * 1000;
+  let count = 0;
+  for (const session of history) {
+    const at = new Date(session.completedAt).getTime();
+    if (!Number.isFinite(at) || at < start || at >= end) continue;
+    count += 1;
+  }
+  return count;
 }
