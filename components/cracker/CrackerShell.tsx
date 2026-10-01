@@ -7,7 +7,7 @@ import { CrackerMove } from "@/components/cracker/CrackerMove";
 import { CrackerNourish } from "@/components/cracker/CrackerNourish";
 import { CrackerTabBar } from "@/components/cracker/CrackerTabBar";
 import type { CrackerTab } from "@/components/cracker/types";
-import { loadCrackerTab, saveCrackerTab, saveMoveSubTab } from "@/lib/crackerNav";
+import { loadCrackerTab, saveCrackerTab, saveMoveSubTab, type MoveSubTab } from "@/lib/crackerNav";
 import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel, LifeSoulClub } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
@@ -54,14 +54,22 @@ export function CrackerShell({
   onDiscardWorkout,
 }: Props) {
   const [tab, setTab] = useState<CrackerTab>("home");
+  const [moveOpenSignal, setMoveOpenSignal] = useState(0);
 
   useEffect(() => {
     setTab(loadCrackerTab());
   }, []);
 
-  const selectTab = (next: CrackerTab) => {
+  const selectTab = (next: CrackerTab, moveSubTab?: MoveSubTab) => {
+    if (next === "move") {
+      saveMoveSubTab(moveSubTab ?? "training");
+      setMoveOpenSignal((value) => value + 1);
+    }
     setTab(next);
     saveCrackerTab(next);
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   };
 
   return (
@@ -76,8 +84,7 @@ export function CrackerShell({
           onOpenProfile={onOpenProfile}
           onNavigate={selectTab}
           onOpenProgress={() => {
-            saveMoveSubTab("progress");
-            selectTab("move");
+            selectTab("move", "progress");
           }}
           history={history}
           experience={experience}
@@ -103,6 +110,7 @@ export function CrackerShell({
           pausedTitle={pausedTitle}
           onResumeWorkout={onResumeWorkout}
           onDiscardWorkout={onDiscardWorkout}
+          openSignal={moveOpenSignal}
         />
       ) : null}
 

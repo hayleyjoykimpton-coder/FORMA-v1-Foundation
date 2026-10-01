@@ -63,6 +63,8 @@ type Props = {
   pausedTitle?: string | null;
   onResumeWorkout?: () => void;
   onDiscardWorkout?: () => void;
+  /** Incremented when the MOVE tab is tapped so we open Training at the top. */
+  openSignal?: number;
 };
 
 function shortSummary(workout: Workout): string {
@@ -131,6 +133,7 @@ export function CrackerMove({
   pausedTitle,
   onResumeWorkout,
   onDiscardWorkout,
+  openSignal = 0,
 }: Props) {
   const [subTab, setSubTab] = useState<MoveSubTab>(() => loadMoveSubTab());
   const [viewWeek, setViewWeek] = useState(currentWeek);
@@ -147,6 +150,21 @@ export function CrackerMove({
     setChecklist(loadMoveChecklist());
     setSubTab(loadMoveSubTab());
   }, []);
+
+  useEffect(() => {
+    if (!openSignal) return;
+    setSubTab(loadMoveSubTab());
+    const scrollTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      document.querySelector(".cracker-shell")?.scrollTo({ top: 0 });
+      document.querySelector(".move-subnav")?.scrollTo({ left: 0 });
+    };
+    scrollTop();
+    const frame = window.requestAnimationFrame(scrollTop);
+    return () => window.cancelAnimationFrame(frame);
+  }, [openSignal]);
 
   useEffect(() => {
     setViewWeek(currentWeek);
@@ -340,6 +358,57 @@ export function CrackerMove({
           />
         ) : null}
 
+        <div className="cracker-workout-stack">
+          {ordered.map((workout, orderIdx) => {
+            const idx = crackerSessionIndex(workout.title) || orderIdx + 1;
+            const done = doneMap.get(workout.id);
+            const media = moveMediaForSession(workout.title);
+            const startTarget =
+              viewWeek === currentWeek
+                ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
+                : workout;
+            const cropMod = media.cropClass ? ` ${media.cropClass}` : "";
+
+            return (
+              <article
+                key={workout.id}
+                className={`cracker-workout-card${done ? " is-done" : ""}`}
+              >
+                {media.kind === "photo" && media.src ? (
+                  <div
+                    className={`cracker-workout-media cracker-workout-media--photo${cropMod}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={media.src} alt="" />
+                    <span className="cracker-workout-chip">Session {idx} of 3</span>
+                    {done ? <span className="cracker-workout-done">Done</span> : null}
+                  </div>
+                ) : (
+                  <div
+                    className={`cracker-workout-media cracker-workout-media--neutral accent-${media.label.toLowerCase()}`}
+                  >
+                    <span className="cracker-workout-neutral-label">{media.label}</span>
+                    <span className="cracker-workout-chip">Session {idx} of 3</span>
+                    {done ? <span className="cracker-workout-done">Done</span> : null}
+                  </div>
+                )}
+                <div className="cracker-workout-body">
+                  <p className="eyebrow">{workout.day}</p>
+                  <h2>{workout.title.toUpperCase()}</h2>
+                  <p className="muted">{shortSummary(workout)}</p>
+                  <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
+                    {pausedTitle && startTarget.title === pausedTitle
+                      ? "CONTINUE WORKOUT"
+                      : done
+                        ? "START AGAIN"
+                        : "START WORKOUT"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
         <section className="cracker-this-week" aria-label="This week">
           <p className="eyebrow">THIS WEEK</p>
           <ul className="cracker-week-checklist">
@@ -406,57 +475,6 @@ export function CrackerMove({
         </article>
 
         <JessHeadTrainerCard />
-
-        <div className="cracker-workout-stack">
-          {ordered.map((workout, orderIdx) => {
-            const idx = crackerSessionIndex(workout.title) || orderIdx + 1;
-            const done = doneMap.get(workout.id);
-            const media = moveMediaForSession(workout.title);
-            const startTarget =
-              viewWeek === currentWeek
-                ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
-                : workout;
-            const cropMod = media.cropClass ? ` ${media.cropClass}` : "";
-
-            return (
-              <article
-                key={workout.id}
-                className={`cracker-workout-card${done ? " is-done" : ""}`}
-              >
-                {media.kind === "photo" && media.src ? (
-                  <div
-                    className={`cracker-workout-media cracker-workout-media--photo${cropMod}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={media.src} alt="" />
-                    <span className="cracker-workout-chip">Session {idx} of 3</span>
-                    {done ? <span className="cracker-workout-done">Done</span> : null}
-                  </div>
-                ) : (
-                  <div
-                    className={`cracker-workout-media cracker-workout-media--neutral accent-${media.label.toLowerCase()}`}
-                  >
-                    <span className="cracker-workout-neutral-label">{media.label}</span>
-                    <span className="cracker-workout-chip">Session {idx} of 3</span>
-                    {done ? <span className="cracker-workout-done">Done</span> : null}
-                  </div>
-                )}
-                <div className="cracker-workout-body">
-                  <p className="eyebrow">{workout.day}</p>
-                  <h2>{workout.title.toUpperCase()}</h2>
-                  <p className="muted">{shortSummary(workout)}</p>
-                  <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
-                    {pausedTitle && startTarget.title === pausedTitle
-                      ? "CONTINUE WORKOUT"
-                      : done
-                        ? "START AGAIN"
-                        : "START WORKOUT"}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
