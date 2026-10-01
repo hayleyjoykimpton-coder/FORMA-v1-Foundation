@@ -8,6 +8,7 @@ import {
   configuredUrl,
   facebookCommunityUrl,
   isWellnessClub,
+  jessLoweIntroVideoUrl,
   naomiIntroVideoUrl,
   nutritionEducationLinks,
   nutritionSupportMailto,
@@ -38,6 +39,7 @@ export function CrackerNourish({
   const supportMail = nutritionSupportMailto();
   const facebook = facebookCommunityUrl();
   const naomiIntro = naomiIntroVideoUrl();
+  const jessLoweIntro = jessLoweIntroVideoUrl();
 
   return (
     <div className="screen cracker-screen cracker-nourish">
@@ -99,6 +101,13 @@ export function CrackerNourish({
         <p className="eyebrow">OPTIONAL UPGRADE</p>
         <h2>WANT MORE SUPPORT?</h2>
         <p className="muted">Upgrade to Happy Healthy Nutrition with Jess Lowe.</p>
+        {jessLoweIntro ? (
+          <div className="nourish-naomi-intro">
+            <p className="eyebrow">{NOURISH_COPY.jessLoweEyebrow}</p>
+            <p className="muted">{NOURISH_COPY.jessLoweIntroTitle}</p>
+            <InAppVideo url={jessLoweIntro} title="Jess Lowe intro to Happy Healthy Nutrition" />
+          </div>
+        ) : null}
         <p className="nourish-price">
           {NOURISH_COPY.personalisedPrice}{" "}
           <span className="nourish-price-period">{NOURISH_COPY.pricePeriod}</span>

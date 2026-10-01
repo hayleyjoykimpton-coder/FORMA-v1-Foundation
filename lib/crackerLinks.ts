@@ -36,6 +36,10 @@ export const CRACKER_EXTERNAL_LINKS = {
   naomiVideos: {
     intro: "https://youtube.com/shorts/UjnC8Fp6Mxs?feature=share",
   },
+  /** Happy Healthy Nutrition / Jess Lowe — upgrade intro on the Nourish card. */
+  jessLoweVideos: {
+    intro: "https://youtube.com/shorts/FanaMCmboG8?feature=share",
+  },
   /** Naomi workshop / education links — render Nourish education only when a URL is set. */
   nutritionEducation: [] as { title: string; url: string }[],
   /** Week 3 TYG Payday booking. Empty = Coming soon, never a placeholder. */
@@ -67,6 +71,10 @@ export function jessVideoUrl(week: number): string | null {
 
 export function naomiIntroVideoUrl(): string | null {
   return configuredUrl(CRACKER_EXTERNAL_LINKS.naomiVideos.intro);
+}
+
+export function jessLoweIntroVideoUrl(): string | null {
+  return configuredUrl(CRACKER_EXTERNAL_LINKS.jessLoweVideos.intro);
 }
 
 export function personalisedNutritionUrl(): string | null {

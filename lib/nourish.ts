@@ -30,4 +30,6 @@ export const NOURISH_COPY = {
   supportMessageCta: "MESSAGE CRACKER PAGE",
   introEyebrow: "WATCH NAOMI",
   introTitle: "Intro to CRACKER nutrition",
+  jessLoweEyebrow: "WATCH JESS LOWE",
+  jessLoweIntroTitle: "Intro to Happy Healthy Nutrition",
 } as const;
