@@ -10,6 +10,7 @@ import {
   phaseCopy,
 } from "@/lib/content";
 import { imageForMoveWorkout } from "@/lib/moveImages";
+import { exerciseDoseLabel, isHoldExercise } from "@/lib/holdExercise";
 import type {
   Exercise,
   ExerciseResult,
@@ -1317,7 +1318,7 @@ export default function FormaApp() {
     sessionId: string,
     exerciseId: string,
     setIndex: number,
-    patch: Partial<{ reps: number; weight: number; rpe: number; complete: boolean }>,
+    patch: Partial<{ reps: number; weight: number; rpe: number; complete: boolean; holdSeconds: number }>,
   ) => {
     setHistory((current) =>
       current.map((entry) => {
@@ -2043,6 +2044,7 @@ export default function FormaApp() {
               </article>
             ) : (
               <SessionExerciseLog
+                key={leadExercise.id}
                 exercise={leadExercise}
                 result={leadResult}
                 exerciseIndex={currentBlock.indices[0]}
@@ -2429,7 +2431,7 @@ export default function FormaApp() {
                             <div>
                               <strong>{item.name}</strong>
                               <small>
-                                {item.sets} × {item.repMin}–{item.repMax} · RPE {item.rpe}
+                                {exerciseDoseLabel(item)}
                               </small>
                               <em>{recommendation.title}</em>
                             </div>
@@ -3193,7 +3195,7 @@ export default function FormaApp() {
                                   </div>
                                   <div>
                                     <strong>{exercise.name}</strong>
-                                    <small>{exercise.sets} × {exercise.repMin}–{exercise.repMax} · {exercise.weight} kg · RPE {exercise.rpe}</small>
+                                    <small>{exerciseDoseLabel(exercise, { includeWeight: true })}</small>
                                   </div>
                                 </div>
                                 <div className="editor-actions compact exercise-overflow">
@@ -3569,13 +3571,26 @@ export default function FormaApp() {
                                     updateHistorySet(item.id, exercise.exerciseId, setIndex, { weight: value })
                                   }
                                 />
-                                <Field
-                                  label="Reps"
-                                  value={set.reps}
-                                  onChange={(value) =>
-                                    updateHistorySet(item.id, exercise.exerciseId, setIndex, { reps: value })
-                                  }
-                                />
+                                {isHoldExercise(exercise) ? (
+                                  <Field
+                                    label="Sec"
+                                    value={set.holdSeconds ?? 0}
+                                    onChange={(value) =>
+                                      updateHistorySet(item.id, exercise.exerciseId, setIndex, {
+                                        holdSeconds: value,
+                                        reps: 0,
+                                      })
+                                    }
+                                  />
+                                ) : (
+                                  <Field
+                                    label="Reps"
+                                    value={set.reps}
+                                    onChange={(value) =>
+                                      updateHistorySet(item.id, exercise.exerciseId, setIndex, { reps: value })
+                                    }
+                                  />
+                                )}
                                 <Field
                                   label="RPE"
                                   value={set.rpe}

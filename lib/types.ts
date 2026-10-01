@@ -44,6 +44,8 @@ export type SetResult = {
   /** Partial-session logging: a set that was left unfinished. */
   skipped?: boolean;
   completedAt?: string;
+  /** Timed holds (plank, wall sit, etc.) — seconds completed. */
+  holdSeconds?: number;
 };
 
 export type ExerciseResult = {

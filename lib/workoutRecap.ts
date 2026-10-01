@@ -1,6 +1,7 @@
 import { sessionVolume } from "@/lib/analytics";
 import { postWorkoutSummary } from "@/lib/coach";
-import type { ExerciseResult, WorkoutSession } from "@/lib/types";
+import { formatHoldDuration, isHoldExercise, setHoldSeconds } from "@/lib/holdExercise";
+import type { ExerciseResult, SetResult, WorkoutSession } from "@/lib/types";
 import { formatWodScore, isWodExerciseName } from "@/lib/wod";
 
 export type RecapLift = {
@@ -27,9 +28,19 @@ export type WorkoutRecap = {
   volumeVsLast?: string;
 };
 
-function bestCompleteSet(exercise: ExerciseResult): { weight: number; reps: number; rpe: number } | null {
+function bestCompleteSet(exercise: ExerciseResult): SetResult | null {
   const complete = exercise.sets.filter((set) => set.complete);
   if (!complete.length) return null;
+  const timed = complete.some((set) => (setHoldSeconds(set) ?? 0) > 0) || isHoldExercise(exercise);
+  if (timed) {
+    return complete.reduce((best, set) => {
+      const currentHold = setHoldSeconds(set) ?? 0;
+      const bestHold = setHoldSeconds(best) ?? 0;
+      if (currentHold > bestHold) return set;
+      if (currentHold === bestHold && set.weight > best.weight) return set;
+      return best;
+    });
+  }
   return complete.reduce((best, set) => {
     if (set.weight > best.weight) return set;
     if (set.weight === best.weight && set.reps > best.reps) return set;
@@ -37,7 +48,17 @@ function bestCompleteSet(exercise: ExerciseResult): { weight: number; reps: numb
   });
 }
 
-function formatBest(set: { weight: number; reps: number; rpe: number }): string {
+function formatBest(set: SetResult, exercise?: ExerciseResult): string {
+  const hold = setHoldSeconds(set);
+  if (hold) {
+    const time = formatHoldDuration(hold);
+    const load = set.weight > 0 ? `${set.weight} kg · ${time}` : time;
+    return set.rpe ? `${load} · RPE ${set.rpe}` : load;
+  }
+  if (exercise && isHoldExercise(exercise) && set.complete) {
+    const load = set.weight > 0 ? `${set.weight} kg · hold` : "Hold logged";
+    return set.rpe ? `${load} · RPE ${set.rpe}` : load;
+  }
   const load = set.weight > 0 ? `${set.weight} kg × ${set.reps}` : `${set.reps} reps`;
   return set.rpe ? `${load} · RPE ${set.rpe}` : load;
 }
@@ -59,11 +80,22 @@ function previousSameWorkout(
 }
 
 function liftDelta(
-  current: { weight: number; reps: number },
+  current: SetResult,
   previous: ExerciseResult | undefined,
 ): string | undefined {
   const prior = previous ? bestCompleteSet(previous) : null;
   if (!prior) return undefined;
+  const currentHold = setHoldSeconds(current);
+  const priorHold = setHoldSeconds(prior);
+  if (currentHold && priorHold) {
+    const seconds = currentHold - priorHold;
+    const kg = current.weight - prior.weight;
+    if (kg === 0 && seconds === 0) return "same as last time";
+    const parts: string[] = [];
+    if (kg !== 0) parts.push(`${kg > 0 ? "+" : ""}${kg} kg`);
+    if (seconds !== 0) parts.push(`${seconds > 0 ? "+" : ""}${seconds}s`);
+    return `vs last: ${parts.join(", ")}`;
+  }
   const kg = current.weight - prior.weight;
   const reps = current.reps - prior.reps;
   if (kg === 0 && reps === 0) return "same as last time";
@@ -97,7 +129,7 @@ export function buildWorkoutRecap(session: WorkoutSession, history: WorkoutSessi
     if (!best) continue;
     lifts.push({
       name: exercise.name,
-      best: formatBest(best),
+      best: formatBest(best, exercise),
       vsLast: liftDelta(best, priorByName.get(exercise.name.toLowerCase())),
     });
   }
