@@ -227,10 +227,9 @@ export function loadForma(): LoadedState {
       };
     }
 
-    // 3. New user — seed the FORMA Foundation programme.
-    const fresh = seed();
-    persistCore(fresh.workouts, fresh.history, fresh.week);
-    return fresh;
+    // 3. Empty cache — seed in memory only. Signed-in restore writes the
+    // account's cloud programme; local-only users persist via the app effect.
+    return seed();
   } catch {
     // Avoid wiping history when a single key is corrupt.
     try {

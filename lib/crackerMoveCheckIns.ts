@@ -1,6 +1,7 @@
 /**
  * Christmas Cracker MOVE check-ins — fitness testing + InBody/measurements.
- * Browser-only persistence via localStorage (no server DB).
+ * Browser cache via localStorage; signed-in accounts also sync through
+ * `user_state.programme.crackerMoveCheckIns`.
  *
  * Fields:
  * - fitness_initial / fitness_final

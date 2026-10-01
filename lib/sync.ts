@@ -4,6 +4,7 @@
  * when a user is signed in.
  */
 
+import { keepExistingIfIncomingEmpty } from "./cloudGuard";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import type { UserProfile } from "./user";
 import { createProfile } from "./user";
@@ -156,27 +157,34 @@ export async function getSessionUserId(): Promise<string | null> {
   return data.session?.user.id ?? null;
 }
 
-export async function pullCloudState(userId: string): Promise<CloudState | null> {
-  const supabase = getSupabase();
-  if (!supabase) return null;
+export type PullCloudResult =
+  | {
+      ok: true;
+      cloud: CloudState;
+      profileExists: boolean;
+      stateExists: boolean;
+    }
+  | { ok: false; error: string };
 
-  const [{ data: profileRow }, { data: stateRow }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-    supabase.from("user_state").select("*").eq("user_id", userId).maybeSingle(),
-  ]);
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
 
-  const profile = profileRow ? rowToProfile(profileRow as ProfileRow) : null;
-  const state = (stateRow as StateRow | null) ?? null;
-
+function cloudFromRows(
+  profileRow: ProfileRow | null,
+  stateRow: StateRow | null,
+): CloudState {
+  const profile = profileRow ? rowToProfile(profileRow) : null;
+  const state = stateRow;
   return {
     profile,
-    workouts: state?.workouts ?? [],
-    history: state?.history ?? [],
+    workouts: asArray<Workout>(state?.workouts),
+    history: asArray<WorkoutSession>(state?.history),
     week: state?.programme?.week ?? 1,
     alignActive: Boolean(state?.programme?.alignActive),
     schemaVersion: state?.programme?.schemaVersion ?? 1,
-    progress: state?.progress ?? [],
-    photos: state?.photos ?? [],
+    progress: asArray<ProgressEntry>(state?.progress),
+    photos: asArray<ProgressPhoto>(state?.photos),
     water: state?.water?.date
       ? { date: state.water.date, count: state.water.count ?? 0 }
       : null,
@@ -191,6 +199,28 @@ export async function pullCloudState(userId: string): Promise<CloudState | null>
       ? normalizeMoveChecklist(state.programme.moveChecklist)
       : emptyMoveChecklist(),
     sessionDraft: state?.session_draft ?? null,
+  };
+}
+
+export async function pullCloudState(userId: string): Promise<PullCloudResult> {
+  const supabase = getSupabase();
+  if (!supabase) return { ok: false, error: "Cloud sync is not configured." };
+
+  const [profileRes, stateRes] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+    supabase.from("user_state").select("*").eq("user_id", userId).maybeSingle(),
+  ]);
+
+  if (profileRes.error) return { ok: false, error: profileRes.error.message };
+  if (stateRes.error) return { ok: false, error: stateRes.error.message };
+
+  const profileRow = (profileRes.data as ProfileRow | null) ?? null;
+  const stateRow = (stateRes.data as StateRow | null) ?? null;
+  return {
+    ok: true,
+    cloud: cloudFromRows(profileRow, stateRow),
+    profileExists: Boolean(profileRow),
+    stateExists: Boolean(stateRow),
   };
 }
 
@@ -227,38 +257,84 @@ export async function pushUserState(input: {
   crackerMoveCheckIns?: CrackerMoveCheckIns;
   moveChecklist?: MoveChecklistState;
   sessionDraft: SessionDraftStored | null;
-}): Promise<{ error?: string }> {
+  /** Only Profile → Reset history may push an empty log. */
+  allowEmptyHistory?: boolean;
+  allowEmptyWorkouts?: boolean;
+}): Promise<{ error?: string; warning?: string }> {
   const supabase = getSupabase();
   if (!supabase || !isSupabaseConfigured()) return { error: "Cloud sync is not configured." };
   const userId = await getSessionUserId();
   if (!userId) return { error: "Not signed in." };
 
-  const { error } = await supabase.from("user_state").upsert({
+  const existingRes = await supabase
+    .from("user_state")
+    .select("history, workouts, progress, photos")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existingRes.error) return { error: existingRes.error.message };
+
+  const existing = existingRes.data as {
+    history?: WorkoutSession[];
+    workouts?: Workout[];
+    progress?: ProgressEntry[];
+    photos?: ProgressPhoto[];
+  } | null;
+
+  const history = keepExistingIfIncomingEmpty(
+    input.history,
+    existing?.history,
+    Boolean(input.allowEmptyHistory),
+  );
+  const workouts = keepExistingIfIncomingEmpty(
+    input.workouts,
+    existing?.workouts,
+    Boolean(input.allowEmptyWorkouts),
+  );
+  const progress = keepExistingIfIncomingEmpty(input.progress, existing?.progress, false);
+
+  const programme = {
+    week: input.week,
+    programId: FORMA_PROGRAM.id,
+    schemaVersion: PROGRAM_SCHEMA_VERSION,
+    alignActive: Boolean(input.alignActive),
+    wellness: normalizeWellness(input.wellness),
+    meals: normalizeMeals(input.meals),
+    inbody: normalizeInBody(input.inbody),
+    crackerMoveCheckIns: normalizeMoveCheckIns(
+      input.crackerMoveCheckIns ?? emptyMoveCheckIns(),
+    ),
+    moveChecklist: normalizeMoveChecklist(input.moveChecklist ?? emptyMoveChecklist()),
+  };
+
+  const core = {
     user_id: userId,
-    workouts: input.workouts,
-    history: input.history,
-    programme: {
-      week: input.week,
-      programId: FORMA_PROGRAM.id,
-      schemaVersion: PROGRAM_SCHEMA_VERSION,
-      alignActive: Boolean(input.alignActive),
-      wellness: normalizeWellness(input.wellness),
-      meals: normalizeMeals(input.meals),
-      inbody: normalizeInBody(input.inbody),
-      crackerMoveCheckIns: normalizeMoveCheckIns(
-        input.crackerMoveCheckIns ?? emptyMoveCheckIns(),
-      ),
-      moveChecklist: normalizeMoveChecklist(input.moveChecklist ?? emptyMoveChecklist()),
-    },
-    progress: input.progress,
-    photos: input.photos,
+    workouts,
+    history,
+    programme,
+    progress,
     water: input.water,
     journal: input.journal,
     session_draft: input.sessionDraft,
     updated_at: new Date().toISOString(),
-  });
+  };
 
-  return error ? { error: error.message } : {};
+  const full = { ...core, photos: input.photos };
+  const first = await supabase.from("user_state").upsert(full, { onConflict: "user_id" });
+  if (!first.error) return {};
+
+  const tooLarge = /payload|too large|bytes|entity too large|413|json/i.test(first.error.message);
+  if (tooLarge) {
+    const retry = await supabase.from("user_state").upsert(
+      { ...core, photos: existing?.photos ?? [] },
+      { onConflict: "user_id" },
+    );
+    if (!retry.error) {
+      return { warning: "Workouts saved. Progress photos were too large to sync this time." };
+    }
+    return { error: retry.error.message };
+  }
+
+  return { error: first.error.message };
 }
 
 export async function signUp(email: string, password: string, firstName: string) {

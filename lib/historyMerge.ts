@@ -1,3 +1,5 @@
+import { mergeByIdPreferNewer } from "./cloudGuard";
+import type { ProgressEntry, ProgressPhoto } from "./progress";
 import type { WorkoutSession } from "./types";
 
 /**
@@ -32,6 +34,20 @@ export function mergeHistories(
   return Array.from(byId.values()).sort((a, b) =>
     a.completedAt.localeCompare(b.completedAt),
   );
+}
+
+export function mergeProgress(
+  local: ProgressEntry[],
+  cloud: ProgressEntry[],
+): ProgressEntry[] {
+  return mergeByIdPreferNewer(local, cloud).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function mergePhotos(
+  local: ProgressPhoto[],
+  cloud: ProgressPhoto[],
+): ProgressPhoto[] {
+  return mergeByIdPreferNewer(local, cloud).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /** Monday 00:00 local time for the week containing `date`. */

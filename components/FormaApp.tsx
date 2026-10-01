@@ -103,6 +103,8 @@ import { WEEKDAYS, moveWorkoutWithDays, putWorkoutOnDay } from "@/lib/workoutSch
 import {
   completedWorkoutIdsThisWeek,
   mergeHistories,
+  mergePhotos,
+  mergeProgress,
   sessionsCompletedThisCalendarWeek,
 } from "@/lib/historyMerge";
 import {
@@ -334,9 +336,81 @@ export default function FormaApp() {
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
   const [needsCrackerOnboarding, setNeedsCrackerOnboarding] = useState(false);
+  const [cloudLoadError, setCloudLoadError] = useState<string | null>(null);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
+  const cloudSnapRef = useRef({
+    authMode,
+    cloudUserId,
+    profile,
+    workouts,
+    history,
+    week,
+    alignActive,
+    progressEntries,
+    progressPhotos,
+    water,
+    journal,
+    wellness,
+    meals,
+    inbody,
+    pausedDraft,
+    cloudLoadError,
+  });
+  cloudSnapRef.current = {
+    authMode,
+    cloudUserId,
+    profile,
+    workouts,
+    history,
+    week,
+    alignActive,
+    progressEntries,
+    progressPhotos,
+    water,
+    journal,
+    wellness,
+    meals,
+    inbody,
+    pausedDraft,
+    cloudLoadError,
+  };
+
+  const flushCloudNow = async (patch?: {
+    workouts?: Workout[];
+    history?: WorkoutSession[];
+    sessionDraft?: SessionDraftStored | null;
+    allowEmptyHistory?: boolean;
+  }) => {
+    const snap = cloudSnapRef.current;
+    if (snap.authMode !== "cloud" || !snap.cloudUserId || !snap.profile) return {};
+    if (snap.cloudLoadError) return {};
+    const profileResult = await pushProfile(snap.profile);
+    const stateResult = await pushUserState({
+      workouts: patch?.workouts ?? snap.workouts,
+      history: patch?.history ?? snap.history,
+      week: snap.week,
+      alignActive: snap.alignActive,
+      progress: snap.progressEntries,
+      photos: snap.progressPhotos,
+      water: { date: new Date().toDateString(), count: snap.water },
+      journal: snap.journal,
+      wellness: snap.wellness,
+      meals: snap.meals,
+      inbody: snap.inbody,
+      crackerMoveCheckIns: loadMoveCheckIns(),
+      moveChecklist: loadMoveChecklist(),
+      sessionDraft: patch?.sessionDraft !== undefined ? patch.sessionDraft : snap.pausedDraft,
+      allowEmptyHistory: patch?.allowEmptyHistory,
+    });
+    if (profileResult.error || stateResult.error) {
+      setSyncNote(profileResult.error || stateResult.error || "Sync failed");
+    } else {
+      setSyncNote(stateResult.warning || "Synced just now");
+    }
+    return stateResult;
+  };
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
     const state = loadForma();
@@ -424,202 +498,213 @@ export default function FormaApp() {
       return;
     }
 
-    const cloud = await pullCloudState(userId);
+    const pulled = await pullCloudState(userId);
     const local = loadForma();
     const localProfile = loadProfile();
+
+    if (!pulled.ok) {
+      const canUseCache = localProfileBelongsToUser(localProfile, userId, localProfile?.email);
+      setCloudLoadError(pulled.error);
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      if (canUseCache) applyLocalBundle({ seedHayley: false });
+      setSyncNote("Couldn’t load your saved workouts. Nothing on the server was changed.");
+      return;
+    }
+
+    setCloudLoadError(null);
+    const cloud = pulled.cloud;
     const mode = loadChallengeMode();
     const canMergeLocal = localProfileBelongsToUser(
       localProfile,
       userId,
-      cloud?.profile?.email || localProfile?.email,
+      cloud.profile?.email || localProfile?.email,
     );
 
-    // Prefer cloud when it has a profile; otherwise keep local and upload.
-    if (cloud?.profile) {
-      if (cloudMemberNeedsCrackerOnboarding(cloud)) {
-        const seeded = {
-          ...cloud.profile,
-          firstName: cloud.profile.firstName?.trim() || "",
-          email: cloud.profile.email || "",
-        };
-        if (seeded.firstName || seeded.email) saveProfile(seeded);
-        setProfile(seeded.firstName ? seeded : cloud.profile);
-        setWorkouts([]);
-        setHistory([]);
-        setWeek(1);
-        setAlignActive(false);
-        setNeedsCrackerOnboarding(true);
-        setCloudUserId(userId);
-        setAuthMode("cloud");
-        window.localStorage.removeItem(LOCAL_ONLY_KEY);
-        setSyncNote("Choose your club and training level to start.");
-        return;
-      }
-      setNeedsCrackerOnboarding(false);
-
-      // Never merge another member's local cache into this account.
-      if (!canMergeLocal) {
-        clearLocalMemberData();
-      }
-
-      const sourceHistory = canMergeLocal
-        ? mergeHistories(local.history, cloud.history)
-        : cloud.history;
-      const sourceWorkouts = cloud.workouts.length
-        ? cloud.workouts
-        : canMergeLocal
-          ? local.workouts
-          : [];
-      let nextWorkouts = sourceWorkouts;
-      let didUpgrade = false;
-      const weekForMode =
-        mode === "cracker" ? crackerWeek(cloud.week) : cycleWeek(cloud.week);
-
-      if (mode === "cracker") {
-        nextWorkouts = transferExerciseWeights(
-          sourceWorkouts,
-          buildCrackerWorkouts(
-            crackerLevelFromExperience(cloud.profile.experienceLevel),
-            weekForMode,
-          ),
-        );
-        didUpgrade = true;
-      } else if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
-        nextWorkouts = transferExerciseWeights(
-          sourceWorkouts,
-          generateProgram(cloud.profile, {
-            week: cloud.week,
-            alignActive: cloud.alignActive,
-          }),
-        );
-        didUpgrade = true;
-      }
-
-      const cloudCheckIns = cloud.crackerMoveCheckIns;
-      const localCheckIns = canMergeLocal ? loadMoveCheckIns() : emptyMoveCheckIns();
-      const mergedCheckIns =
-        Object.keys(cloudCheckIns).length > 0 ? cloudCheckIns : localCheckIns;
-      const mergedChecklist = canMergeLocal
-        ? mergeMoveChecklists(cloud.moveChecklist, loadMoveChecklist())
-        : cloud.moveChecklist ?? emptyMoveChecklist();
-
-      setProfile(cloud.profile);
-      setWorkouts(nextWorkouts);
-      setHistory(sourceHistory);
-      setWeek(weekForMode);
-      setAlignActive(mode === "cracker" ? false : cloud.alignActive);
+    if (cloudMemberNeedsCrackerOnboarding({
+      ...cloud,
+      profile: cloud.profile,
+    })) {
+      const seeded = cloud.profile
+        ? {
+            ...cloud.profile,
+            firstName: cloud.profile.firstName?.trim() || "",
+            email: cloud.profile.email || "",
+          }
+        : null;
+      if (seeded && (seeded.firstName || seeded.email)) saveProfile(seeded);
+      setProfile(seeded?.firstName ? seeded : cloud.profile);
+      // Keep any server rows — never blank history while choosing club/level.
+      setWorkouts(cloud.workouts);
+      setHistory(cloud.history);
+      setWeek(crackerWeek(cloud.week || 1));
+      setAlignActive(false);
       setProgressEntries(cloud.progress);
       setProgressPhotos(cloud.photos);
-      setJournal(cloud.journal);
-      setWellness(cloud.wellness);
-      setMeals(cloud.meals);
-      setInBody(cloud.inbody);
-      if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
-      else setWater(0);
+      setNeedsCrackerOnboarding(true);
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      setSyncNote("Choose your club and training level to start.");
+      return;
+    }
 
-      const today = pickTodaysWorkout(nextWorkouts);
-      setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
+    setNeedsCrackerOnboarding(false);
 
-      const incomingDraft = cloud.sessionDraft ?? (canMergeLocal ? local.sessionDraft : null);
-      const liveWorkout = findWorkoutForDraft(nextWorkouts, incomingDraft);
-      if (incomingDraft && liveWorkout && !sessionRef.current) {
-        const restored = {
-          ...incomingDraft,
-          workoutId: liveWorkout.id,
-          workoutTitle: liveWorkout.title,
-          workout: liveWorkout,
-        };
-        setPausedDraft(restored);
-        persistSessionDraft(restored);
-        setActiveWorkoutId(liveWorkout.id);
-        if (incomingDraft.live !== false) {
-          setSession({
-            workoutId: liveWorkout.id,
-            exerciseIndex: Math.min(
-              Math.max(0, incomingDraft.exerciseIndex),
-              Math.max(0, liveWorkout.exercises.length - 1),
-            ),
-            results: incomingDraft.results,
-            readiness: incomingDraft.readiness,
-            workoutSnapshot: liveWorkout,
-          });
-          setRestRemaining(incomingDraft.restRemaining ?? 0);
-        }
-      }
-      saveProfile(cloud.profile);
-      saveWellness(cloud.wellness);
-      saveMeals(cloud.meals);
-      saveInBody(cloud.inbody);
-      saveMoveCheckIns(mergedCheckIns);
-      saveMoveChecklist(mergedChecklist);
-      window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
-      window.localStorage.setItem(STORAGE.history, JSON.stringify(sourceHistory));
-      window.localStorage.setItem(
-        STORAGE.program,
-        JSON.stringify({
-          week: weekForMode,
-          programId: FORMA_PROGRAM.id,
-          schemaVersion: PROGRAM_SCHEMA_VERSION,
-          alignActive: mode === "cracker" ? false : cloud.alignActive,
+    if (!canMergeLocal) {
+      clearLocalMemberData();
+    }
+
+    const sourceHistory = canMergeLocal
+      ? mergeHistories(local.history, cloud.history)
+      : cloud.history;
+    const sourceProgress = canMergeLocal
+      ? mergeProgress(loadProgress(), cloud.progress)
+      : cloud.progress;
+    const sourcePhotos = canMergeLocal
+      ? mergePhotos(loadPhotos(), cloud.photos)
+      : cloud.photos;
+    const sourceWorkouts = cloud.workouts.length
+      ? cloud.workouts
+      : canMergeLocal
+        ? local.workouts
+        : [];
+    const resolvedProfile =
+      cloud.profile ??
+      (canMergeLocal && localProfile ? { ...localProfile, id: userId } : null);
+
+    if (!resolvedProfile) {
+      setProfile(null);
+      setWorkouts(sourceWorkouts);
+      setHistory(sourceHistory);
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      setNeedsCrackerOnboarding(true);
+      setSyncNote("Choose your club and training level to start.");
+      return;
+    }
+
+    let nextWorkouts = sourceWorkouts;
+    const weekForMode =
+      mode === "cracker" ? crackerWeek(cloud.week) : cycleWeek(cloud.week);
+
+    if (mode === "cracker") {
+      nextWorkouts = transferExerciseWeights(
+        sourceWorkouts,
+        buildCrackerWorkouts(
+          crackerLevelFromExperience(resolvedProfile.experienceLevel),
+          weekForMode,
+        ),
+      );
+    } else if (programmeNeedsUpgrade(sourceWorkouts, resolvedProfile, cloud.schemaVersion)) {
+      nextWorkouts = transferExerciseWeights(
+        sourceWorkouts,
+        generateProgram(resolvedProfile, {
+          week: cloud.week,
+          alignActive: cloud.alignActive,
         }),
       );
-      saveProgress(cloud.progress);
-      savePhotos(cloud.photos);
-
-      // Persist upgraded programme immediately so the next boot does not re-load legacy titles.
-      if (didUpgrade) {
-        await pushUserState({
-          workouts: nextWorkouts,
-          history: sourceHistory,
-          week: weekForMode,
-          alignActive: mode === "cracker" ? false : cloud.alignActive,
-          progress: cloud.progress,
-          photos: cloud.photos,
-          water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
-          journal: cloud.journal,
-          wellness: cloud.wellness,
-          meals: cloud.meals,
-          inbody: cloud.inbody,
-          crackerMoveCheckIns: mergedCheckIns,
-          moveChecklist: mergedChecklist,
-          sessionDraft: cloud.sessionDraft,
-        });
-      }
-    } else {
-      // Empty cloud: never seed demo/Hayley data into a real account.
-      if (!canMergeLocal) {
-        clearLocalMemberData();
-        applyLocalBundle({ seedHayley: false });
-      } else {
-        applyLocalBundle({ seedHayley: false });
-      }
-      const profileToSave = loadProfile();
-      if (profileToSave) {
-        await pushProfile({ ...profileToSave, id: userId, email: profileToSave.email || "" });
-      }
-      const freshLocal = loadForma();
-      await pushUserState({
-        workouts: freshLocal.workouts,
-        history: freshLocal.history,
-        week: freshLocal.week,
-        alignActive: freshLocal.alignActive,
-        progress: loadProgress(),
-        photos: loadPhotos(),
-        water: { date: new Date().toDateString(), count: freshLocal.water },
-        journal: freshLocal.journal,
-        wellness: freshLocal.wellness,
-        meals: loadMeals(),
-        inbody: loadInBody(),
-        crackerMoveCheckIns: loadMoveCheckIns(),
-        moveChecklist: loadMoveChecklist(),
-        sessionDraft: freshLocal.sessionDraft,
-      });
     }
+
+    const cloudCheckIns = cloud.crackerMoveCheckIns;
+    const localCheckIns = canMergeLocal ? loadMoveCheckIns() : emptyMoveCheckIns();
+    const mergedCheckIns =
+      Object.keys(cloudCheckIns).length > 0 ? cloudCheckIns : localCheckIns;
+    const mergedChecklist = canMergeLocal
+      ? mergeMoveChecklists(cloud.moveChecklist, loadMoveChecklist())
+      : cloud.moveChecklist ?? emptyMoveChecklist();
+
+    setProfile(resolvedProfile);
+    setWorkouts(nextWorkouts);
+    setHistory(sourceHistory);
+    setWeek(weekForMode);
+    setAlignActive(mode === "cracker" ? false : cloud.alignActive);
+    setProgressEntries(sourceProgress);
+    setProgressPhotos(sourcePhotos);
+    setJournal(cloud.journal);
+    setWellness(cloud.wellness);
+    setMeals(cloud.meals);
+    setInBody(cloud.inbody);
+    if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
+    else setWater(0);
+
+    const today = pickTodaysWorkout(nextWorkouts);
+    setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
+
+    const incomingDraft = cloud.sessionDraft ?? (canMergeLocal ? local.sessionDraft : null);
+    const liveWorkout = findWorkoutForDraft(nextWorkouts, incomingDraft);
+    if (incomingDraft && liveWorkout && !sessionRef.current) {
+      const restored = {
+        ...incomingDraft,
+        workoutId: liveWorkout.id,
+        workoutTitle: liveWorkout.title,
+        workout: liveWorkout,
+      };
+      setPausedDraft(restored);
+      persistSessionDraft(restored);
+      setActiveWorkoutId(liveWorkout.id);
+      if (incomingDraft.live !== false) {
+        setSession({
+          workoutId: liveWorkout.id,
+          exerciseIndex: Math.min(
+            Math.max(0, incomingDraft.exerciseIndex),
+            Math.max(0, liveWorkout.exercises.length - 1),
+          ),
+          results: incomingDraft.results,
+          readiness: incomingDraft.readiness,
+          workoutSnapshot: liveWorkout,
+        });
+        setRestRemaining(incomingDraft.restRemaining ?? 0);
+      }
+    }
+    saveProfile(resolvedProfile);
+    saveWellness(cloud.wellness);
+    saveMeals(cloud.meals);
+    saveInBody(cloud.inbody);
+    saveMoveCheckIns(mergedCheckIns);
+    saveMoveChecklist(mergedChecklist);
+    window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
+    window.localStorage.setItem(STORAGE.history, JSON.stringify(sourceHistory));
+    window.localStorage.setItem(
+      STORAGE.program,
+      JSON.stringify({
+        week: weekForMode,
+        programId: FORMA_PROGRAM.id,
+        schemaVersion: PROGRAM_SCHEMA_VERSION,
+        alignActive: mode === "cracker" ? false : cloud.alignActive,
+      }),
+    );
+    saveProgress(sourceProgress);
+    savePhotos(sourcePhotos);
+
+    await pushProfile({ ...resolvedProfile, id: userId });
+    const pushed = await pushUserState({
+      workouts: nextWorkouts,
+      history: sourceHistory,
+      week: weekForMode,
+      alignActive: mode === "cracker" ? false : cloud.alignActive,
+      progress: sourceProgress,
+      photos: sourcePhotos,
+      water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
+      journal: cloud.journal,
+      wellness: cloud.wellness,
+      meals: cloud.meals,
+      inbody: cloud.inbody,
+      crackerMoveCheckIns: mergedCheckIns,
+      moveChecklist: mergedChecklist,
+      sessionDraft: incomingDraft,
+    });
 
     setCloudUserId(userId);
     setAuthMode("cloud");
     window.localStorage.removeItem(LOCAL_ONLY_KEY);
-    setSyncNote("Synced to your account");
+    setSyncNote(
+      pushed.error
+        ? `Loaded your account. Sync: ${pushed.error}`
+        : pushed.warning || "Synced to your account",
+    );
   };
 
   useEffect(() => {
@@ -650,8 +735,8 @@ export default function FormaApp() {
           return;
         }
 
-        // Show account gate; keep any local cache warm underneath.
-        applyLocalBundle({ seedHayley: false });
+        // Account gate — do not seed a blank programme into cache (that used to
+        // get uploaded over the real account after a PWA reinstall + login).
         setAuthMode("gate");
       } catch {
         applyLocalBundle({ seedHayley: false });
@@ -708,6 +793,7 @@ export default function FormaApp() {
 
   useEffect(() => {
     if (!hydrated) return;
+    if (authMode === "gate" || authMode === "booting") return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
     // Never persist an empty history over a non-empty store (guards sync races / parse blips),
     // unless the member explicitly reset history in Profile.
@@ -733,7 +819,7 @@ export default function FormaApp() {
         alignActive,
       }),
     );
-  }, [workouts, history, week, alignActive, hydrated]);
+  }, [workouts, history, week, alignActive, hydrated, authMode]);
 
   // Autosave live session so a mid-workout crash / PWA reload does not wipe progress.
   useEffect(() => {
@@ -748,14 +834,20 @@ export default function FormaApp() {
   }, [session, restRemaining, hydrated, workouts]);
 
   useEffect(() => {
-    const persistLive = () => {
+    const persistLive = (event?: Event) => {
+      if (event?.type === "visibilitychange" && document.visibilityState !== "hidden") return;
       const live = sessionRef.current;
-      if (!live) return;
+      if (!live) {
+        void flushCloudNow();
+        return;
+      }
       const workout =
         live.workoutSnapshot ??
         workouts.find((item) => item.id === live.workoutId) ??
         null;
-      persistSessionDraft(storedSessionDraft(live, workout, restRemaining));
+      const stored = storedSessionDraft(live, workout, restRemaining);
+      persistSessionDraft(stored);
+      void flushCloudNow({ sessionDraft: stored });
     };
     window.addEventListener("pagehide", persistLive);
     window.addEventListener("visibilitychange", persistLive);
@@ -780,31 +872,8 @@ export default function FormaApp() {
   useEffect(() => {
     if (!hydrated || authMode !== "cloud" || !cloudUserId || !profile) return;
     const timer = window.setTimeout(() => {
-      void (async () => {
-        const profileResult = await pushProfile(profile);
-        const stateResult = await pushUserState({
-          workouts,
-          history,
-          week,
-          alignActive,
-          progress: progressEntries,
-          photos: progressPhotos,
-          water: { date: new Date().toDateString(), count: water },
-          journal,
-          wellness,
-          meals,
-          inbody,
-          crackerMoveCheckIns: loadMoveCheckIns(),
-          moveChecklist: loadMoveChecklist(),
-          sessionDraft: pausedDraft,
-        });
-        if (profileResult.error || stateResult.error) {
-          setSyncNote(profileResult.error || stateResult.error || "Sync failed");
-        } else {
-          setSyncNote("Synced just now");
-        }
-      })();
-    }, 900);
+      void flushCloudNow();
+    }, 400);
     return () => window.clearTimeout(timer);
   }, [
     authMode,
@@ -1070,9 +1139,10 @@ export default function FormaApp() {
     setNeedsCrackerOnboarding(false);
     saveChallengeMode("cracker");
     setChallengeMode("cracker");
-    setWeek(1);
+    const keepWeek = history.length > 0 ? crackerWeek(week) : 1;
+    setWeek(keepWeek);
     setAlignActive(false);
-    applyGeneratedProgram(merged, { week: 1, alignActive: false, mode: "cracker" });
+    applyGeneratedProgram(merged, { week: keepWeek, alignActive: false, mode: "cracker" });
     setTab("today");
     const clubLabel =
       merged.club && merged.club in CLUB_LABELS
@@ -1080,8 +1150,8 @@ export default function FormaApp() {
         : "";
     setSyncNote(
       clubLabel
-        ? `Christmas Cracker on · ${clubLabel} · Week 1 of 6`
-        : "Christmas Cracker on · Week 1 of 6",
+        ? `Christmas Cracker on · ${clubLabel} · Week ${keepWeek} of 6`
+        : `Christmas Cracker on · Week ${keepWeek} of 6`,
     );
   };
 
@@ -1261,6 +1331,7 @@ export default function FormaApp() {
     setPausedDraft(null);
     setSession(null);
     setRestRemaining(0);
+    void flushCloudNow({ history: nextHistory, sessionDraft: null });
     const setsDone = exercises.reduce(
       (sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length,
       0,
@@ -1574,6 +1645,34 @@ export default function FormaApp() {
     );
   }
 
+  if (cloudLoadError && cloudUserId) {
+    return (
+      <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
+        <div className="shell">
+          <div className="onboard-screen">
+            <span className="eyebrow">Account</span>
+            <h1>Couldn’t load your training</h1>
+            <p className="onboard-lead">
+              Your workouts live on your account, not on this phone. Nothing on the server was
+              overwritten. Check your connection and try again.
+            </p>
+            <p className="muted">{cloudLoadError}</p>
+            <button
+              type="button"
+              className="cta-btn"
+              onClick={() => {
+                setCloudLoadError(null);
+                void applyCloudBundle(cloudUserId);
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!profile || needsCrackerOnboarding) {
     return (
       <CrackerOnboarding
@@ -1623,6 +1722,7 @@ export default function FormaApp() {
               crackerMoveCheckIns: loadMoveCheckIns(),
               moveChecklist: loadMoveChecklist(),
               sessionDraft: null,
+              allowEmptyHistory: true,
             });
             setSyncNote(result.error ? `History cleared on this device. Cloud: ${result.error}` : "Workout history cleared");
           } else {

@@ -102,6 +102,7 @@ export function isCrackerFitnessTestWeek(week: number): boolean {
  * Must run before we auto-generate and push workouts, or Home skips onboarding.
  */
 export function cloudMemberNeedsCrackerOnboarding(cloud: {
+  profile?: { club?: string; firstName?: string } | null;
   history: unknown[];
   workouts: unknown[];
   progress: unknown[];
@@ -109,6 +110,9 @@ export function cloudMemberNeedsCrackerOnboarding(cloud: {
   crackerMoveCheckIns: Record<string, unknown>;
 }): boolean {
   if (!CRACKER_SEASON_ACTIVE) return false;
+  // Club already chosen ⇒ they finished onboarding. Never send them back
+  // through the gate (that path used to wipe history in memory and re-push).
+  if (cloud.profile?.club) return false;
   const hasCheckIns = Object.values(cloud.crackerMoveCheckIns || {}).some(
     (entry) => entry && typeof entry === "object" && Object.keys(entry as object).length > 0,
   );
