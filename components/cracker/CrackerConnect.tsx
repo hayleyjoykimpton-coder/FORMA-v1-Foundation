@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ConnectEvents } from "@/components/cracker/ConnectEvents";
 import { ConnectFacebookCta } from "@/components/cracker/ConnectFacebookCta";
 import { ConnectIncluded } from "@/components/cracker/ConnectIncluded";
@@ -16,6 +16,8 @@ type Props = {
   onOpenProfile: () => void;
   profileInitial: string;
   profilePhoto?: string;
+  /** Incremented when the CONNECT tab is tapped so we open Community at the top. */
+  openSignal?: number;
 };
 
 const CONNECT_SUBTABS: { key: ConnectSubTab; label: string }[] = [
@@ -24,8 +26,28 @@ const CONNECT_SUBTABS: { key: ConnectSubTab; label: string }[] = [
   { key: "included", label: "WHAT'S INCLUDED" },
 ];
 
-export function CrackerConnect({ onOpenProfile, profileInitial, profilePhoto }: Props) {
+export function CrackerConnect({
+  onOpenProfile,
+  profileInitial,
+  profilePhoto,
+  openSignal = 0,
+}: Props) {
   const [subTab, setSubTab] = useState<ConnectSubTab>(() => loadConnectSubTab());
+
+  useEffect(() => {
+    if (!openSignal) return;
+    setSubTab(loadConnectSubTab());
+    const scrollTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      document.querySelector(".cracker-shell")?.scrollTo({ top: 0 });
+      document.querySelector(".connect-subnav")?.scrollTo({ left: 0 });
+    };
+    scrollTop();
+    const frame = window.requestAnimationFrame(scrollTop);
+    return () => window.cancelAnimationFrame(frame);
+  }, [openSignal]);
 
   const selectSubTab = (tab: ConnectSubTab) => {
     setSubTab(tab);

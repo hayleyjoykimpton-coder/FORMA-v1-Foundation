@@ -7,7 +7,13 @@ import { CrackerMove } from "@/components/cracker/CrackerMove";
 import { CrackerNourish } from "@/components/cracker/CrackerNourish";
 import { CrackerTabBar } from "@/components/cracker/CrackerTabBar";
 import type { CrackerTab } from "@/components/cracker/types";
-import { loadCrackerTab, saveCrackerTab, saveMoveSubTab, type MoveSubTab } from "@/lib/crackerNav";
+import {
+  loadCrackerTab,
+  saveConnectSubTab,
+  saveCrackerTab,
+  saveMoveSubTab,
+  type MoveSubTab,
+} from "@/lib/crackerNav";
 import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel, LifeSoulClub } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
@@ -55,6 +61,7 @@ export function CrackerShell({
 }: Props) {
   const [tab, setTab] = useState<CrackerTab>("home");
   const [moveOpenSignal, setMoveOpenSignal] = useState(0);
+  const [connectOpenSignal, setConnectOpenSignal] = useState(0);
 
   useEffect(() => {
     setTab(loadCrackerTab());
@@ -64,6 +71,10 @@ export function CrackerShell({
     if (next === "move") {
       saveMoveSubTab(moveSubTab ?? "training");
       setMoveOpenSignal((value) => value + 1);
+    }
+    if (next === "connect") {
+      saveConnectSubTab("community");
+      setConnectOpenSignal((value) => value + 1);
     }
     setTab(next);
     saveCrackerTab(next);
@@ -131,6 +142,7 @@ export function CrackerShell({
           onOpenProfile={onOpenProfile}
           profileInitial={profileInitial}
           profilePhoto={profilePhoto}
+          openSignal={connectOpenSignal}
         />
       ) : null}
 
