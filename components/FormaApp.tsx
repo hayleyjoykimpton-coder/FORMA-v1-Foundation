@@ -138,6 +138,7 @@ import {
   CRACKER_WEEKS,
   challengeWeekLabel,
   cloudMemberNeedsCrackerOnboarding,
+  crackerCalendarWeek,
   crackerWeek,
   isCrackerFitnessTestWeek,
   loadChallengeMode,
@@ -418,7 +419,7 @@ export default function FormaApp() {
     const mode = loadChallengeMode();
     let nextWorkouts = state.workouts;
     const weekForMode =
-      mode === "cracker" ? crackerWeek(state.week) : cycleWeek(state.week);
+      mode === "cracker" ? crackerCalendarWeek() : cycleWeek(state.week);
 
     // Rebuild when schema is behind OR workouts still use legacy titles (Full Body A/B).
     // In Cracker mode always rebuild from the 6-week challenge plan.
@@ -588,7 +589,7 @@ export default function FormaApp() {
 
     let nextWorkouts = sourceWorkouts;
     const weekForMode =
-      mode === "cracker" ? crackerWeek(cloud.week) : cycleWeek(cloud.week);
+      mode === "cracker" ? crackerCalendarWeek() : cycleWeek(cloud.week);
 
     if (mode === "cracker") {
       nextWorkouts = transferExerciseWeights(
@@ -1070,6 +1071,26 @@ export default function FormaApp() {
     setSession(null);
   };
 
+  useEffect(() => {
+    if (challengeMode !== "cracker" || !profile || needsCrackerOnboarding) return;
+    if (authMode === "gate" || authMode === "booting") return;
+
+    const syncCalendarWeek = () => {
+      const cal = crackerCalendarWeek();
+      if (cal === crackerWeek(week)) return;
+      if (sessionRef.current) return;
+      setWeek(cal);
+      applyGeneratedProgram(profile, { week: cal, alignActive: false, mode: "cracker" });
+    };
+
+    syncCalendarWeek();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") syncCalendarWeek();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [challengeMode, profile, week, needsCrackerOnboarding, authMode]);
+
   const advanceProgrammeWeek = () => {
     if (!profile) return;
     if (challengeMode === "cracker") {
@@ -1137,7 +1158,7 @@ export default function FormaApp() {
     setNeedsCrackerOnboarding(false);
     saveChallengeMode("cracker");
     setChallengeMode("cracker");
-    const keepWeek = history.length > 0 ? crackerWeek(week) : 1;
+    const keepWeek = crackerCalendarWeek();
     setWeek(keepWeek);
     setAlignActive(false);
     applyGeneratedProgram(merged, { week: keepWeek, alignActive: false, mode: "cracker" });
@@ -2311,7 +2332,7 @@ export default function FormaApp() {
     return (
       <div className="app challenge-cracker cracker-v2">
         <CrackerShell
-          week={crackerWeek(weekInCycle)}
+          week={crackerCalendarWeek()}
           sessionsDone={sessionsThisWeek}
           sessionsTarget={sessionsTarget}
           experience={profile.experienceLevel}
