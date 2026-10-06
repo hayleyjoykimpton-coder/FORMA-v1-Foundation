@@ -8,9 +8,23 @@ export function BrandLogo({
 }: {
   className?: string;
   size?: "header" | "hero" | "mark" | "wordmark";
-  /** cracker = badge · life-and-soul = wordmark · duo = both */
-  variant?: "cracker" | "life-and-soul" | "duo";
+  /** cracker = badge · life-and-soul = wordmark · duo = both · cracker-lockup = transparent Cracker wordmark */
+  variant?: "cracker" | "life-and-soul" | "duo" | "cracker-lockup";
 }) {
+  if (variant === "cracker-lockup") {
+    const height = size === "hero" ? 72 : size === "mark" ? 32 : 52;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/brand/christmas-cracker-wordmark.png"
+        alt="Life & Soul Christmas Cracker"
+        className={`brand-logo brand-logo-wordmark brand-logo-lockup brand-logo-${size} ${className}`.trim()}
+        height={height}
+        style={{ height, width: "auto" }}
+      />
+    );
+  }
+
   if (variant === "life-and-soul" || size === "wordmark") {
     const height = size === "hero" ? 40 : size === "mark" ? 24 : 32;
     return (

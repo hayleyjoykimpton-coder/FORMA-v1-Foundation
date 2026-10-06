@@ -113,7 +113,7 @@ export function CrackerHome({
   return (
     <div className="screen cracker-screen cracker-home">
       <header className="cracker-topbar">
-        <BrandLogo variant="cracker" size="header" className="cracker-home-logo" />
+        <BrandLogo variant="cracker-lockup" size="header" className="cracker-home-logo" />
         <button
           type="button"
           className={`avatar cracker-avatar${profilePhoto ? " has-photo" : ""}`}
