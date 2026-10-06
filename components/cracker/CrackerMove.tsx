@@ -143,7 +143,7 @@ export function CrackerMove({
   const theme = CRACKER_WEEK_THEMES[viewWeek - 1];
   const weekChecks = getWeekChecklist(checklist, level, viewWeek);
   const weekBanner = moveWeekImage(viewWeek);
-  const learnImage = moveImage("learnWithJess");
+  const learnImage = moveWeekImage(viewWeek) ?? moveImage("learnWithJess");
   const educationVideo = crackerWeeklyTrainingVideoUrl(viewWeek);
 
   useEffect(() => {
