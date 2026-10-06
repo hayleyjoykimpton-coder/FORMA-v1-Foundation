@@ -14,7 +14,7 @@
 4. Restart `pnpm dev`
 
 ## Behaviour
-- Auth gate on launch when configured (Sign in / Sign up / Continue on this device only)
+- Auth gate on launch when configured (Sign in / Sign up). “Continue on this device only” is hidden when accounts are live so members cannot skip by accident.
 - Signed-in users sync profile, workouts, history, progress, photos, water, journal, wellness (gratitude + breathwork logs nested in `programme.wellness`), and session drafts
 - Local `localStorage` remains an offline cache (`forma-wellness-v1` for gratitude/breathwork)
 - Profile → Account shows sync status + Sign out

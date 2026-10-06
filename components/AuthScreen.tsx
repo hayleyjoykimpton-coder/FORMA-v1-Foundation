@@ -40,7 +40,8 @@ export function AuthScreen({
   onContinueLocal,
 }: {
   onAuthenticated: () => void;
-  onContinueLocal: () => void;
+  /** Only used when cloud accounts are not configured (dev / setup). Hidden at launch. */
+  onContinueLocal?: () => void;
 }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [firstName, setFirstName] = useState("");
@@ -93,8 +94,8 @@ export function AuthScreen({
           <p className="cracker-auth-kicker">Life & Soul · Christmas Cracker 2026</p>
           <h1>{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
           <p className="muted">
-            Sign in to save your Cracker programme, workout history, and progress across devices.
-            Fitness Testing and InBody results sync when you are signed in.
+            Create an account or sign in to save your Cracker programme, workouts and progress.
+            Use the same email on every phone so nothing is lost if you delete the app icon.
           </p>
 
           {!configured && (
@@ -166,9 +167,11 @@ export function AuthScreen({
             {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
           </button>
 
-          <button className="text-btn centered" onClick={onContinueLocal}>
-            Continue on this device only
-          </button>
+          {!configured && onContinueLocal ? (
+            <button className="text-btn centered" onClick={onContinueLocal}>
+              Continue on this device only
+            </button>
+          ) : null}
 
           <p className="muted centered auth-note">
             Next you’ll choose your club and join the 6-week Christmas Cracker.

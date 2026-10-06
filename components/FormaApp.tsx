@@ -729,11 +729,9 @@ export default function FormaApp() {
           return;
         }
 
-        if (window.localStorage.getItem(LOCAL_ONLY_KEY) === "1") {
-          applyLocalBundle({ seedHayley: false });
-          setAuthMode("local");
-          return;
-        }
+        // Launch: do not honour a leftover local-only flag when accounts are live.
+        // Members must sign in so workouts restore from the cloud.
+        window.localStorage.removeItem(LOCAL_ONLY_KEY);
 
         // Account gate — do not seed a blank programme into cache (that used to
         // get uploaded over the real account after a PWA reinstall + login).
@@ -1634,13 +1632,17 @@ export default function FormaApp() {
           // Auth listener will pull cloud state and set authMode to cloud.
           setHydrated(true);
         }}
-        onContinueLocal={() => {
-          window.localStorage.setItem(LOCAL_ONLY_KEY, "1");
-          // Fresh local users should see onboarding (nutrition + InBody).
-          // Hayley seed only applies when Supabase is unset (dev convenience).
-          applyLocalBundle({ seedHayley: false });
-          setAuthMode("local");
-        }}
+        onContinueLocal={
+          isSupabaseConfigured()
+            ? undefined
+            : () => {
+                window.localStorage.setItem(LOCAL_ONLY_KEY, "1");
+                // Fresh local users should see onboarding (nutrition + InBody).
+                // Hayley seed only applies when Supabase is unset (dev convenience).
+                applyLocalBundle({ seedHayley: false });
+                setAuthMode("local");
+              }
+        }
       />
     );
   }
