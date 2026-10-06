@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { CRACKER_DATES_LABEL } from "@/lib/challengeMode";
 import { ChallengeTimeline } from "@/components/cracker/ChallengeTimeline";
 import { HomeFeatureCard } from "@/components/cracker/HomeFeatureCard";
@@ -10,11 +9,8 @@ import { CONNECT_HERO_IMAGE } from "@/lib/connect";
 import { crackerMotivationalLine } from "@/lib/crackerUi";
 import {
   loadMoveChecklist,
-  saveMoveChecklist,
-  setIntroWatched,
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
-import { crackerIntroVideoUrl } from "@/lib/jessTrainer";
 import { JESS_LAS_PORTRAIT, moveImage } from "@/lib/moveImages";
 import { NOURISH_HERO_IMAGE } from "@/lib/nourish";
 import type { CrackerTab } from "@/components/cracker/types";
@@ -34,6 +30,7 @@ type Props = {
   profilePhoto?: string;
   onOpenProfile: () => void;
   onNavigate: (tab: CrackerTab) => void;
+  onOpenLearn: () => void;
   onOpenProgress: () => void;
   history: WorkoutSession[];
   experience: ExperienceLevel;
@@ -85,6 +82,7 @@ export function CrackerHome({
   profilePhoto,
   onOpenProfile,
   onNavigate,
+  onOpenLearn,
   onOpenProgress,
   history,
   experience,
@@ -96,7 +94,6 @@ export function CrackerHome({
     sessionsTarget > 0 ? Math.min(100, Math.round((sessionsDone / sessionsTarget) * 100)) : 0;
   const [checklist, setChecklist] = useState<MoveChecklistState>({ weeks: {} });
   const [checkIns, setCheckIns] = useState(() => loadMoveCheckIns());
-  const introUrl = crackerIntroVideoUrl();
   const challenge = useMemo(
     () =>
       buildChallengeProgress({
@@ -112,14 +109,6 @@ export function CrackerHome({
     setChecklist(loadMoveChecklist());
     setCheckIns(loadMoveCheckIns());
   }, []);
-
-  const toggleIntro = () => {
-    setChecklist((current) => {
-      const next = setIntroWatched(current, !current.intro);
-      saveMoveChecklist(next);
-      return next;
-    });
-  };
 
   return (
     <div className="screen cracker-screen cracker-home">
@@ -156,21 +145,14 @@ export function CrackerHome({
         />
       ) : null}
 
-      <article className="card cracker-intro-card" aria-label="Jess intro video">
-        <p className="eyebrow">WATCH JESS</p>
+      <button type="button" className="card cracker-home-progress" onClick={onOpenLearn}>
+        <p className="eyebrow">LEARN WITH JESS</p>
         <h2>Intro to CRACKER training</h2>
-        <p className="muted">
+        <p className="cracker-home-progress-meta">
           Start here. Jess walks you through how the six weeks work.
         </p>
-        {introUrl ? (
-          <InAppVideo url={introUrl} title="Jess intro to CRACKER training" />
-        ) : (
-          <p className="auth-info">Intro video will play here once we have Jess&apos;s link.</p>
-        )}
-        <button type="button" className="secondary-btn" onClick={toggleIntro}>
-          {checklist.intro ? "INTRO WATCHED" : "MARK INTRO WATCHED"}
-        </button>
-      </article>
+        <span className="cracker-home-progress-cta">WATCH IN LEARN</span>
+      </button>
 
       <button type="button" className="card cracker-home-progress" onClick={onOpenProgress}>
         <p className="eyebrow">MY PROGRESS</p>

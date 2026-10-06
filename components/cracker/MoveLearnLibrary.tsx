@@ -12,10 +12,11 @@ import {
   loadMoveChecklist,
   MOVE_CHECKLIST_CHANGED_EVENT,
   saveMoveChecklist,
+  setIntroWatched,
   setWeekChecklist,
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
-import { crackerWeeklyTrainingVideoUrl } from "@/lib/jessTrainer";
+import { crackerIntroVideoUrl, crackerWeeklyTrainingVideoUrl } from "@/lib/jessTrainer";
 import { moveWeekImage } from "@/lib/moveImages";
 
 type Props = {
@@ -48,7 +49,16 @@ export function MoveLearnLibrary({
     });
   };
 
+  const toggleIntro = () => {
+    setChecklist((current) => {
+      const next = setIntroWatched(current, !current.intro);
+      saveMoveChecklist(next);
+      return next;
+    });
+  };
+
   const weeks = useMemo(() => CRACKER_TRAINING_EDUCATION, []);
+  const introUrl = crackerIntroVideoUrl();
 
   return (
     <div className="screen cracker-screen cracker-move cracker-move-panel move-learn-screen">
@@ -57,7 +67,7 @@ export function MoveLearnLibrary({
           <p className="cracker-screen-kicker">MOVE</p>
           <h1 className="cracker-screen-title">LEARN WITH JESS</h1>
           <p className="cracker-edu-focus">
-            Six weeks of practical training education with CRACKER Head Trainer Jess McKee.
+            Start with Jess&apos;s intro, then six weeks of practical training education.
           </p>
         </div>
         <button
@@ -70,6 +80,20 @@ export function MoveLearnLibrary({
           {profilePhoto ? "" : profileInitial}
         </button>
       </header>
+
+      <article className="card cracker-intro-card" aria-label="Jess intro video">
+        <p className="eyebrow">START HERE</p>
+        <h2>Intro to CRACKER training</h2>
+        <p className="muted">Jess walks you through how the six weeks work.</p>
+        {introUrl ? (
+          <InAppVideo url={introUrl} title="Jess intro to CRACKER training" />
+        ) : (
+          <p className="auth-info">Intro video will play here once we have Jess&apos;s link.</p>
+        )}
+        <button type="button" className="secondary-btn" onClick={toggleIntro}>
+          {checklist.intro ? "INTRO WATCHED" : "MARK INTRO WATCHED"}
+        </button>
+      </article>
 
       <JessHeadTrainerCard />
 

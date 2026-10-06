@@ -83,6 +83,9 @@ export function CrackerShell({
           profilePhoto={profilePhoto}
           onOpenProfile={onOpenProfile}
           onNavigate={selectTab}
+          onOpenLearn={() => {
+            selectTab("move", "learn");
+          }}
           onOpenProgress={() => {
             selectTab("move", "progress");
           }}

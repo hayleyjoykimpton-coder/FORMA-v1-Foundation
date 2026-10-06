@@ -1695,6 +1695,11 @@ textarea::placeholder {
   cursor: pointer;
 }
 
+.cracker-home-progress h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
 .cracker-home-progress:hover {
   border-color: rgba(36, 63, 130, 0.28);
 }
