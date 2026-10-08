@@ -44,7 +44,7 @@ export const CRACKER_EXTERNAL_LINKS = {
       upper: { week1: "", week2: "", week3: "" },
       full: {
         week1: "",
-        week2: "",
+        week2: "https://youtube.com/shorts/SGlGwcAwmp0?feature=share",
         week3: "https://youtube.com/shorts/Az7cIf278No?feature=share",
       },
     },
