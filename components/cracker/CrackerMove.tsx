@@ -31,7 +31,10 @@ import {
 } from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
 import { CrackerResumeCard } from "@/components/cracker/CrackerResumeCard";
-import { crackerWeeklyTrainingVideoUrl } from "@/lib/jessTrainer";
+import {
+  crackerWeeklyTrainingDemoSourceWeek,
+  crackerWeeklyTrainingVideoUrl,
+} from "@/lib/jessTrainer";
 import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
@@ -145,6 +148,7 @@ export function CrackerMove({
   const weekBanner = moveWeekImage(viewWeek);
   const learnImage = moveWeekImage(viewWeek) ?? moveImage("learnWithJess");
   const educationVideo = crackerWeeklyTrainingVideoUrl(viewWeek);
+  const educationDemoSourceWeek = crackerWeeklyTrainingDemoSourceWeek(viewWeek);
 
   useEffect(() => {
     setChecklist(loadMoveChecklist());
@@ -461,6 +465,9 @@ export function CrackerMove({
             <p className="eyebrow">LEARN WITH JESS</p>
             <h2>{education.title}</h2>
             <p>{education.summary}</p>
+            {educationDemoSourceWeek !== viewWeek ? (
+              <p className="muted">Same training demo as week {educationDemoSourceWeek}.</p>
+            ) : null}
             {educationVideo ? null : (
               <p className="muted">This week&apos;s video will play here once Jess&apos;s link is in.</p>
             )}

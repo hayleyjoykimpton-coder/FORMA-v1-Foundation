@@ -26,6 +26,7 @@ export const CRACKER_EXTERNAL_LINKS = {
   },
   jessVideos: {
     intro: "https://youtu.be/oc93hzf6l8A",
+    /** Training demos. Weeks 4/5/6 reuse week 1/2/3 unless a later week URL is set. */
     week1: "",
     week2: "",
     week3: "",
@@ -63,10 +64,22 @@ export function jessIntroVideoUrl(): string | null {
   return configuredUrl(CRACKER_EXTERNAL_LINKS.jessVideos.intro);
 }
 
+/** Weeks 4/5/6 play the same training demo as weeks 1/2/3. */
+export function jessDemoSourceWeek(week: number): number {
+  const w = Math.min(6, Math.max(1, Math.floor(week) || 1));
+  return w > 3 ? w - 3 : w;
+}
+
 export function jessVideoUrl(week: number): string | null {
   const w = Math.min(6, Math.max(1, Math.floor(week) || 1));
   const key = `week${w}` as keyof typeof CRACKER_EXTERNAL_LINKS.jessVideos;
-  return configuredUrl(CRACKER_EXTERNAL_LINKS.jessVideos[key]);
+  const direct = configuredUrl(CRACKER_EXTERNAL_LINKS.jessVideos[key]);
+  if (direct) return direct;
+  if (w >= 4) {
+    const replay = `week${jessDemoSourceWeek(w)}` as keyof typeof CRACKER_EXTERNAL_LINKS.jessVideos;
+    return configuredUrl(CRACKER_EXTERNAL_LINKS.jessVideos[replay]);
+  }
+  return null;
 }
 
 export function naomiIntroVideoUrl(): string | null {

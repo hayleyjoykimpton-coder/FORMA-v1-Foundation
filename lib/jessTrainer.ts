@@ -1,6 +1,11 @@
 /** Jess McKee / JMK Training — Head Trainer feature for MOVE. */
 
-import { jessInstagramUrl, jessIntroVideoUrl as introFromLinks, jessVideoUrl } from "./crackerLinks";
+import {
+  jessDemoSourceWeek,
+  jessInstagramUrl,
+  jessIntroVideoUrl as introFromLinks,
+  jessVideoUrl,
+} from "./crackerLinks";
 
 export const JESS_HEAD_TRAINER = {
   eyebrow: "YOUR HEAD TRAINER",
@@ -16,6 +21,10 @@ export const JESS_HEAD_TRAINER = {
 
 export function crackerWeeklyTrainingVideoUrl(week: number): string | null {
   return jessVideoUrl(week);
+}
+
+export function crackerWeeklyTrainingDemoSourceWeek(week: number): number {
+  return jessDemoSourceWeek(week);
 }
 
 export function crackerIntroVideoUrl(): string | null {

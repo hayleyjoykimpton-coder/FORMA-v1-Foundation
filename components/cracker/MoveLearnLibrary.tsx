@@ -16,7 +16,11 @@ import {
   setWeekChecklist,
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
-import { crackerIntroVideoUrl, crackerWeeklyTrainingVideoUrl } from "@/lib/jessTrainer";
+import {
+  crackerIntroVideoUrl,
+  crackerWeeklyTrainingDemoSourceWeek,
+  crackerWeeklyTrainingVideoUrl,
+} from "@/lib/jessTrainer";
 import { moveWeekImage } from "@/lib/moveImages";
 
 type Props = {
@@ -101,6 +105,7 @@ export function MoveLearnLibrary({
         {weeks.map((item) => {
           const watched = getWeekChecklist(checklist, level, item.week).education;
           const video = crackerWeeklyTrainingVideoUrl(item.week);
+          const demoSourceWeek = crackerWeeklyTrainingDemoSourceWeek(item.week);
           const cover = moveWeekImage(item.week);
           return (
             <article key={item.week} className="card move-learn-card">
@@ -114,6 +119,9 @@ export function MoveLearnLibrary({
                 <p className="eyebrow">WEEK {item.week}</p>
                 <h2>{item.title.toUpperCase()}</h2>
                 <p className="muted">{item.summary}</p>
+                {demoSourceWeek !== item.week ? (
+                  <p className="muted">Same training demo as week {demoSourceWeek}.</p>
+                ) : null}
                 {video ? (
                   <InAppVideo url={video} title={`Learn with Jess · ${item.title}`} />
                 ) : (
