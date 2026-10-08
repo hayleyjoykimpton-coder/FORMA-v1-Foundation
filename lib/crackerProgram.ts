@@ -839,3 +839,10 @@ export function crackerSessionIndex(title: string): number {
   if (t.includes("full")) return 3;
   return 0;
 }
+
+/** Parse week 1–6 from `cracker-${level}-w${w}-${slug}`. */
+export function crackerWeekFromWorkoutId(id: string): number | null {
+  const match = /^cracker-(?:beginner|intermediate)-w([1-6])-/.exec(id);
+  if (!match) return null;
+  return Number(match[1]);
+}

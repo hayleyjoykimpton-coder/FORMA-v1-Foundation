@@ -148,8 +148,11 @@ import {
 import {
   buildCrackerWorkouts,
   crackerLevelFromExperience,
+  crackerWeekFromWorkoutId,
 } from "@/lib/crackerProgram";
+import { crackerSessionDemoUrl } from "@/lib/jessTrainer";
 import { CrackerShell } from "@/components/cracker/CrackerShell";
+import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { saveCrackerTab, saveMoveSubTab, saveRecapFocus } from "@/lib/crackerNav";
 import { WodLogger } from "@/components/WodLogger";
 import { SessionExerciseLog } from "@/components/SessionExerciseLog";
@@ -295,6 +298,7 @@ export default function FormaApp() {
   const [sessionSwapOpen, setSessionSwapOpen] = useState(false);
   const [session, setSession] = useState<SessionDraft | null>(null);
   const [restRemaining, setRestRemaining] = useState(0);
+  const [sessionDemoOpen, setSessionDemoOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   const [water, setWater] = useState(0);
   const [journal, setJournal] = useState<Record<string, string>>({});
@@ -1261,6 +1265,7 @@ export default function FormaApp() {
     setReadinessWorkout(null);
     setTab("today");
     setRestRemaining(0);
+    setSessionDemoOpen(true);
   };
 
   const exitSession = () => {
@@ -2017,6 +2022,15 @@ export default function FormaApp() {
         setRestRemaining(sharedRest);
       }
     };
+    const sessionDemoWeek = crackerWeekFromWorkoutId(sessionWorkout.id) ?? weekInCycle;
+    const sessionDemoUrl =
+      challengeMode === "cracker"
+        ? crackerSessionDemoUrl(
+            crackerLevelFromExperience(profile.experienceLevel),
+            sessionWorkout.title,
+            sessionDemoWeek,
+          )
+        : null;
 
     return (
       <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
@@ -2097,6 +2111,26 @@ export default function FormaApp() {
                 </button>
               )}
             </div>
+
+            {sessionDemoUrl ? (
+              <details
+                className="session-demo-card"
+                open={sessionDemoOpen}
+                onToggle={(event) => {
+                  const next = event.currentTarget.open;
+                  if (next !== sessionDemoOpen) setSessionDemoOpen(next);
+                }}
+              >
+                <summary>
+                  <span className="eyebrow">Watch with Jess</span>
+                  <strong>{sessionWorkout.title} demo</strong>
+                </summary>
+                <InAppVideo
+                  url={sessionDemoUrl}
+                  title={`Jess · ${sessionWorkout.title} · Week ${sessionDemoWeek}`}
+                />
+              </details>
+            ) : null}
 
             {isWod ? (
               <WodLogger

@@ -3308,6 +3308,49 @@ button:disabled { cursor: not-allowed; }
 .session-advance .secondary-btn:disabled {
   opacity: 0.45;
 }
+.session-demo-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--card, #fff);
+  padding: 12px 14px 14px;
+  box-shadow: var(--shadow);
+}
+.session-demo-card > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.session-demo-card > summary::-webkit-details-marker,
+.session-demo-card > summary::marker {
+  display: none;
+  content: none;
+}
+.session-demo-card > summary strong {
+  font-size: 17px;
+  line-height: 1.2;
+}
+.session-demo-card > summary::after {
+  content: "Hide demo";
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.session-demo-card:not([open]) > summary::after {
+  content: "Show demo";
+}
+.session-demo-card .in-app-video {
+  margin-top: 12px;
+  width: 100%;
+}
+.session-demo-card .in-app-video.is-short {
+  max-width: 168px;
+}
 button.schedule-card {
   width: 100%;
   text-align: left;
