@@ -41,7 +41,7 @@ export const CRACKER_EXTERNAL_LINKS = {
   jessSessionDemos: {
     beginner: {
       lower: { week1: "", week2: "", week3: "" },
-      upper: { week1: "", week2: "https://youtube.com/shorts/7mlca-_bY5Q?feature=share", week3: "https://youtube.com/shorts/3tqAmYg_slY?feature=share" },
+      upper: { week1: "https://youtube.com/shorts/5_pqL7Sw5zQ?feature=share", week2: "https://youtube.com/shorts/7mlca-_bY5Q?feature=share", week3: "https://youtube.com/shorts/3tqAmYg_slY?feature=share" },
       full: {
         week1: "https://youtube.com/shorts/bWjAxfCSV4Y?feature=share",
         week2: "https://youtube.com/shorts/SGlGwcAwmp0?feature=share",
