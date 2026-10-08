@@ -370,7 +370,14 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         pattern: "Calves",
         early: { sets: 3, repMin: 12, repMax: 15 },
         late: { sets: 4, repMin: 15, repMax: 20 },
-        names: ["Standing Calf Raise", "Assisted Nordic Curl", "Smith Machine Calf Raise", "Standing Calf Raise", "Assisted Nordic Curl", "Smith Machine Calf Raise"],
+        names: [
+          "Standing Calf Raise",
+          "Smith Machine Deficit Calf Raise",
+          "Smith Machine Deficit Single Calf Raise",
+          "Standing Calf Raise",
+          "Smith Machine Deficit Calf Raise",
+          "Smith Machine Deficit Single Calf Raise",
+        ],
         restSeconds: 45,
       },
       {
@@ -436,42 +443,50 @@ export const CRACKER_INTERMEDIATE: CrackerDay[] = [
         restSeconds: 90,
       },
       {
-        pattern: "Horizontal Pull (SS w/ Biceps)",
+        pattern: "Horizontal Pull",
         early: { sets: 3, repMin: 8, repMax: 10 },
-        late: { sets: 3, repMin: 10, repMax: 12 },
+        late: { sets: 3, repMin: 8, repMax: 10 },
         names: ["Pendlay Row", "Chest-Supported DB Row", "Machine Row (single-arm)", "Pendlay Row", "Chest-Supported DB Row", "Machine Row (single-arm)"],
         libraryId: "seated_row",
-        note: "Superset with biceps",
         restSeconds: 70,
-      },
-      {
-        pattern: "Biceps (SS w/ Row)",
-        early: { sets: 3, repMin: 10, repMax: 12 },
-        late: { sets: 3, repMin: 12, repMax: 15 },
-        names: ["DB Bicep Curl", "Incline DB Curl", "Cable Bar Curl", "DB Bicep Curl", "Incline DB Curl", "Cable Bar Curl"],
-        libraryId: "bicep_curl",
-        restSeconds: 45,
       },
       {
         pattern: "Vertical Push",
         early: { sets: 4, repMin: 6, repMax: 8 },
-        late: { sets: 4, repMin: 4, repMax: 6 },
+        late: { sets: 4, repMin: 6, repMax: 8 },
         names: ["Barbell Overhead Strict Press", "BB Push Press", "Seated DB Shoulder Press", "Barbell Overhead Strict Press", "BB Push Press", "Seated DB Shoulder Press"],
         libraryId: "shoulder_press",
         restSeconds: 90,
       },
       {
-        pattern: "Triceps",
+        pattern: "C1 Biceps (SS w/ Triceps)",
         early: { sets: 3, repMin: 10, repMax: 12 },
-        late: { sets: 3, repMin: 12, repMax: 15 },
+        late: { sets: 3, repMin: 10, repMax: 12 },
+        names: ["DB Bicep Curl", "Incline DB Curl", "Cable Bar Curl", "DB Bicep Curl", "Incline DB Curl", "Cable Bar Curl"],
+        libraryId: "bicep_curl",
+        note: "Superset with triceps — no rest between C1/C2; 60–75s between rounds.",
+        restSeconds: 70,
+      },
+      {
+        pattern: "C2 Triceps (SS w/ Biceps)",
+        early: { sets: 3, repMin: 10, repMax: 12 },
+        late: { sets: 3, repMin: 10, repMax: 12 },
         names: ["Close-Grip DB Bench Press", "Skull Crusher", "Overhead Cable Rope Extension", "Close-Grip DB Bench Press", "Skull Crusher", "Overhead Cable Rope Extension"],
+        note: "Superset partner for biceps",
         restSeconds: 45,
       },
       {
         pattern: "Core",
         early: { sets: 3, repMin: 12, repMax: 12 },
         late: { sets: 3, repMin: 15, repMax: 15 },
-        names: ["Weighted Plank", "Ab Wheel Rollout", "Weighted Plank", "Weighted Plank", "Ab Wheel Rollout", "Weighted Plank"],
+        names: [
+          "Weighted Plank (20s)",
+          "Ab Wheel Rollout",
+          "Weighted Plank (20s)",
+          "Weighted Plank (30s)",
+          "Ab Wheel Rollout",
+          "Weighted Plank (30s)",
+        ],
         restSeconds: 45,
       },
     ],
@@ -720,7 +735,7 @@ export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout
   const theme = CRACKER_WEEK_THEMES[w - 1];
 
   return plan.map((day) => {
-    const strength = day.strength.map((slot) => {
+    let strength = day.strength.map((slot) => {
       const rx = late ? slot.late : slot.early;
       const name = slot.names[w - 1];
       const notes = [slot.pattern, slot.note, `Wk${w} · ${theme}`].filter(Boolean).join(" · ");
@@ -731,6 +746,13 @@ export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout
         rpe: late ? 8 : 7,
       });
     });
+
+    // Intermediate Full Body weeks 2 and 5 follow the print-sheet order:
+    // hinge → hip thrust → squat → pull → push → shoulders → core.
+    if (level === "intermediate" && day.title === "Full Body" && (w === 2 || w === 5) && strength.length >= 7) {
+      const [hinge, squat, push, pull, hip, shoulders, core] = strength;
+      strength = [hinge, hip, squat, pull, push, shoulders, core];
+    }
 
     const wod = day.wods[w - 1];
     const wallBallNote =
