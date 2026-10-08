@@ -32,6 +32,7 @@ import {
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
 import { CrackerResumeCard } from "@/components/cracker/CrackerResumeCard";
 import {
+  crackerSessionDemoUrl,
   crackerWeeklyTrainingDemoSourceWeek,
   crackerWeeklyTrainingVideoUrl,
 } from "@/lib/jessTrainer";
@@ -372,6 +373,7 @@ export function CrackerMove({
                 ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
                 : workout;
             const cropMod = media.cropClass ? ` ${media.cropClass}` : "";
+            const sessionDemo = crackerSessionDemoUrl(level, workout.title, viewWeek);
 
             return (
               <article
@@ -400,6 +402,12 @@ export function CrackerMove({
                   <p className="eyebrow">{workout.day}</p>
                   <h2>{workout.title.toUpperCase()}</h2>
                   <p className="muted">{shortSummary(workout)}</p>
+                  {sessionDemo ? (
+                    <InAppVideo
+                      url={sessionDemo}
+                      title={`Jess · ${workout.title} · Week ${viewWeek}`}
+                    />
+                  ) : null}
                   <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
                     {pausedTitle && startTarget.title === pausedTitle
                       ? "CONTINUE WORKOUT"

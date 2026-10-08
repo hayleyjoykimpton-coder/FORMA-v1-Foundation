@@ -1842,6 +1842,19 @@ textarea::placeholder {
   object-position: center 32%;
 }
 
+.move-learn-session-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.move-learn-session-demo .in-app-video,
+.cracker-workout-body .in-app-video {
+  width: 100%;
+}
+
 .move-learn-body {
   display: flex;
   flex-direction: column;

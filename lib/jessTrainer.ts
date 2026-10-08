@@ -4,6 +4,8 @@ import {
   jessDemoSourceWeek,
   jessInstagramUrl,
   jessIntroVideoUrl as introFromLinks,
+  jessSessionDemoUrl,
+  jessSessionDemosForWeek,
   jessVideoUrl,
 } from "./crackerLinks";
 
@@ -25,6 +27,21 @@ export function crackerWeeklyTrainingVideoUrl(week: number): string | null {
 
 export function crackerWeeklyTrainingDemoSourceWeek(week: number): number {
   return jessDemoSourceWeek(week);
+}
+
+export function crackerSessionDemoUrl(
+  level: "beginner" | "intermediate",
+  title: string,
+  week: number,
+): string | null {
+  return jessSessionDemoUrl(level, title, week);
+}
+
+export function crackerSessionDemosForWeek(
+  level: "beginner" | "intermediate",
+  week: number,
+) {
+  return jessSessionDemosForWeek(level, week);
 }
 
 export function crackerIntroVideoUrl(): string | null {

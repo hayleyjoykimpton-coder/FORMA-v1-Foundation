@@ -18,6 +18,7 @@ import {
 } from "@/lib/crackerMoveChecklist";
 import {
   crackerIntroVideoUrl,
+  crackerSessionDemosForWeek,
   crackerWeeklyTrainingDemoSourceWeek,
   crackerWeeklyTrainingVideoUrl,
 } from "@/lib/jessTrainer";
@@ -106,6 +107,7 @@ export function MoveLearnLibrary({
           const watched = getWeekChecklist(checklist, level, item.week).education;
           const video = crackerWeeklyTrainingVideoUrl(item.week);
           const demoSourceWeek = crackerWeeklyTrainingDemoSourceWeek(item.week);
+          const sessionDemos = crackerSessionDemosForWeek(level, item.week);
           const cover = moveWeekImage(item.week);
           return (
             <article key={item.week} className="card move-learn-card">
@@ -124,9 +126,21 @@ export function MoveLearnLibrary({
                 ) : null}
                 {video ? (
                   <InAppVideo url={video} title={`Learn with Jess · ${item.title}`} />
-                ) : (
+                ) : sessionDemos.length === 0 ? (
                   <p className="auth-info">COMING SOON</p>
-                )}
+                ) : null}
+                {sessionDemos.map((demo) => (
+                  <div key={demo.key} className="move-learn-session-demo">
+                    <p className="eyebrow">{demo.title} DEMO</p>
+                    {demo.sourceWeek !== item.week ? (
+                      <p className="muted">Same training demo as week {demo.sourceWeek}.</p>
+                    ) : null}
+                    <InAppVideo
+                      url={demo.url}
+                      title={`Learn with Jess · ${demo.title} · Week ${item.week}`}
+                    />
+                  </div>
+                ))}
                 <p className={`move-learn-status${watched ? " is-watched" : ""}`}>
                   {watched ? "✓ WATCHED" : "NOT WATCHED"}
                 </p>

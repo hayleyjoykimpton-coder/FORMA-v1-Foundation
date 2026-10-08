@@ -34,6 +34,26 @@ export const CRACKER_EXTERNAL_LINKS = {
     week5: "",
     week6: "",
   },
+  /**
+   * Jess session demos (Lower / Upper / Full).
+   * Only week 1–3 need links — weeks 4/5/6 reuse those same videos.
+   */
+  jessSessionDemos: {
+    beginner: {
+      lower: { week1: "", week2: "", week3: "" },
+      upper: { week1: "", week2: "", week3: "" },
+      full: {
+        week1: "",
+        week2: "",
+        week3: "https://youtube.com/shorts/Az7cIf278No?feature=share",
+      },
+    },
+    intermediate: {
+      lower: { week1: "", week2: "", week3: "" },
+      upper: { week1: "", week2: "", week3: "" },
+      full: { week1: "", week2: "", week3: "" },
+    },
+  },
   naomiVideos: {
     intro: "https://youtube.com/shorts/UjnC8Fp6Mxs?feature=share",
   },
@@ -68,6 +88,53 @@ export function jessIntroVideoUrl(): string | null {
 export function jessDemoSourceWeek(week: number): number {
   const w = Math.min(6, Math.max(1, Math.floor(week) || 1));
   return w > 3 ? w - 3 : w;
+}
+
+export type JessSessionKey = "lower" | "upper" | "full";
+
+const SESSION_TITLES: Record<JessSessionKey, string> = {
+  lower: "Lower Body",
+  upper: "Upper Body",
+  full: "Full Body",
+};
+
+export function jessSessionKeyFromTitle(title: string): JessSessionKey | null {
+  const t = title.toLowerCase();
+  if (t.includes("lower")) return "lower";
+  if (t.includes("upper")) return "upper";
+  if (t.includes("full")) return "full";
+  return null;
+}
+
+export function jessSessionDemoUrl(
+  level: "beginner" | "intermediate",
+  titleOrKey: string,
+  week: number,
+): string | null {
+  const key =
+    titleOrKey === "lower" || titleOrKey === "upper" || titleOrKey === "full"
+      ? titleOrKey
+      : jessSessionKeyFromTitle(titleOrKey);
+  if (!key) return null;
+  const slot = CRACKER_EXTERNAL_LINKS.jessSessionDemos[level][key];
+  const source = jessDemoSourceWeek(week);
+  const weekKey = `week${source}` as keyof typeof slot;
+  return configuredUrl(slot[weekKey]);
+}
+
+export function jessSessionDemosForWeek(
+  level: "beginner" | "intermediate",
+  week: number,
+): { key: JessSessionKey; title: string; url: string; sourceWeek: number }[] {
+  const sourceWeek = jessDemoSourceWeek(week);
+  return (["lower", "upper", "full"] as const)
+    .map((key) => {
+      const url = jessSessionDemoUrl(level, key, week);
+      return url ? { key, title: SESSION_TITLES[key], url, sourceWeek } : null;
+    })
+    .filter((item): item is { key: JessSessionKey; title: string; url: string; sourceWeek: number } =>
+      Boolean(item),
+    );
 }
 
 export function jessVideoUrl(week: number): string | null {
