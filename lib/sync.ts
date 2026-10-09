@@ -358,6 +358,32 @@ export async function signIn(email: string, password: string) {
   return { data, error: error?.message };
 }
 
+export function isPasswordRecoveryRedirect(): boolean {
+  if (typeof window === "undefined") return false;
+  const hash = window.location.hash.replace(/^#/, "");
+  const search = window.location.search.replace(/^\?/, "");
+  const fromHash = new URLSearchParams(hash).get("type");
+  const fromSearch = new URLSearchParams(search).get("type");
+  return fromHash === "recovery" || fromSearch === "recovery";
+}
+
+export async function requestPasswordReset(email: string) {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Cloud sync is not configured. Add Supabase keys to continue." };
+  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo,
+  });
+  return { error: error?.message };
+}
+
+export async function updatePassword(password: string) {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Cloud sync is not configured. Add Supabase keys to continue." };
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error: error?.message };
+}
+
 export async function signOut() {
   const supabase = getSupabase();
   if (!supabase) return;

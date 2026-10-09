@@ -2703,6 +2703,12 @@ textarea::placeholder {
   border-radius: 8px;
 }
 .text-btn.centered { width: 100%; text-align: center; margin-top: 4px; }
+.auth-forgot {
+  align-self: flex-end;
+  margin: -6px 0 2px;
+  padding: 0;
+  font-size: 13px;
+}
 
 .ghost-btn {
   color: var(--text);

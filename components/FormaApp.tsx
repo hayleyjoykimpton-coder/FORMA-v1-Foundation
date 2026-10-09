@@ -67,6 +67,7 @@ import { fileToResizedDataUrl } from "@/lib/images";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   getSessionUserId,
+  isPasswordRecoveryRedirect,
   pullCloudState,
   pushProfile,
   pushUserState,
@@ -248,6 +249,7 @@ type SessionDraft = {
 type AuthMode = "booting" | "gate" | "local" | "cloud";
 
 const LOCAL_ONLY_KEY = "forma-local-only-v1";
+const AWAITING_PASSWORD_RESET_KEY = "forma-awaiting-password-reset";
 const PROGRESS_SUBTAB_KEY = "forma-progress-subtab-v1";
 
 const TABS: { key: Tab; label: string }[] = [
@@ -321,6 +323,7 @@ export default function FormaApp() {
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
   const [pausedDraft, setPausedDraft] = useState<SessionDraftStored | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("booting");
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
   const [checkInsRevision, setCheckInsRevision] = useState(0);
   const [syncNote, setSyncNote] = useState<string | null>(null);
@@ -345,6 +348,7 @@ export default function FormaApp() {
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
+  const passwordRecoveryRef = useRef(false);
   const cloudSnapRef = useRef({
     authMode,
     cloudUserId,
@@ -729,6 +733,18 @@ export default function FormaApp() {
         const userId = await getSessionUserId();
         if (cancelled) return;
 
+        const awaitingReset =
+          passwordRecoveryRef.current ||
+          isPasswordRecoveryRedirect() ||
+          window.sessionStorage.getItem(AWAITING_PASSWORD_RESET_KEY) === "1";
+        if (userId && awaitingReset) {
+          passwordRecoveryRef.current = true;
+          setPasswordRecovery(true);
+          setCloudUserId(userId);
+          setAuthMode("gate");
+          return;
+        }
+
         if (userId) {
           await applyCloudBundle(userId);
           return;
@@ -763,11 +779,31 @@ export default function FormaApp() {
         setPausedDraft(null);
         persistSessionDraft(null);
         setNeedsCrackerOnboarding(false);
+        passwordRecoveryRef.current = false;
+        setPasswordRecovery(false);
         setAuthMode("gate");
         return;
       }
+      if (event === "PASSWORD_RECOVERY") {
+        passwordRecoveryRef.current = true;
+        setPasswordRecovery(true);
+        setCloudUserId(session?.user.id ?? null);
+        setAuthMode("gate");
+        setHydrated(true);
+        return;
+      }
+      const recoverySession =
+        passwordRecoveryRef.current || isPasswordRecoveryRedirect();
       // TOKEN_REFRESHED used to re-pull and overwrite activeWorkoutId / history mid-session.
       if (event === "SIGNED_IN" && session?.user.id) {
+        if (recoverySession) {
+          passwordRecoveryRef.current = true;
+          setPasswordRecovery(true);
+          setCloudUserId(session.user.id);
+          setAuthMode("gate");
+          setHydrated(true);
+          return;
+        }
         if (sessionRef.current) {
           setCloudUserId(session.user.id);
           setAuthMode("cloud");
@@ -777,6 +813,10 @@ export default function FormaApp() {
           setHydrated(true);
         }
       } else if (event === "TOKEN_REFRESHED" && session?.user.id) {
+        if (recoverySession) {
+          setCloudUserId(session.user.id);
+          return;
+        }
         setCloudUserId(session.user.id);
         setAuthMode("cloud");
       }
@@ -1654,9 +1694,28 @@ export default function FormaApp() {
   if (authMode === "gate") {
     return (
       <AuthScreen
+        recovery={passwordRecovery}
         onAuthenticated={() => {
           // Auth listener will pull cloud state and set authMode to cloud.
+          window.sessionStorage.removeItem(AWAITING_PASSWORD_RESET_KEY);
           setHydrated(true);
+        }}
+        onPasswordUpdated={async () => {
+          passwordRecoveryRef.current = false;
+          setPasswordRecovery(false);
+          window.sessionStorage.removeItem(AWAITING_PASSWORD_RESET_KEY);
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+          const userId = cloudUserId ?? (await getSessionUserId());
+          if (userId) await applyCloudBundle(userId);
+          else setHydrated(true);
+        }}
+        onCancelRecovery={() => {
+          passwordRecoveryRef.current = false;
+          setPasswordRecovery(false);
+          window.sessionStorage.removeItem(AWAITING_PASSWORD_RESET_KEY);
+          void signOut();
         }}
         onContinueLocal={
           isSupabaseConfigured()
