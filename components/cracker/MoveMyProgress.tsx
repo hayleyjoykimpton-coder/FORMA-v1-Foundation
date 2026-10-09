@@ -211,6 +211,20 @@ export function MoveMyProgress({
         ) : (
           <>
             <MetricTriple
+              label="Weight"
+              start={formatKg(checkIns.inbody_initial?.weightKg)}
+              end={inbodyFinal ? formatKg(checkIns.inbody_final?.weightKg) : "—"}
+              change={
+                inbodyFinal
+                  ? numericalChange(
+                      checkIns.inbody_initial?.weightKg,
+                      checkIns.inbody_final?.weightKg,
+                      { unit: " kg" },
+                    ).text
+                  : "—"
+              }
+            />
+            <MetricTriple
               label="Skeletal Muscle Mass"
               start={formatKg(checkIns.inbody_initial?.skeletalMuscleMassKg)}
               end={inbodyFinal ? formatKg(checkIns.inbody_final?.skeletalMuscleMassKg) : "—"}

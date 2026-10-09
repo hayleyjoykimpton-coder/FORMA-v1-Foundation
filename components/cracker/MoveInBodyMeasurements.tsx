@@ -17,6 +17,7 @@ import {
 } from "@/lib/crackerMoveCheckIns";
 
 type CardId =
+  | "weight"
   | "smm"
   | "bfp"
   | "visceral"
@@ -103,6 +104,7 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
 
   const results = useMemo(
     () => [
+      metricLine("Weight", inI?.weightKg, inF?.weightKg, " kg"),
       metricLine("SMM", inI?.skeletalMuscleMassKg, inF?.skeletalMuscleMassKg, " kg"),
       metricLine("Body fat", inI?.bodyFatPercent, inF?.bodyFatPercent, "%"),
       metricLine("Visceral fat", inI?.visceralFat, inF?.visceralFat),
@@ -151,6 +153,12 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
       <section className="move-metric-section">
         <p className="eyebrow">INBODY</p>
         <div className="move-test-stack">
+          <MetricCard
+            title="WEIGHT"
+            unit="kg"
+            summary={formatPair(inI?.weightKg, inF?.weightKg, " kg")}
+            onOpen={() => openInBody("weight")}
+          />
           <MetricCard
             title="SKELETAL MUSCLE MASS"
             unit="kg"
@@ -221,13 +229,23 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
         </div>
       ) : null}
 
-      {editing && ["smm", "bfp", "visceral"].includes(editing) ? (
+      {editing && ["weight", "smm", "bfp", "visceral"].includes(editing) ? (
         <EditorSheet title={inBodyTitle(editing)} onClose={() => setEditing(null)} onSave={saveInBody}>
           <div className="move-compare-grid move-compare-head">
             <span>START</span>
             <span>FINAL</span>
             <span>CHANGE</span>
           </div>
+          {editing === "weight" ? (
+            <NumberCompare
+              label="kg"
+              initial={draftInInitial.weightKg}
+              final={draftInFinal.weightKg}
+              unit=" kg"
+              onInitial={(n) => setDraftInInitial((c) => ({ ...c, weightKg: n }))}
+              onFinal={(n) => setDraftInFinal((c) => ({ ...c, weightKg: n }))}
+            />
+          ) : null}
           {editing === "smm" ? (
             <NumberCompare
               label="kg"
@@ -407,6 +425,7 @@ function NumberCompare({
 }
 
 function inBodyTitle(id: CardId): string {
+  if (id === "weight") return "WEIGHT";
   if (id === "smm") return "SKELETAL MUSCLE MASS";
   if (id === "bfp") return "BODY FAT PERCENTAGE";
   return "VISCERAL FAT";

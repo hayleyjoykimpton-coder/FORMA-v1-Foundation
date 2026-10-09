@@ -28,6 +28,7 @@ export type FitnessCheckIn = {
 };
 
 export type InBodyCheckIn = {
+  weightKg?: number;
   skeletalMuscleMassKg?: number;
   bodyFatPercent?: number;
   visceralFat?: number;
@@ -112,6 +113,7 @@ function normalizeFitness(raw: unknown): FitnessCheckIn | undefined {
 function normalizeInBody(raw: unknown): InBodyCheckIn | undefined {
   if (!isRecord(raw)) return undefined;
   const next: InBodyCheckIn = {
+    weightKg: optNumber(raw.weightKg),
     skeletalMuscleMassKg: optNumber(raw.skeletalMuscleMassKg),
     bodyFatPercent: optNumber(raw.bodyFatPercent),
     visceralFat: optNumber(raw.visceralFat),
@@ -276,6 +278,7 @@ export function hasFitnessData(entry?: FitnessCheckIn): boolean {
 export function hasInBodyData(entry?: InBodyCheckIn): boolean {
   if (!entry) return false;
   return (
+    entry.weightKg != null ||
     entry.skeletalMuscleMassKg != null ||
     entry.bodyFatPercent != null ||
     entry.visceralFat != null
