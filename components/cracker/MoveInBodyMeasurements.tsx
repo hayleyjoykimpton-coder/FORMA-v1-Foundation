@@ -230,7 +230,7 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
       ) : null}
 
       {editing && ["weight", "smm", "bfp", "visceral"].includes(editing) ? (
-        <EditorSheet title={inBodyTitle(editing)} onClose={() => setEditing(null)} onSave={saveInBody}>
+        <EditorSheet title={inBodyTitle(editing)} onSave={saveInBody}>
           <div className="move-compare-grid move-compare-head">
             <span>START</span>
             <span>FINAL</span>
@@ -279,11 +279,7 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
       ) : null}
 
       {editing && ["chest", "waist", "hips"].includes(editing) ? (
-        <EditorSheet
-          title={measureTitle(editing)}
-          onClose={() => setEditing(null)}
-          onSave={saveMeasurements}
-        >
+        <EditorSheet title={measureTitle(editing)} onSave={saveMeasurements}>
           <div className="move-compare-grid move-compare-head">
             <span>START</span>
             <span>FINAL</span>
@@ -351,17 +347,15 @@ function MetricCard({
 
 function EditorSheet({
   title,
-  onClose,
   onSave,
   children,
 }: {
   title: string;
-  onClose: () => void;
   onSave: () => void;
   children: ReactNode;
 }) {
   return (
-    <div className="move-editor-backdrop" role="presentation" onClick={onClose}>
+    <div className="move-editor-backdrop" role="presentation" onClick={onSave}>
       <div
         className="move-editor-sheet"
         role="dialog"
@@ -371,8 +365,8 @@ function EditorSheet({
       >
         <div className="move-editor-head">
           <h2>{title}</h2>
-          <button type="button" className="text-btn" onClick={onClose}>
-            Close
+          <button type="button" className="text-btn" onClick={onSave}>
+            Done
           </button>
         </div>
         <div className="move-editor-fields">{children}</div>

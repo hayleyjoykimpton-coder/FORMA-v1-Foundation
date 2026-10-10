@@ -365,7 +365,7 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
       </div>
 
       {editing ? (
-        <div className="move-editor-backdrop" role="presentation" onClick={() => setEditing(null)}>
+        <div className="move-editor-backdrop" role="presentation" onClick={saveEditor}>
           <div
             className="move-editor-sheet"
             role="dialog"
@@ -375,8 +375,8 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
           >
             <div className="move-editor-head">
               <h2>{editorTitle(editing)}</h2>
-              <button type="button" className="text-btn" onClick={() => setEditing(null)}>
-                Close
+              <button type="button" className="text-btn" onClick={saveEditor}>
+                Done
               </button>
             </div>
             <p className="muted move-editor-standards">{editorStandards(editing)}</p>
@@ -443,6 +443,7 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
             <button type="button" className="cta-btn" onClick={saveEditor}>
               SAVE RESULTS
             </button>
+            <p className="muted">Done and Save both keep these numbers.</p>
             {savedNote ? <p className="auth-info">{savedNote}</p> : null}
           </div>
         </div>
