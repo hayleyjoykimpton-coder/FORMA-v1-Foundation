@@ -10,6 +10,7 @@ import {
   phaseCopy,
 } from "@/lib/content";
 import { imageForMoveWorkout } from "@/lib/moveImages";
+import { exerciseDoseLabel, isHoldExercise } from "@/lib/holdExercise";
 import type {
   Exercise,
   ExerciseResult,
@@ -44,10 +45,16 @@ import {
   computeStreak,
   computeStrengthProgress,
   plannedWeeklySets,
+  sessionVolume,
   totalCompletedSets,
   weekSessionCount,
 } from "@/lib/analytics";
 import { STORAGE, loadForma, persistSessionDraft, type SessionDraftStored } from "@/lib/migrations";
+import {
+  draftMatchesWorkout,
+  findWorkoutForDraft,
+  storedSessionDraft,
+} from "@/lib/sessionDraft";
 import { GOAL_LABELS, loadProfile, saveProfile, NUTRITION_LABELS, CLUB_LABELS } from "@/lib/user";
 import type { UserProfile } from "@/lib/user";
 import {
@@ -60,23 +67,29 @@ import { fileToResizedDataUrl } from "@/lib/images";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   getSessionUserId,
+  isPasswordRecoveryRedirect,
   pullCloudState,
   pushProfile,
   pushUserState,
   signOut,
 } from "@/lib/sync";
 import {
-  dismissTrainingReminderToday,
-  loadReminderPrefs,
-  markTrainingDoneToday,
-  maybeNotifyTrainingDay,
-  requestBrowserNotifyPermission,
-  saveReminderPrefs,
-  shouldShowTrainingReminder,
-  todaysScheduledWorkout,
-  trainingReminderCopy,
-  type ReminderPrefs,
-} from "@/lib/reminders";
+  clearLocalMemberData,
+  localProfileBelongsToUser,
+} from "@/lib/localMemberData";
+import {
+  loadMoveCheckIns,
+  saveMoveCheckIns,
+  emptyMoveCheckIns,
+  MOVE_CHECKINS_CHANGED_EVENT,
+} from "@/lib/crackerMoveCheckIns";
+import {
+  emptyMoveChecklist,
+  loadMoveChecklist,
+  mergeMoveChecklists,
+  MOVE_CHECKLIST_CHANGED_EVENT,
+  saveMoveChecklist,
+} from "@/lib/crackerMoveChecklist";
 import { exportProgressBundle } from "@/lib/exportProgress";
 import {
   dismissWeeklyReviewNudge,
@@ -91,6 +104,9 @@ import { WEEKDAYS, moveWorkoutWithDays, putWorkoutOnDay } from "@/lib/workoutSch
 import {
   completedWorkoutIdsThisWeek,
   mergeHistories,
+  mergePhotos,
+  mergeProgress,
+  sessionsCompletedThisCalendarWeek,
 } from "@/lib/historyMerge";
 import {
   adjustResultsForReadiness,
@@ -122,6 +138,8 @@ import {
   CRACKER_SEASON_ACTIVE,
   CRACKER_WEEKS,
   challengeWeekLabel,
+  cloudMemberNeedsCrackerOnboarding,
+  crackerCalendarWeek,
   crackerWeek,
   isCrackerFitnessTestWeek,
   loadChallengeMode,
@@ -131,8 +149,30 @@ import {
 import {
   buildCrackerWorkouts,
   crackerLevelFromExperience,
+  crackerWeekFromWorkoutId,
 } from "@/lib/crackerProgram";
+import { crackerSessionDemoUrl } from "@/lib/jessTrainer";
 import { CrackerShell } from "@/components/cracker/CrackerShell";
+import { InAppVideo } from "@/components/cracker/InAppVideo";
+import { saveCrackerTab, saveMoveSubTab, saveRecapFocus } from "@/lib/crackerNav";
+import { WodLogger } from "@/components/WodLogger";
+import { SessionExerciseLog } from "@/components/SessionExerciseLog";
+import {
+  blockContaining,
+  blockIndexOf,
+  blockIsComplete,
+  blockProgressPct,
+  buildSessionBlocks,
+  sharedSupersetRestLabel,
+  sharedSupersetRestSeconds,
+  supersetMarkFor,
+} from "@/lib/superset";
+import {
+  formatWodScore,
+  isWodExerciseName,
+  isWodResultComplete,
+  type WodResult,
+} from "@/lib/wod";
 import { ReadinessCheck } from "@/components/Readiness";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { InBodyPanel } from "@/components/InBodyPanel";
@@ -204,10 +244,12 @@ type SessionDraft = {
   exerciseIndex: number;
   results: ExerciseResult[];
   readiness?: number;
+  workoutSnapshot?: Workout;
 };
 type AuthMode = "booting" | "gate" | "local" | "cloud";
 
 const LOCAL_ONLY_KEY = "forma-local-only-v1";
+const AWAITING_PASSWORD_RESET_KEY = "forma-awaiting-password-reset";
 const PROGRESS_SUBTAB_KEY = "forma-progress-subtab-v1";
 
 const TABS: { key: Tab; label: string }[] = [
@@ -258,6 +300,7 @@ export default function FormaApp() {
   const [sessionSwapOpen, setSessionSwapOpen] = useState(false);
   const [session, setSession] = useState<SessionDraft | null>(null);
   const [restRemaining, setRestRemaining] = useState(0);
+  const [sessionDemoOpen, setSessionDemoOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   const [water, setWater] = useState(0);
   const [journal, setJournal] = useState<Record<string, string>>({});
@@ -280,7 +323,9 @@ export default function FormaApp() {
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
   const [pausedDraft, setPausedDraft] = useState<SessionDraftStored | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("booting");
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [cloudUserId, setCloudUserId] = useState<string | null>(null);
+  const [checkInsRevision, setCheckInsRevision] = useState(0);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [cueSessionId, setCueSessionId] = useState<string | null>(null);
   const [sessionCelebration, setSessionCelebration] = useState<{
@@ -288,12 +333,9 @@ export default function FormaApp() {
     lines: string[];
     setsDone: number;
     setsTotal: number;
+    volumeKg: number;
+    sessionId: string;
   } | null>(null);
-  const [reminderPrefs, setReminderPrefs] = useState<ReminderPrefs>({
-    enabled: true,
-    browserNotify: false,
-    preferredWindow: "anytime",
-  });
   const [homePrefs, setHomePrefs] = useState<HomePrefs>(() => defaultHomePrefs());
   const [homeCustomiseOpen, setHomeCustomiseOpen] = useState(false);
   const [weeklyReviewDismissed, setWeeklyReviewDismissed] = useState(false);
@@ -301,9 +343,83 @@ export default function FormaApp() {
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const [challengeMode, setChallengeMode] = useState<BrandMode>("cracker");
+  const [needsCrackerOnboarding, setNeedsCrackerOnboarding] = useState(false);
+  const [cloudLoadError, setCloudLoadError] = useState<string | null>(null);
   const heroPhotoInputRef = useRef<HTMLInputElement>(null);
   /** Live session ref so auth/sync callbacks never stomp mid-workout. */
   const sessionRef = useRef<SessionDraft | null>(null);
+  const passwordRecoveryRef = useRef(false);
+  const cloudSnapRef = useRef({
+    authMode,
+    cloudUserId,
+    profile,
+    workouts,
+    history,
+    week,
+    alignActive,
+    progressEntries,
+    progressPhotos,
+    water,
+    journal,
+    wellness,
+    meals,
+    inbody,
+    pausedDraft,
+    cloudLoadError,
+  });
+  cloudSnapRef.current = {
+    authMode,
+    cloudUserId,
+    profile,
+    workouts,
+    history,
+    week,
+    alignActive,
+    progressEntries,
+    progressPhotos,
+    water,
+    journal,
+    wellness,
+    meals,
+    inbody,
+    pausedDraft,
+    cloudLoadError,
+  };
+
+  const flushCloudNow = async (patch?: {
+    workouts?: Workout[];
+    history?: WorkoutSession[];
+    sessionDraft?: SessionDraftStored | null;
+    allowEmptyHistory?: boolean;
+  }) => {
+    const snap = cloudSnapRef.current;
+    if (snap.authMode !== "cloud" || !snap.cloudUserId || !snap.profile) return {};
+    if (snap.cloudLoadError) return {};
+    const profileResult = await pushProfile(snap.profile);
+    const stateResult = await pushUserState({
+      workouts: patch?.workouts ?? snap.workouts,
+      history: patch?.history ?? snap.history,
+      week: snap.week,
+      alignActive: snap.alignActive,
+      progress: snap.progressEntries,
+      photos: snap.progressPhotos,
+      water: { date: new Date().toDateString(), count: snap.water },
+      journal: snap.journal,
+      wellness: snap.wellness,
+      meals: snap.meals,
+      inbody: snap.inbody,
+      crackerMoveCheckIns: loadMoveCheckIns(),
+      moveChecklist: loadMoveChecklist(),
+      sessionDraft: patch?.sessionDraft !== undefined ? patch.sessionDraft : snap.pausedDraft,
+      allowEmptyHistory: patch?.allowEmptyHistory,
+    });
+    if (profileResult.error || stateResult.error) {
+      setSyncNote(profileResult.error || stateResult.error || "Sync failed");
+    } else {
+      setSyncNote(stateResult.warning || "Synced just now");
+    }
+    return stateResult;
+  };
 
   const applyLocalBundle = (opts?: { seedHayley?: boolean }) => {
     const state = loadForma();
@@ -311,7 +427,7 @@ export default function FormaApp() {
     const mode = loadChallengeMode();
     let nextWorkouts = state.workouts;
     const weekForMode =
-      mode === "cracker" ? crackerWeek(state.week) : cycleWeek(state.week);
+      mode === "cracker" ? crackerCalendarWeek() : cycleWeek(state.week);
 
     // Rebuild when schema is behind OR workouts still use legacy titles (Full Body A/B).
     // In Cracker mode always rebuild from the 6-week challenge plan.
@@ -343,7 +459,6 @@ export default function FormaApp() {
     setProfile(savedProfile);
     setProgressEntries(loadProgress());
     setProgressPhotos(loadPhotos());
-    setReminderPrefs(loadReminderPrefs());
     setHomePrefs(loadHomePrefs());
     setProgressSubTab(loadProgressSubTab());
     setChallengeMode(mode);
@@ -352,8 +467,31 @@ export default function FormaApp() {
     setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? INITIAL_WORKOUTS[0]?.id ?? "");
 
     const draft = state.sessionDraft;
-    if (draft && nextWorkouts.some((workout) => workout.id === draft.workoutId)) {
-      setPausedDraft(draft);
+    const liveWorkout = findWorkoutForDraft(nextWorkouts, draft);
+    if (draft && liveWorkout) {
+      const restored = {
+        ...draft,
+        workoutId: liveWorkout.id,
+        workoutTitle: liveWorkout.title,
+        workout: liveWorkout,
+      };
+      setPausedDraft(restored);
+      persistSessionDraft(restored);
+      setActiveWorkoutId(liveWorkout.id);
+      // Auto-open only when the session was live (reload / crash), not after Exit.
+      if (draft.live !== false) {
+        setSession({
+          workoutId: liveWorkout.id,
+          exerciseIndex: Math.min(
+            Math.max(0, draft.exerciseIndex),
+            Math.max(0, liveWorkout.exercises.length - 1),
+          ),
+          results: draft.results,
+          readiness: draft.readiness,
+          workoutSnapshot: liveWorkout,
+        });
+        setRestRemaining(draft.restRemaining ?? 0);
+      }
     } else if (draft) {
       persistSessionDraft(null);
       setPausedDraft(null);
@@ -361,114 +499,221 @@ export default function FormaApp() {
   };
 
   const applyCloudBundle = async (userId: string) => {
-    const cloud = await pullCloudState(userId);
+    // Never rebuild the programme or overwrite the set log while a workout is live.
+    if (sessionRef.current) {
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      return;
+    }
+
+    const pulled = await pullCloudState(userId);
     const local = loadForma();
     const localProfile = loadProfile();
 
-    // Prefer cloud when it has a profile; otherwise keep local and upload.
-    if (cloud?.profile) {
-      const sourceWorkouts = cloud.workouts.length ? cloud.workouts : local.workouts;
-      let nextWorkouts = sourceWorkouts;
-      let didUpgrade = false;
-      if (programmeNeedsUpgrade(sourceWorkouts, cloud.profile, cloud.schemaVersion)) {
-        nextWorkouts = transferExerciseWeights(
-          sourceWorkouts,
-          generateProgram(cloud.profile, {
-            week: cloud.week,
-            alignActive: cloud.alignActive,
-          }),
-        );
-        didUpgrade = true;
-      }
-      const mergedHistory = mergeHistories(local.history, cloud.history);
-      const liveSession = sessionRef.current;
+    if (!pulled.ok) {
+      const canUseCache = localProfileBelongsToUser(localProfile, userId, localProfile?.email);
+      setCloudLoadError(pulled.error);
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      if (canUseCache) applyLocalBundle({ seedHayley: false });
+      setSyncNote("Couldn’t load your saved workouts. Nothing on the server was changed.");
+      return;
+    }
 
-      setProfile(cloud.profile);
-      setWorkouts(nextWorkouts);
-      setHistory(mergedHistory);
-      setWeek(cycleWeek(cloud.week));
-      setAlignActive(cloud.alignActive);
+    setCloudLoadError(null);
+    const cloud = pulled.cloud;
+    const mode = loadChallengeMode();
+    const canMergeLocal = localProfileBelongsToUser(
+      localProfile,
+      userId,
+      cloud.profile?.email || localProfile?.email,
+    );
+
+    if (cloudMemberNeedsCrackerOnboarding({
+      ...cloud,
+      profile: cloud.profile,
+    })) {
+      const seeded = cloud.profile
+        ? {
+            ...cloud.profile,
+            firstName: cloud.profile.firstName?.trim() || "",
+            email: cloud.profile.email || "",
+          }
+        : null;
+      if (seeded && (seeded.firstName || seeded.email)) saveProfile(seeded);
+      setProfile(seeded?.firstName ? seeded : cloud.profile);
+      // Keep any server rows — never blank history while choosing club/level.
+      setWorkouts(cloud.workouts);
+      setHistory(cloud.history);
+      setWeek(crackerWeek(cloud.week || 1));
+      setAlignActive(false);
       setProgressEntries(cloud.progress);
       setProgressPhotos(cloud.photos);
-      setJournal(cloud.journal);
-      setWellness(cloud.wellness);
-      setMeals(cloud.meals);
-      setInBody(cloud.inbody);
-      if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
-      else setWater(0);
+      setNeedsCrackerOnboarding(true);
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      setSyncNote("Choose your club and training level to start.");
+      return;
+    }
 
-      // Never yank the user onto "today's" workout mid-session.
-      if (liveSession && nextWorkouts.some((workout) => workout.id === liveSession.workoutId)) {
-        setActiveWorkoutId(liveSession.workoutId);
-      } else {
-        const today = pickTodaysWorkout(nextWorkouts);
-        setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
-      }
+    setNeedsCrackerOnboarding(false);
 
-      if (cloud.sessionDraft && nextWorkouts.some((w) => w.id === cloud.sessionDraft!.workoutId)) {
-        setPausedDraft(cloud.sessionDraft);
-      }
-      saveProfile(cloud.profile);
-      saveWellness(cloud.wellness);
-      saveMeals(cloud.meals);
-      saveInBody(cloud.inbody);
-      window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
-      window.localStorage.setItem(STORAGE.history, JSON.stringify(mergedHistory));
-      window.localStorage.setItem(
-        STORAGE.program,
-        JSON.stringify({
+    if (!canMergeLocal) {
+      clearLocalMemberData();
+    }
+
+    const sourceHistory = canMergeLocal
+      ? mergeHistories(local.history, cloud.history)
+      : cloud.history;
+    const sourceProgress = canMergeLocal
+      ? mergeProgress(loadProgress(), cloud.progress)
+      : cloud.progress;
+    const sourcePhotos = canMergeLocal
+      ? mergePhotos(loadPhotos(), cloud.photos)
+      : cloud.photos;
+    const sourceWorkouts = cloud.workouts.length
+      ? cloud.workouts
+      : canMergeLocal
+        ? local.workouts
+        : [];
+    const resolvedProfile =
+      cloud.profile ??
+      (canMergeLocal && localProfile ? { ...localProfile, id: userId } : null);
+
+    if (!resolvedProfile) {
+      setProfile(null);
+      setWorkouts(sourceWorkouts);
+      setHistory(sourceHistory);
+      setCloudUserId(userId);
+      setAuthMode("cloud");
+      window.localStorage.removeItem(LOCAL_ONLY_KEY);
+      setNeedsCrackerOnboarding(true);
+      setSyncNote("Choose your club and training level to start.");
+      return;
+    }
+
+    let nextWorkouts = sourceWorkouts;
+    const weekForMode =
+      mode === "cracker" ? crackerCalendarWeek() : cycleWeek(cloud.week);
+
+    if (mode === "cracker") {
+      nextWorkouts = transferExerciseWeights(
+        sourceWorkouts,
+        buildCrackerWorkouts(
+          crackerLevelFromExperience(resolvedProfile.experienceLevel),
+          weekForMode,
+        ),
+      );
+    } else if (programmeNeedsUpgrade(sourceWorkouts, resolvedProfile, cloud.schemaVersion)) {
+      nextWorkouts = transferExerciseWeights(
+        sourceWorkouts,
+        generateProgram(resolvedProfile, {
           week: cloud.week,
-          programId: FORMA_PROGRAM.id,
-          schemaVersion: PROGRAM_SCHEMA_VERSION,
           alignActive: cloud.alignActive,
         }),
       );
-      saveProgress(cloud.progress);
-      savePhotos(cloud.photos);
-
-      // Persist upgraded programme immediately so the next boot does not re-load legacy titles.
-      if (didUpgrade) {
-        await pushUserState({
-          workouts: nextWorkouts,
-          history: mergedHistory,
-          week: cloud.week,
-          alignActive: cloud.alignActive,
-          progress: cloud.progress,
-          photos: cloud.photos,
-          water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
-          journal: cloud.journal,
-          wellness: cloud.wellness,
-          meals: cloud.meals,
-          inbody: cloud.inbody,
-          sessionDraft: cloud.sessionDraft,
-        });
-      }
-    } else {
-      applyLocalBundle({ seedHayley: !localProfile });
-      const profileToSave = loadProfile();
-      if (profileToSave) {
-        await pushProfile({ ...profileToSave, id: userId, email: profileToSave.email || "" });
-      }
-      await pushUserState({
-        workouts: local.workouts,
-        history: local.history,
-        week: local.week,
-        alignActive: local.alignActive,
-        progress: loadProgress(),
-        photos: loadPhotos(),
-        water: { date: new Date().toDateString(), count: local.water },
-        journal: local.journal,
-        wellness: local.wellness,
-        meals: loadMeals(),
-        inbody: loadInBody(),
-        sessionDraft: local.sessionDraft,
-      });
     }
+
+    const cloudCheckIns = cloud.crackerMoveCheckIns;
+    const localCheckIns = canMergeLocal ? loadMoveCheckIns() : emptyMoveCheckIns();
+    const mergedCheckIns =
+      Object.keys(cloudCheckIns).length > 0 ? cloudCheckIns : localCheckIns;
+    const mergedChecklist = canMergeLocal
+      ? mergeMoveChecklists(cloud.moveChecklist, loadMoveChecklist())
+      : cloud.moveChecklist ?? emptyMoveChecklist();
+
+    setProfile(resolvedProfile);
+    setWorkouts(nextWorkouts);
+    setHistory(sourceHistory);
+    setWeek(weekForMode);
+    setAlignActive(mode === "cracker" ? false : cloud.alignActive);
+    setProgressEntries(sourceProgress);
+    setProgressPhotos(sourcePhotos);
+    setJournal(cloud.journal);
+    setWellness(cloud.wellness);
+    setMeals(cloud.meals);
+    setInBody(cloud.inbody);
+    if (cloud.water?.date === new Date().toDateString()) setWater(cloud.water.count);
+    else setWater(0);
+
+    const today = pickTodaysWorkout(nextWorkouts);
+    setActiveWorkoutId(today?.id ?? nextWorkouts[0]?.id ?? "");
+
+    const incomingDraft = cloud.sessionDraft ?? (canMergeLocal ? local.sessionDraft : null);
+    const liveWorkout = findWorkoutForDraft(nextWorkouts, incomingDraft);
+    if (incomingDraft && liveWorkout && !sessionRef.current) {
+      const restored = {
+        ...incomingDraft,
+        workoutId: liveWorkout.id,
+        workoutTitle: liveWorkout.title,
+        workout: liveWorkout,
+      };
+      setPausedDraft(restored);
+      persistSessionDraft(restored);
+      setActiveWorkoutId(liveWorkout.id);
+      if (incomingDraft.live !== false) {
+        setSession({
+          workoutId: liveWorkout.id,
+          exerciseIndex: Math.min(
+            Math.max(0, incomingDraft.exerciseIndex),
+            Math.max(0, liveWorkout.exercises.length - 1),
+          ),
+          results: incomingDraft.results,
+          readiness: incomingDraft.readiness,
+          workoutSnapshot: liveWorkout,
+        });
+        setRestRemaining(incomingDraft.restRemaining ?? 0);
+      }
+    }
+    saveProfile(resolvedProfile);
+    saveWellness(cloud.wellness);
+    saveMeals(cloud.meals);
+    saveInBody(cloud.inbody);
+    saveMoveCheckIns(mergedCheckIns);
+    saveMoveChecklist(mergedChecklist);
+    window.localStorage.setItem(STORAGE.workouts, JSON.stringify(nextWorkouts));
+    window.localStorage.setItem(STORAGE.history, JSON.stringify(sourceHistory));
+    window.localStorage.setItem(
+      STORAGE.program,
+      JSON.stringify({
+        week: weekForMode,
+        programId: FORMA_PROGRAM.id,
+        schemaVersion: PROGRAM_SCHEMA_VERSION,
+        alignActive: mode === "cracker" ? false : cloud.alignActive,
+      }),
+    );
+    saveProgress(sourceProgress);
+    savePhotos(sourcePhotos);
+
+    await pushProfile({ ...resolvedProfile, id: userId });
+    const pushed = await pushUserState({
+      workouts: nextWorkouts,
+      history: sourceHistory,
+      week: weekForMode,
+      alignActive: mode === "cracker" ? false : cloud.alignActive,
+      progress: sourceProgress,
+      photos: sourcePhotos,
+      water: cloud.water ?? { date: new Date().toDateString(), count: 0 },
+      journal: cloud.journal,
+      wellness: cloud.wellness,
+      meals: cloud.meals,
+      inbody: cloud.inbody,
+      crackerMoveCheckIns: mergedCheckIns,
+      moveChecklist: mergedChecklist,
+      sessionDraft: incomingDraft,
+    });
 
     setCloudUserId(userId);
     setAuthMode("cloud");
     window.localStorage.removeItem(LOCAL_ONLY_KEY);
-    setSyncNote("Synced to your account");
+    setSyncNote(
+      pushed.error
+        ? `Loaded your account. Sync: ${pushed.error}`
+        : pushed.warning || "Synced to your account",
+    );
   };
 
   useEffect(() => {
@@ -488,19 +733,29 @@ export default function FormaApp() {
         const userId = await getSessionUserId();
         if (cancelled) return;
 
+        const awaitingReset =
+          passwordRecoveryRef.current ||
+          isPasswordRecoveryRedirect() ||
+          window.sessionStorage.getItem(AWAITING_PASSWORD_RESET_KEY) === "1";
+        if (userId && awaitingReset) {
+          passwordRecoveryRef.current = true;
+          setPasswordRecovery(true);
+          setCloudUserId(userId);
+          setAuthMode("gate");
+          return;
+        }
+
         if (userId) {
           await applyCloudBundle(userId);
           return;
         }
 
-        if (window.localStorage.getItem(LOCAL_ONLY_KEY) === "1") {
-          applyLocalBundle({ seedHayley: false });
-          setAuthMode("local");
-          return;
-        }
+        // Launch: do not honour a leftover local-only flag when accounts are live.
+        // Members must sign in so workouts restore from the cloud.
+        window.localStorage.removeItem(LOCAL_ONLY_KEY);
 
-        // Show account gate; keep any local cache warm underneath.
-        applyLocalBundle({ seedHayley: false });
+        // Account gate — do not seed a blank programme into cache (that used to
+        // get uploaded over the real account after a PWA reinstall + login).
         setAuthMode("gate");
       } catch {
         applyLocalBundle({ seedHayley: false });
@@ -515,15 +770,53 @@ export default function FormaApp() {
     const supabase = getSupabase();
     const subscription = supabase?.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
+        clearLocalMemberData();
         setCloudUserId(null);
-        setAuthMode(window.localStorage.getItem(LOCAL_ONLY_KEY) === "1" ? "local" : "gate");
+        setProfile(null);
+        setWorkouts([]);
+        setHistory([]);
+        setSession(null);
+        setPausedDraft(null);
+        persistSessionDraft(null);
+        setNeedsCrackerOnboarding(false);
+        passwordRecoveryRef.current = false;
+        setPasswordRecovery(false);
+        setAuthMode("gate");
         return;
       }
+      if (event === "PASSWORD_RECOVERY") {
+        passwordRecoveryRef.current = true;
+        setPasswordRecovery(true);
+        setCloudUserId(session?.user.id ?? null);
+        setAuthMode("gate");
+        setHydrated(true);
+        return;
+      }
+      const recoverySession =
+        passwordRecoveryRef.current || isPasswordRecoveryRedirect();
       // TOKEN_REFRESHED used to re-pull and overwrite activeWorkoutId / history mid-session.
       if (event === "SIGNED_IN" && session?.user.id) {
-        await applyCloudBundle(session.user.id);
-        setHydrated(true);
+        if (recoverySession) {
+          passwordRecoveryRef.current = true;
+          setPasswordRecovery(true);
+          setCloudUserId(session.user.id);
+          setAuthMode("gate");
+          setHydrated(true);
+          return;
+        }
+        if (sessionRef.current) {
+          setCloudUserId(session.user.id);
+          setAuthMode("cloud");
+          setHydrated(true);
+        } else {
+          await applyCloudBundle(session.user.id);
+          setHydrated(true);
+        }
       } else if (event === "TOKEN_REFRESHED" && session?.user.id) {
+        if (recoverySession) {
+          setCloudUserId(session.user.id);
+          return;
+        }
         setCloudUserId(session.user.id);
         setAuthMode("cloud");
       }
@@ -535,20 +828,28 @@ export default function FormaApp() {
     };
   }, []);
 
+  const allowEmptyHistoryWrite = useRef(false);
+
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
 
   useEffect(() => {
     if (!hydrated) return;
+    if (authMode === "gate" || authMode === "booting") return;
     window.localStorage.setItem(STORAGE.workouts, JSON.stringify(workouts));
-    // Never persist an empty history over a non-empty store (guards sync races / parse blips).
+    // Never persist an empty history over a non-empty store (guards sync races / parse blips),
+    // unless the member explicitly reset history in Profile.
     try {
       const raw = window.localStorage.getItem(STORAGE.history);
       const previous = raw ? (JSON.parse(raw) as WorkoutSession[]) : [];
-      if (!(history.length === 0 && Array.isArray(previous) && previous.length > 0)) {
+      const skipEmptyGuard =
+        allowEmptyHistoryWrite.current ||
+        !(history.length === 0 && Array.isArray(previous) && previous.length > 0);
+      if (skipEmptyGuard) {
         window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
       }
+      if (history.length === 0) allowEmptyHistoryWrite.current = false;
     } catch {
       window.localStorage.setItem(STORAGE.history, JSON.stringify(history));
     }
@@ -561,42 +862,61 @@ export default function FormaApp() {
         alignActive,
       }),
     );
-  }, [workouts, history, week, alignActive, hydrated]);
+  }, [workouts, history, week, alignActive, hydrated, authMode]);
 
-  // Autosave live session so a mid-workout crash does not wipe progress.
+  // Autosave live session so a mid-workout crash / PWA reload does not wipe progress.
   useEffect(() => {
     if (!hydrated || !session) return;
-    persistSessionDraft({ ...session, restRemaining });
-    setPausedDraft({ ...session, restRemaining });
-  }, [session, restRemaining, hydrated]);
+    const workout =
+      session.workoutSnapshot ??
+      workouts.find((item) => item.id === session.workoutId) ??
+      null;
+    const stored = storedSessionDraft(session, workout, restRemaining);
+    persistSessionDraft(stored);
+    setPausedDraft(stored);
+  }, [session, restRemaining, hydrated, workouts]);
+
+  useEffect(() => {
+    const persistLive = (event?: Event) => {
+      if (event?.type === "visibilitychange" && document.visibilityState !== "hidden") return;
+      const live = sessionRef.current;
+      if (!live) {
+        void flushCloudNow();
+        return;
+      }
+      const workout =
+        live.workoutSnapshot ??
+        workouts.find((item) => item.id === live.workoutId) ??
+        null;
+      const stored = storedSessionDraft(live, workout, restRemaining);
+      persistSessionDraft(stored);
+      void flushCloudNow({ sessionDraft: stored });
+    };
+    window.addEventListener("pagehide", persistLive);
+    window.addEventListener("visibilitychange", persistLive);
+    return () => {
+      window.removeEventListener("pagehide", persistLive);
+      window.removeEventListener("visibilitychange", persistLive);
+    };
+  }, [workouts, restRemaining]);
+
+  // Fitness / InBody check-ins live in localStorage; bump so cloud sync includes them.
+  useEffect(() => {
+    const bump = () => setCheckInsRevision((n) => n + 1);
+    window.addEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+    window.addEventListener(MOVE_CHECKLIST_CHANGED_EVENT, bump);
+    return () => {
+      window.removeEventListener(MOVE_CHECKINS_CHANGED_EVENT, bump);
+      window.removeEventListener(MOVE_CHECKLIST_CHANGED_EVENT, bump);
+    };
+  }, []);
 
   // Cloud sync (debounced) whenever signed-in state changes.
   useEffect(() => {
     if (!hydrated || authMode !== "cloud" || !cloudUserId || !profile) return;
     const timer = window.setTimeout(() => {
-      void (async () => {
-        const profileResult = await pushProfile(profile);
-        const stateResult = await pushUserState({
-          workouts,
-          history,
-          week,
-          alignActive,
-          progress: progressEntries,
-          photos: progressPhotos,
-          water: { date: new Date().toDateString(), count: water },
-          journal,
-          wellness,
-          meals,
-          inbody,
-          sessionDraft: pausedDraft,
-        });
-        if (profileResult.error || stateResult.error) {
-          setSyncNote(profileResult.error || stateResult.error || "Sync failed");
-        } else {
-          setSyncNote("Synced just now");
-        }
-      })();
-    }, 900);
+      void flushCloudNow();
+    }, 400);
     return () => window.clearTimeout(timer);
   }, [
     authMode,
@@ -614,6 +934,7 @@ export default function FormaApp() {
     meals,
     inbody,
     pausedDraft,
+    checkInsRevision,
     hydrated,
   ]);
 
@@ -680,56 +1001,12 @@ export default function FormaApp() {
   const activeWorkout = workouts.find((workout) => workout.id === activeWorkoutId) ?? workouts[0];
   /** Always bind the live session to session.workoutId — never silently switch to "today". */
   const sessionWorkout = session
-    ? workouts.find((workout) => workout.id === session.workoutId) ?? null
+    ? workouts.find((workout) => workout.id === session.workoutId) ??
+      session.workoutSnapshot ??
+      findWorkoutForDraft(workouts, pausedDraft) ??
+      null
     : null;
   const todaysWorkout = useMemo(() => pickTodaysWorkout(workouts), [workouts]);
-  const scheduledToday = useMemo(() => todaysScheduledWorkout(workouts), [workouts]);
-  const showTrainingReminder = useMemo(
-    () =>
-      shouldShowTrainingReminder({
-        workouts,
-        history,
-        prefs: reminderPrefs,
-      }),
-    [workouts, history, reminderPrefs],
-  );
-  const trainingReminder = useMemo(
-    () => trainingReminderCopy(scheduledToday),
-    [scheduledToday],
-  );
-
-  useEffect(() => {
-    if (!hydrated || !showTrainingReminder || !reminderPrefs.browserNotify) return;
-    void maybeNotifyTrainingDay({
-      prefs: reminderPrefs,
-      workout: scheduledToday,
-      history,
-      workouts,
-    }).then((next) => {
-      if (next.lastNotifiedDate !== reminderPrefs.lastNotifiedDate) {
-        setReminderPrefs(next);
-      }
-    });
-  }, [hydrated, showTrainingReminder, reminderPrefs, scheduledToday, history, workouts]);
-
-  const updateReminderPrefs = async (patch: Partial<ReminderPrefs>) => {
-    let next: ReminderPrefs = { ...reminderPrefs, ...patch };
-    if (patch.browserNotify === true) {
-      const permission = await requestBrowserNotifyPermission();
-      if (permission !== "granted") {
-        next = { ...next, browserNotify: false };
-        setSyncNote(
-          permission === "denied"
-            ? "Browser notifications blocked — in-app reminders still work"
-            : "Browser notifications unavailable here",
-        );
-      } else {
-        setSyncNote("Browser notify on while FORMA is open");
-      }
-    }
-    saveReminderPrefs(next);
-    setReminderPrefs(next);
-  };
   const weeklySets = useMemo(() => plannedWeeklySets(workouts), [workouts]);
   const streak = useMemo(() => computeStreak(history), [history]);
   const completedSets = useMemo(() => totalCompletedSets(history), [history]);
@@ -779,7 +1056,7 @@ export default function FormaApp() {
   const linearPhase = getPhaseForWeek(weekInCycle);
   const journeyStatuses = phaseJourneyStatuses(weekInCycle, alignActive);
   const upcomingPhase = nextLinearPhase(linearPhase.id);
-  const sessionsThisWeek = history.filter((entry) => cycleWeek(entry.week ?? 1) === weekInCycle).length;
+  const sessionsThisWeek = sessionsCompletedThisCalendarWeek(history);
   const sessionsTarget =
     challengeMode === "cracker" ? Math.max(1, workouts.length) : profile?.trainingDays ?? 3;
   const weekComplete =
@@ -821,13 +1098,42 @@ export default function FormaApp() {
           });
     const generated = transferExerciseWeights(workouts, nextPlan);
     setWorkouts(generated);
+    if (sessionRef.current) {
+      const live = findWorkoutForDraft(generated, {
+        ...sessionRef.current,
+        restRemaining,
+        workoutTitle: sessionRef.current.workoutSnapshot?.title,
+        workout: sessionRef.current.workoutSnapshot,
+      });
+      if (live) setActiveWorkoutId(live.id);
+      return;
+    }
     const today = pickTodaysWorkout(generated);
     setActiveWorkoutId(today?.id ?? generated[0]?.id ?? "");
-    // New workout ids invalidate any in-progress draft.
     persistSessionDraft(null);
     setPausedDraft(null);
     setSession(null);
   };
+
+  useEffect(() => {
+    if (challengeMode !== "cracker" || !profile || needsCrackerOnboarding) return;
+    if (authMode === "gate" || authMode === "booting") return;
+
+    const syncCalendarWeek = () => {
+      const cal = crackerCalendarWeek();
+      if (cal === crackerWeek(week)) return;
+      if (sessionRef.current) return;
+      setWeek(cal);
+      applyGeneratedProgram(profile, { week: cal, alignActive: false, mode: "cracker" });
+    };
+
+    syncCalendarWeek();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") syncCalendarWeek();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [challengeMode, profile, week, needsCrackerOnboarding, authMode]);
 
   const advanceProgrammeWeek = () => {
     if (!profile) return;
@@ -885,22 +1191,30 @@ export default function FormaApp() {
 
   const handleOnboardingComplete = (result: CrackerOnboardingResult) => {
     const { profile: nextProfile } = result;
-    saveProfile(nextProfile);
-    setProfile(nextProfile);
+    const merged = {
+      ...nextProfile,
+      id: profile?.id || nextProfile.id,
+      firstName: (profile?.firstName || nextProfile.firstName || "Friend").trim(),
+      email: profile?.email || nextProfile.email || "",
+    };
+    saveProfile(merged);
+    setProfile(merged);
+    setNeedsCrackerOnboarding(false);
     saveChallengeMode("cracker");
     setChallengeMode("cracker");
-    setWeek(1);
+    const keepWeek = crackerCalendarWeek();
+    setWeek(keepWeek);
     setAlignActive(false);
-    applyGeneratedProgram(nextProfile, { week: 1, alignActive: false, mode: "cracker" });
+    applyGeneratedProgram(merged, { week: keepWeek, alignActive: false, mode: "cracker" });
     setTab("today");
     const clubLabel =
-      nextProfile.club && nextProfile.club in CLUB_LABELS
-        ? CLUB_LABELS[nextProfile.club as keyof typeof CLUB_LABELS]
+      merged.club && merged.club in CLUB_LABELS
+        ? CLUB_LABELS[merged.club as keyof typeof CLUB_LABELS]
         : "";
     setSyncNote(
       clubLabel
-        ? `Christmas Cracker on · ${clubLabel} · Week 1 of 6`
-        : "Christmas Cracker on · Week 1 of 6",
+        ? `Christmas Cracker on · ${clubLabel} · Week ${keepWeek} of 6`
+        : `Christmas Cracker on · Week ${keepWeek} of 6`,
     );
   };
 
@@ -964,23 +1278,43 @@ export default function FormaApp() {
   };
 
   const startWorkout = (workout: Workout) => {
+    if (pausedDraft && draftMatchesWorkout(pausedDraft, workout, workouts)) {
+      resumePausedSession();
+      return;
+    }
     setReadinessWorkout(workout);
   };
 
   const beginSession = (workout: Workout, readiness: Readiness) => {
+    if (pausedDraft && draftMatchesWorkout(pausedDraft, workout, workouts)) {
+      resumePausedSession();
+      setReadinessWorkout(null);
+      return;
+    }
     const base = createSessionResults(workout, history, phaseDef);
     const results = adjustResultsForReadiness(base, readiness);
     setActiveWorkoutId(workout.id);
-    setSession({ workoutId: workout.id, exerciseIndex: 0, results, readiness: readiness.score });
+    setSession({
+      workoutId: workout.id,
+      exerciseIndex: 0,
+      results,
+      readiness: readiness.score,
+      workoutSnapshot: workout,
+    });
     setPausedDraft(null);
     setReadinessWorkout(null);
     setTab("today");
     setRestRemaining(0);
+    setSessionDemoOpen(true);
   };
 
   const exitSession = () => {
     if (session) {
-      const draft = { ...session, restRemaining };
+      const workout =
+        session.workoutSnapshot ??
+        workouts.find((item) => item.id === session.workoutId) ??
+        null;
+      const draft = storedSessionDraft(session, workout, restRemaining, false);
       persistSessionDraft(draft);
       setPausedDraft(draft);
     }
@@ -990,7 +1324,7 @@ export default function FormaApp() {
 
   const resumePausedSession = () => {
     if (!pausedDraft) return;
-    const workout = workouts.find((item) => item.id === pausedDraft.workoutId);
+    const workout = findWorkoutForDraft(workouts, pausedDraft);
     if (!workout) {
       persistSessionDraft(null);
       setPausedDraft(null);
@@ -998,10 +1332,14 @@ export default function FormaApp() {
     }
     setActiveWorkoutId(workout.id);
     setSession({
-      workoutId: pausedDraft.workoutId,
-      exerciseIndex: pausedDraft.exerciseIndex,
+      workoutId: workout.id,
+      exerciseIndex: Math.min(
+        Math.max(0, pausedDraft.exerciseIndex),
+        Math.max(0, workout.exercises.length - 1),
+      ),
       results: pausedDraft.results,
       readiness: pausedDraft.readiness,
+      workoutSnapshot: workout,
     });
     setRestRemaining(pausedDraft.restRemaining ?? 0);
     setTab("today");
@@ -1057,6 +1395,7 @@ export default function FormaApp() {
     setPausedDraft(null);
     setSession(null);
     setRestRemaining(0);
+    void flushCloudNow({ history: nextHistory, sessionDraft: null });
     const setsDone = exercises.reduce(
       (sum, exercise) => sum + exercise.sets.filter((set) => set.complete).length,
       0,
@@ -1067,6 +1406,8 @@ export default function FormaApp() {
       lines: postWorkoutSummary(completed, nextHistory),
       setsDone,
       setsTotal,
+      volumeKg: Math.round(sessionVolume(completed)),
+      sessionId: completed.id,
     });
   };
 
@@ -1112,7 +1453,7 @@ export default function FormaApp() {
     sessionId: string,
     exerciseId: string,
     setIndex: number,
-    patch: Partial<{ reps: number; weight: number; rpe: number; complete: boolean }>,
+    patch: Partial<{ reps: number; weight: number; rpe: number; complete: boolean; holdSeconds: number }>,
   ) => {
     setHistory((current) =>
       current.map((entry) => {
@@ -1252,11 +1593,11 @@ export default function FormaApp() {
   };
 
   /** Mid-session swap: update programme row + live set log together. */
-  const swapExerciseInSession = (candidateId: string) => {
+  const swapExerciseInSession = (candidateId: string, exerciseIndex = session?.exerciseIndex ?? 0) => {
     if (!session) return;
     const workoutForSession = workouts.find((workout) => workout.id === session.workoutId);
     if (!workoutForSession) return;
-    const current = workoutForSession.exercises[session.exerciseIndex];
+    const current = workoutForSession.exercises[exerciseIndex];
     if (!current) return;
     const swapped = applyExerciseSwap(current, candidateId);
 
@@ -1278,7 +1619,7 @@ export default function FormaApp() {
       return {
         ...currentSession,
         results: currentSession.results.map((result, index) => {
-          if (index !== currentSession.exerciseIndex) return result;
+          if (index !== exerciseIndex) return result;
           return {
             ...result,
             libraryId: swapped.exerciseId,
@@ -1353,24 +1694,76 @@ export default function FormaApp() {
   if (authMode === "gate") {
     return (
       <AuthScreen
+        recovery={passwordRecovery}
         onAuthenticated={() => {
           // Auth listener will pull cloud state and set authMode to cloud.
+          window.sessionStorage.removeItem(AWAITING_PASSWORD_RESET_KEY);
           setHydrated(true);
         }}
-        onContinueLocal={() => {
-          window.localStorage.setItem(LOCAL_ONLY_KEY, "1");
-          // Fresh local users should see onboarding (nutrition + InBody).
-          // Hayley seed only applies when Supabase is unset (dev convenience).
-          applyLocalBundle({ seedHayley: false });
-          setAuthMode("local");
+        onPasswordUpdated={async () => {
+          passwordRecoveryRef.current = false;
+          setPasswordRecovery(false);
+          window.sessionStorage.removeItem(AWAITING_PASSWORD_RESET_KEY);
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+          const userId = cloudUserId ?? (await getSessionUserId());
+          if (userId) await applyCloudBundle(userId);
+          else setHydrated(true);
         }}
+        onCancelRecovery={() => {
+          passwordRecoveryRef.current = false;
+          setPasswordRecovery(false);
+          window.sessionStorage.removeItem(AWAITING_PASSWORD_RESET_KEY);
+          void signOut();
+        }}
+        onContinueLocal={
+          isSupabaseConfigured()
+            ? undefined
+            : () => {
+                window.localStorage.setItem(LOCAL_ONLY_KEY, "1");
+                // Fresh local users should see onboarding (nutrition + InBody).
+                // Hayley seed only applies when Supabase is unset (dev convenience).
+                applyLocalBundle({ seedHayley: false });
+                setAuthMode("local");
+              }
+        }
       />
     );
   }
 
-  if (!profile) {
+  if (cloudLoadError && cloudUserId) {
+    return (
+      <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
+        <div className="shell">
+          <div className="onboard-screen">
+            <span className="eyebrow">Account</span>
+            <h1>Couldn’t load your training</h1>
+            <p className="onboard-lead">
+              Your workouts live on your account, not on this phone. Nothing on the server was
+              overwritten. Check your connection and try again.
+            </p>
+            <p className="muted">{cloudLoadError}</p>
+            <button
+              type="button"
+              className="cta-btn"
+              onClick={() => {
+                setCloudLoadError(null);
+                void applyCloudBundle(cloudUserId);
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile || needsCrackerOnboarding) {
     return (
       <CrackerOnboarding
+        existing={profile}
         onComplete={(result: CrackerOnboardingResult) => {
           handleOnboardingComplete(result);
         }}
@@ -1393,23 +1786,73 @@ export default function FormaApp() {
             challengeMode === "cracker" ? "Cracker programme rebuilt" : "Programme rebuilt",
           );
         }}
+        onResetWorkoutHistory={async () => {
+          allowEmptyHistoryWrite.current = true;
+          setHistory([]);
+          setSession(null);
+          setPausedDraft(null);
+          persistSessionDraft(null);
+          window.localStorage.setItem(STORAGE.history, JSON.stringify([]));
+          if (authMode === "cloud") {
+            const result = await pushUserState({
+              workouts,
+              history: [],
+              week,
+              alignActive,
+              progress: progressEntries,
+              photos: progressPhotos,
+              water: { date: new Date().toDateString(), count: water },
+              journal,
+              wellness,
+              meals,
+              inbody,
+              crackerMoveCheckIns: loadMoveCheckIns(),
+              moveChecklist: loadMoveChecklist(),
+              sessionDraft: null,
+              allowEmptyHistory: true,
+            });
+            setSyncNote(result.error ? `History cleared on this device. Cloud: ${result.error}` : "Workout history cleared");
+          } else {
+            setSyncNote("Workout history cleared");
+          }
+          setProfileOpen(false);
+          setTab("today");
+        }}
         challengeMode={challengeMode}
         // Seasonal lock: FORMA programmes disabled — no toggle back to FORMA workouts.
         onChallengeModeChange={undefined}
-        reminderPrefs={{
-          enabled: reminderPrefs.enabled,
-          browserNotify: reminderPrefs.browserNotify,
-          preferredWindow: reminderPrefs.preferredWindow,
-        }}
-        onReminderPrefsChange={(prefs) => {
-          void updateReminderPrefs(prefs);
-        }}
         accountMode={authMode}
         syncNote={syncNote}
         onSignOut={async () => {
+          if (authMode === "cloud" && profile) {
+            await pushProfile(profile);
+            await pushUserState({
+              workouts,
+              history,
+              week,
+              alignActive,
+              progress: progressEntries,
+              photos: progressPhotos,
+              water: { date: new Date().toDateString(), count: water },
+              journal,
+              wellness,
+              meals,
+              inbody,
+              crackerMoveCheckIns: loadMoveCheckIns(),
+              moveChecklist: loadMoveChecklist(),
+              sessionDraft: pausedDraft,
+            });
+          }
           await signOut();
-          window.localStorage.removeItem(LOCAL_ONLY_KEY);
+          clearLocalMemberData();
           setCloudUserId(null);
+          setProfile(null);
+          setWorkouts([]);
+          setHistory([]);
+          setSession(null);
+          setPausedDraft(null);
+          persistSessionDraft(null);
+          setNeedsCrackerOnboarding(false);
           setAuthMode("gate");
           setProfileOpen(false);
         }}
@@ -1498,13 +1941,17 @@ export default function FormaApp() {
                   accent="sage"
                 />
                 <StatTile
-                  label="Completion"
-                  value={`${
-                    sessionCelebration.setsTotal
-                      ? Math.round((sessionCelebration.setsDone / sessionCelebration.setsTotal) * 100)
-                      : 0
-                  }%`}
-                  note="working sets"
+                  label={sessionCelebration.volumeKg > 0 ? "Volume" : "Completion"}
+                  value={
+                    sessionCelebration.volumeKg > 0
+                      ? `${sessionCelebration.volumeKg.toLocaleString()} kg`
+                      : `${
+                          sessionCelebration.setsTotal
+                            ? Math.round((sessionCelebration.setsDone / sessionCelebration.setsTotal) * 100)
+                            : 0
+                        }%`
+                  }
+                  note={sessionCelebration.volumeKg > 0 ? "working sets" : "working sets"}
                   accent="mocha"
                 />
               </div>
@@ -1517,22 +1964,30 @@ export default function FormaApp() {
                 type="button"
                 className="cta-btn"
                 onClick={() => {
+                  saveCrackerTab("move");
+                  saveMoveSubTab("recap");
+                  saveRecapFocus(sessionCelebration.sessionId);
                   setSessionCelebration(null);
-                  setProgressSubTab("overview");
-                  setTab("progress");
+                  if (challengeMode !== "cracker") {
+                    setProgressSubTab("overview");
+                    setTab("progress");
+                  }
                 }}
               >
-                See your progress
+                See workout recap
               </button>
               <button
                 type="button"
                 className="secondary-btn"
                 onClick={() => {
+                  saveCrackerTab("move");
+                  saveMoveSubTab("recap");
+                  saveRecapFocus(sessionCelebration.sessionId);
                   setSessionCelebration(null);
-                  setTab("today");
+                  if (challengeMode !== "cracker") setTab("today");
                 }}
               >
-                Back to Home
+                {challengeMode === "cracker" ? "Back to MOVE" : "Back to Home"}
               </button>
             </article>
           </div>
@@ -1542,25 +1997,99 @@ export default function FormaApp() {
   }
 
   if (session && sessionWorkout) {
-    const exercise = sessionWorkout.exercises[session.exerciseIndex];
-    const result = session.results[session.exerciseIndex];
-    if (!exercise || !result) {
-      return null;
+    const blocks = buildSessionBlocks(sessionWorkout.exercises);
+    const safeIndex = Math.min(
+      Math.max(0, session.exerciseIndex),
+      Math.max(0, sessionWorkout.exercises.length - 1, session.results.length - 1),
+    );
+    const currentBlock = blockContaining(blocks, safeIndex);
+    const currentBlockIndex = blockIndexOf(blocks, safeIndex);
+    const blockExercises = currentBlock.indices
+      .map((index) => sessionWorkout.exercises[index])
+      .filter(Boolean);
+    const leadExercise = sessionWorkout.exercises[currentBlock.indices[0]];
+    const leadResult = session.results[currentBlock.indices[0]];
+    if (!leadExercise || !leadResult || blockExercises.length === 0) {
+      return (
+        <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
+          <div className="shell">
+            <div className="screen session-screen">
+              <p className="muted">This session is still saved. Resume from MOVE when you are ready.</p>
+              <button type="button" className="cta-btn" onClick={exitSession}>
+                Back to MOVE
+              </button>
+            </div>
+          </div>
+        </div>
+      );
     }
-    const recommendation = getRecommendation(exercise, history, phaseDef);
-    const prev = previousPerformance(exercise, history);
-    const coaching = exerciseCoaching(exercise);
+    const recommendation = getRecommendation(leadExercise, history, phaseDef);
     const minutes = Math.floor(restRemaining / 60);
     const seconds = String(restRemaining % 60).padStart(2, "0");
-    const setsAddressed = result.sets.filter((set) => set.complete || set.skipped).length;
-    const progressPct = Math.round((setsAddressed / result.sets.length) * 100);
-    const isLastExercise = session.exerciseIndex >= sessionWorkout.exercises.length - 1;
-    const allSetsAddressed = setsAddressed === result.sets.length;
-    const goNextExercise = () => {
+    const isWod = isWodExerciseName(leadExercise.name);
+    const wodComplete = isWod && isWodResultComplete(leadResult.wodResult);
+    const isSuperset = currentBlock.kind === "superset";
+    const progressPct = isWod
+      ? wodComplete
+        ? 100
+        : 0
+      : blockProgressPct(currentBlock, sessionWorkout.exercises, session.results, (item) =>
+          Boolean(item.wodResult && isWodResultComplete(item.wodResult)),
+        );
+    const isLastBlock = currentBlockIndex >= blocks.length - 1;
+    const allSetsAddressed = isWod
+      ? Boolean(wodComplete)
+      : blockIsComplete(currentBlock, sessionWorkout.exercises, session.results, (item) =>
+          Boolean(item.wodResult && isWodResultComplete(item.wodResult)),
+        );
+    const sharedRest = sharedSupersetRestSeconds(blockExercises);
+    const lastIndexInBlock = currentBlock.indices[currentBlock.indices.length - 1];
+    const previousWodScore = (() => {
+      if (!isWod) return undefined;
+      for (let i = history.length - 1; i >= 0; i--) {
+        const hit = history[i].exercises.find(
+          (ex) => isWodExerciseName(ex.name) && ex.name === leadExercise.name && ex.wodResult,
+        );
+        if (hit?.wodResult) return formatWodScore(hit.wodResult);
+      }
+      return undefined;
+    })();
+    const updateWodResult = (wodResult: WodResult) => {
+      setSession({
+        ...session,
+        results: session.results.map((item, index) =>
+          index === currentBlock.indices[0] ? { ...item, wodResult } : item,
+        ),
+      });
+    };
+    const goToBlock = (nextIndex: number) => {
+      const next = blocks[nextIndex];
+      if (!next) return;
       setSessionSwapOpen(false);
       setRestRemaining(0);
-      setSession({ ...session, exerciseIndex: session.exerciseIndex + 1 });
+      setSession({ ...session, exerciseIndex: next.indices[0] });
     };
+    const handleCompleteSet = (exerciseIndex: number, setIndex: number, nextComplete: boolean) => {
+      updateSet(exerciseIndex, setIndex, { complete: nextComplete, skipped: false });
+      if (nextComplete && (!isSuperset || exerciseIndex === lastIndexInBlock)) {
+        setRestRemaining(isSuperset ? sharedRest : sessionWorkout.exercises[exerciseIndex]?.restSeconds ?? 0);
+      }
+    };
+    const handleSkipSet = (exerciseIndex: number, setIndex: number) => {
+      skipSet(exerciseIndex, setIndex);
+      if (isSuperset && exerciseIndex === lastIndexInBlock) {
+        setRestRemaining(sharedRest);
+      }
+    };
+    const sessionDemoWeek = crackerWeekFromWorkoutId(sessionWorkout.id) ?? weekInCycle;
+    const sessionDemoUrl =
+      challengeMode === "cracker"
+        ? crackerSessionDemoUrl(
+            crackerLevelFromExperience(profile.experienceLevel),
+            sessionWorkout.title,
+            sessionDemoWeek,
+          )
+        : null;
 
     return (
       <div className={`app${challengeMode === "cracker" ? " challenge-cracker cracker-v2" : ""}`}>
@@ -1570,7 +2099,7 @@ export default function FormaApp() {
               <button className="ghost-btn" onClick={exitSession}>‹ Exit</button>
               <div className="session-count">
                 <span className="eyebrow">{sessionWorkout.title}</span>
-                <strong>{session.exerciseIndex + 1} / {sessionWorkout.exercises.length}</strong>
+                <strong>{currentBlockIndex + 1} / {blocks.length}</strong>
               </div>
               <button className="ghost-btn strong" onClick={finishWorkout}>Finish</button>
             </header>
@@ -1579,10 +2108,34 @@ export default function FormaApp() {
               className="session-hero"
               style={{ backgroundImage: `linear-gradient(180deg, rgba(74,55,44,.12), rgba(74,55,44,.62)), url(${workoutCoverImage(sessionWorkout.title)})` }}
             >
-              <span className="eyebrow light">{season} · Primary target</span>
-              <h1>{exercise.name}</h1>
-              <p>{recommendation.title}</p>
-              <small>{recommendation.detail}</small>
+              <span className="eyebrow light">
+                {isSuperset ? `SUPERSET ${currentBlock.letter}` : `${season} · Primary target`}
+              </span>
+              <h1>
+                {isSuperset
+                  ? currentBlock.indices
+                      .map((index, position) =>
+                        `${supersetMarkFor(sessionWorkout.exercises[index], currentBlock.letter, position + 1)} ${sessionWorkout.exercises[index]?.name ?? ""}`,
+                      )
+                      .join(" + ")
+                  : leadExercise.name}
+              </h1>
+              <p>{isSuperset ? "Complete both, then rest. Repeat each round." : recommendation.title}</p>
+              <small>
+                {isSuperset
+                  ? currentBlock.indices
+                      .map((index, position) => {
+                        const mark = supersetMarkFor(
+                          sessionWorkout.exercises[index],
+                          currentBlock.letter,
+                          position + 1,
+                        );
+                        return `${position + 1}. Complete ${mark}`;
+                      })
+                      .concat(["Then rest", "Repeat for the next round"])
+                      .join(" · ")
+                  : recommendation.detail}
+              </small>
               <div className="session-progress">
                 <span style={{ width: `${progressPct}%` }} />
               </div>
@@ -1592,15 +2145,12 @@ export default function FormaApp() {
               <button
                 type="button"
                 className="secondary-btn"
-                disabled={session.exerciseIndex === 0}
-                onClick={() => {
-                  setSessionSwapOpen(false);
-                  setSession({ ...session, exerciseIndex: session.exerciseIndex - 1 });
-                }}
+                disabled={currentBlockIndex === 0}
+                onClick={() => goToBlock(currentBlockIndex - 1)}
               >
                 Previous
               </button>
-              {isLastExercise ? (
+              {isLastBlock ? (
                 <button
                   type="button"
                   className="cta-btn"
@@ -1613,225 +2163,141 @@ export default function FormaApp() {
                 <button
                   type="button"
                   className="cta-btn"
-                  onClick={goNextExercise}
+                  onClick={() => goToBlock(currentBlockIndex + 1)}
                   disabled={!allSetsAddressed}
                 >
-                  Next exercise →
+                  Next →
                 </button>
               )}
             </div>
 
-            <article className="card coach-prev">
-              <div className="coach-prev-head">
-                <span className="eyebrow">Last session</span>
-                {prev.pbWeight > 0 && <span className="season-pill">PB {prev.pbWeight}kg × {prev.pbReps}</span>}
-              </div>
-              {prev.hasData ? (
-                <div className="coach-prev-stats">
-                  <div><small>Weight</small><strong>{Math.max(...prev.weights)}kg</strong></div>
-                  <div><small>Reps</small><strong>{prev.reps.join(" / ")}</strong></div>
-                  <div><small>Avg RPE</small><strong>{prev.avgRpe}</strong></div>
-                  <div><small>Volume</small><strong>{Math.round(prev.volume)}kg</strong></div>
-                </div>
-              ) : (
-                <p className="muted">First time logging this exercise — today sets your baseline.</p>
-              )}
-              <p className="coach-prev-rec"><strong>Today:</strong> {recommendation.title}. {recommendation.detail}</p>
-            </article>
-
-            <article className="card session-card">
-              <div className="session-meta">
-                <span>{exercise.sets} sets</span>
-                <span>{exercise.repMin}–{exercise.repMax} reps</span>
-                <span>RPE {exercise.rpe}</span>
-              </div>
-
-              <div className="set-list">
-                {result.sets.map((set, setIndex) => (
-                  <article
-                    className={`set-row ${set.complete ? "complete" : ""}${set.skipped && !set.complete ? " skipped" : ""}`}
-                    key={setIndex}
-                  >
-                    <strong>Set {setIndex + 1}</strong>
-                    <label>
-                      <span>kg</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.5"
-                        value={set.weight === 0 ? "" : set.weight}
-                        placeholder="0"
-                        onFocus={(event) => event.target.select()}
-                        onChange={(event) =>
-                          updateSet(session.exerciseIndex, setIndex, {
-                            weight: parseNumberInput(event.target.value),
-                            skipped: false,
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>reps</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        value={set.reps === 0 ? "" : set.reps}
-                        placeholder="0"
-                        onFocus={(event) => event.target.select()}
-                        onChange={(event) =>
-                          updateSet(session.exerciseIndex, setIndex, {
-                            reps: parseNumberInput(event.target.value),
-                            skipped: false,
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>RPE</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min="1"
-                        max="10"
-                        step="0.5"
-                        value={set.rpe === 0 ? "" : set.rpe}
-                        placeholder="0"
-                        onFocus={(event) => event.target.select()}
-                        onChange={(event) =>
-                          updateSet(session.exerciseIndex, setIndex, {
-                            rpe: parseNumberInput(event.target.value),
-                            skipped: false,
-                          })
-                        }
-                      />
-                    </label>
-                    <div className="set-row-actions">
-                      <button
-                        type="button"
-                        className="set-complete"
-                        onClick={() => {
-                          const nextComplete = !set.complete;
-                          updateSet(session.exerciseIndex, setIndex, {
-                            complete: nextComplete,
-                            skipped: false,
-                          });
-                          if (nextComplete) setRestRemaining(exercise.restSeconds);
-                        }}
-                      >
-                        {set.complete ? "✓" : "Done"}
-                      </button>
-                      {!set.complete ? (
-                        <button
-                          type="button"
-                          className="set-skip"
-                          onClick={() => skipSet(session.exerciseIndex, setIndex)}
-                        >
-                          {set.skipped ? "Skipped" : "Skip"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              <label className="field session-note-field">
-                <span>Note for this exercise</span>
-                <input
-                  value={result.note ?? ""}
-                  onChange={(event) => updateExerciseNote(session.exerciseIndex, event.target.value)}
-                  placeholder="Felt strong, form cue, leftover fatigue…"
-                />
-              </label>
-
-              {exercise.notes && <p className="exercise-note">{exercise.notes}</p>}
-            </article>
-
-            <article className="card coach-guide">
-              <span className="eyebrow">Coaching · {exercise.name}</span>
-              <div className="coach-guide-meta">
-                <span>{coaching.primary}</span>
-                <span>{coaching.equipment}</span>
-                <span>Tempo {coaching.tempo.split(" · ")[0]}</span>
-                <span>Rest {coaching.restSeconds}s</span>
-              </div>
-              <a
-                className="video-link-btn"
-                href={coaching.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+            {sessionDemoUrl ? (
+              <details
+                className="session-demo-card"
+                open={sessionDemoOpen}
+                onToggle={(event) => {
+                  const next = event.currentTarget.open;
+                  if (next !== sessionDemoOpen) setSessionDemoOpen(next);
+                }}
               >
-                Watch form · {coaching.videoLabel}
-              </a>
-              {coaching.secondary !== "—" ? <p className="muted coach-guide-sub">Secondary: {coaching.secondary}</p> : null}
-              {coaching.cues.length > 0 && (
-                <div className="coach-block">
-                  <strong>Focus</strong>
-                  <ul className="coach-list">
-                    {coaching.cues.map((cue) => <li key={cue}>{cue}</li>)}
-                  </ul>
-                </div>
-              )}
-              {coaching.mistakes.length > 0 && (
-                <div className="coach-block">
-                  <strong>Avoid</strong>
-                  <ul className="coach-list">
-                    {coaching.mistakes.map((mistake) => <li key={mistake}>{mistake}</li>)}
-                  </ul>
-                </div>
-              )}
-              {(() => {
-                const candidates = swapCandidates(
-                  exercise.exerciseId,
-                  profile?.equipmentAccess ?? "full_gym",
-                );
-                if (candidates.length === 0) return null;
-                return (
-                  <div className="swap-panel">
-                    <div className="swap-panel-head">
-                      <strong>Swap exercise</strong>
-                      <button
-                        type="button"
-                        className="text-btn"
-                        onClick={() => setSessionSwapOpen((open) => !open)}
-                      >
-                        {sessionSwapOpen ? "Hide" : "Show options"}
-                      </button>
-                    </div>
-                    {sessionSwapOpen && (
-                      <div className="swap-options">
-                        {candidates.map((candidate) => (
-                          <button
-                            key={candidate.id}
-                            type="button"
-                            className="swap-option"
-                            onClick={() => swapExerciseInSession(candidate.id)}
-                          >
-                            <span>{candidate.name}</span>
-                            <small>
-                              {swapReasonLabel(candidate.reason)}
-                              {candidate.preserveWeight ? " · keeps load" : " · reset load"}
-                            </small>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </article>
+                <summary>
+                  <span className="eyebrow">Watch with Jess</span>
+                  <strong>{sessionWorkout.title} demo</strong>
+                </summary>
+                <InAppVideo
+                  url={sessionDemoUrl}
+                  title={`Jess · ${sessionWorkout.title} · Week ${sessionDemoWeek}`}
+                />
+              </details>
+            ) : null}
 
+            {isWod ? (
+              <WodLogger
+                exercise={leadExercise}
+                result={leadResult}
+                previousScore={previousWodScore}
+                onChange={updateWodResult}
+              />
+            ) : isSuperset ? (
+              <article className="card session-superset">
+                <div className="session-superset-banner">
+                  <span className="session-superset-kicker">SUPERSET {currentBlock.letter}</span>
+                  <strong>
+                    {currentBlock.indices
+                      .map((index, position) =>
+                        supersetMarkFor(
+                          sessionWorkout.exercises[index],
+                          currentBlock.letter,
+                          position + 1,
+                        ),
+                      )
+                      .join(" + ")}
+                  </strong>
+                  <ol className="session-superset-sequence">
+                    {currentBlock.indices.map((index, position) => {
+                      const mark = supersetMarkFor(
+                        sessionWorkout.exercises[index],
+                        currentBlock.letter,
+                        position + 1,
+                      );
+                      return (
+                        <li key={index}>
+                          Complete {mark} {sessionWorkout.exercises[index]?.name}
+                          {position === 0 ? " first" : " immediately after"}
+                        </li>
+                      );
+                    })}
+                    <li>Rest</li>
+                    <li>Repeat for the next round</li>
+                  </ol>
+                </div>
+                {currentBlock.indices.map((index, position) => {
+                  const exercise = sessionWorkout.exercises[index];
+                  const result = session.results[index];
+                  if (!exercise || !result) return null;
+                  return (
+                    <div key={exercise.id}>
+                      {position > 0 ? <div className="session-superset-divider" aria-hidden="true" /> : null}
+                      <SessionExerciseLog
+                        exercise={exercise}
+                        result={result}
+                        exerciseIndex={index}
+                        history={history}
+                        phaseDef={phaseDef}
+                        mark={supersetMarkFor(exercise, currentBlock.letter, position + 1)}
+                        equipmentAccess={profile?.equipmentAccess}
+                        onSwap={swapExerciseInSession}
+                        onUpdateSet={updateSet}
+                        onSkipSet={handleSkipSet}
+                        onNote={updateExerciseNote}
+                        onCompleteSet={handleCompleteSet}
+                        parseNumberInput={parseNumberInput}
+                      />
+                    </div>
+                  );
+                })}
+                <p className="session-superset-rest-note">{sharedSupersetRestLabel(blockExercises)}</p>
+              </article>
+            ) : (
+              <SessionExerciseLog
+                key={leadExercise.id}
+                exercise={leadExercise}
+                result={leadResult}
+                exerciseIndex={currentBlock.indices[0]}
+                history={history}
+                phaseDef={phaseDef}
+                equipmentAccess={profile?.equipmentAccess}
+                onSwap={swapExerciseInSession}
+                onUpdateSet={updateSet}
+                onSkipSet={handleSkipSet}
+                onNote={updateExerciseNote}
+                onCompleteSet={handleCompleteSet}
+                parseNumberInput={parseNumberInput}
+              />
+            )}
+
+            {!isWod ? (
             <article className={`card rest-card${restRemaining > 0 ? " active" : ""}`}>
               <div>
-                <span className="eyebrow">{restRemaining > 0 ? "Resting" : "Rest timer"}</span>
+                <span className="eyebrow">
+                  {restRemaining > 0
+                    ? "Resting"
+                    : isSuperset
+                      ? "Rest after both exercises"
+                      : "Rest timer"}
+                </span>
                 <strong>
                   {minutes}:{seconds}
                 </strong>
+                {isSuperset ? (
+                  <small className="session-superset-rest-hint">{sharedSupersetRestLabel(blockExercises)}</small>
+                ) : null}
               </div>
               <div className="rest-actions">
                 <button type="button" onClick={() => setRestRemaining((current) => Math.max(0, current - 15))}>
                   −15s
                 </button>
-                <button type="button" onClick={() => setRestRemaining(exercise.restSeconds)}>
+                <button type="button" onClick={() => setRestRemaining(isSuperset ? sharedRest : leadExercise.restSeconds)}>
                   Restart
                 </button>
                 <button type="button" onClick={() => setRestRemaining((current) => current + 15)}>
@@ -1842,6 +2308,7 @@ export default function FormaApp() {
                 </button>
               </div>
             </article>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1958,7 +2425,7 @@ export default function FormaApp() {
     return (
       <div className="app challenge-cracker cracker-v2">
         <CrackerShell
-          week={crackerWeek(weekInCycle)}
+          week={crackerCalendarWeek()}
           sessionsDone={sessionsThisWeek}
           sessionsTarget={sessionsTarget}
           experience={profile.experienceLevel}
@@ -1969,6 +2436,13 @@ export default function FormaApp() {
           profilePhoto={profile.profilePhoto}
           onOpenProfile={() => setProfileOpen(true)}
           onStartWorkout={startWorkout}
+          photos={progressPhotos}
+          onAddPhoto={handleAddPhoto}
+          onDeletePhoto={handleDeletePhoto}
+          club={profile.club}
+          pausedTitle={pausedTitle}
+          onResumeWorkout={resumePausedSession}
+          onDiscardWorkout={discardPausedSession}
         />
       </div>
     );
@@ -2074,52 +2548,6 @@ export default function FormaApp() {
               </article>
             ) : null}
 
-            {showTrainingReminder ? (
-              <article className="card training-reminder-card">
-                <div className="training-reminder-copy">
-                  <span className="eyebrow">Training day</span>
-                  <strong>{trainingReminder.title}</strong>
-                  <p className="muted">{trainingReminder.text}</p>
-                  <div className={`reminder accent-${trainingReminder.tip.accent}`}>
-                    <strong>{trainingReminder.tip.title}</strong>
-                    <small>{trainingReminder.tip.text}</small>
-                  </div>
-                </div>
-                <div className="training-reminder-actions">
-                  {scheduledToday && scheduledToday.exercises.length > 0 ? (
-                    <button
-                      type="button"
-                      className="cta-btn"
-                      onClick={() => startWorkout(scheduledToday)}
-                    >
-                      Start workout
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => setSessionPickerOpen(true)}
-                  >
-                    Choose session
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-btn"
-                    onClick={() => setReminderPrefs(markTrainingDoneToday(reminderPrefs))}
-                  >
-                    Mark done
-                  </button>
-                  <button
-                    type="button"
-                    className="text-btn"
-                    onClick={() => setReminderPrefs(dismissTrainingReminderToday(reminderPrefs))}
-                  >
-                    Later
-                  </button>
-                </div>
-              </article>
-            ) : null}
-
             {!weeklyReviewDismissed && shouldShowWeeklyReviewNudge() && review ? (
               <article className="card weekly-review-nudge">
                 <div className="training-reminder-copy">
@@ -2219,7 +2647,7 @@ export default function FormaApp() {
                             <div>
                               <strong>{item.name}</strong>
                               <small>
-                                {item.sets} × {item.repMin}–{item.repMax} · RPE {item.rpe}
+                                {exerciseDoseLabel(item)}
                               </small>
                               <em>{recommendation.title}</em>
                             </div>
@@ -2983,7 +3411,7 @@ export default function FormaApp() {
                                   </div>
                                   <div>
                                     <strong>{exercise.name}</strong>
-                                    <small>{exercise.sets} × {exercise.repMin}–{exercise.repMax} · {exercise.weight} kg · RPE {exercise.rpe}</small>
+                                    <small>{exerciseDoseLabel(exercise, { includeWeight: true })}</small>
                                   </div>
                                 </div>
                                 <div className="editor-actions compact exercise-overflow">
@@ -3359,13 +3787,26 @@ export default function FormaApp() {
                                     updateHistorySet(item.id, exercise.exerciseId, setIndex, { weight: value })
                                   }
                                 />
-                                <Field
-                                  label="Reps"
-                                  value={set.reps}
-                                  onChange={(value) =>
-                                    updateHistorySet(item.id, exercise.exerciseId, setIndex, { reps: value })
-                                  }
-                                />
+                                {isHoldExercise(exercise) ? (
+                                  <Field
+                                    label="Sec"
+                                    value={set.holdSeconds ?? 0}
+                                    onChange={(value) =>
+                                      updateHistorySet(item.id, exercise.exerciseId, setIndex, {
+                                        holdSeconds: value,
+                                        reps: 0,
+                                      })
+                                    }
+                                  />
+                                ) : (
+                                  <Field
+                                    label="Reps"
+                                    value={set.reps}
+                                    onChange={(value) =>
+                                      updateHistorySet(item.id, exercise.exerciseId, setIndex, { reps: value })
+                                    }
+                                  />
+                                )}
                                 <Field
                                   label="RPE"
                                   value={set.rpe}

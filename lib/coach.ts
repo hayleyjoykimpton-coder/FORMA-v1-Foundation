@@ -10,6 +10,7 @@
 import { EXERCISES, getExercise } from "./exercises";
 import type { MovementPattern, MuscleGroup } from "./exercises";
 import { resolveExerciseVideoUrl, videoSourceLabel } from "./exerciseVideos";
+import { setHoldSeconds } from "./holdExercise";
 import { estimate1RM } from "./progression";
 import { muscleVolume, sessionVolume, weekSessionCount } from "./analytics";
 import type { Exercise, ExerciseResult, WorkoutSession } from "./types";
@@ -49,11 +50,13 @@ export type PreviousPerformance = {
   hasData: boolean;
   weights: number[];
   reps: number[];
+  holds: number[];
   setCount: number;
   avgRpe: number;
   volume: number;
   pbWeight: number;
   pbReps: number;
+  pbHoldSeconds: number;
   pbE1RM: number;
 };
 
@@ -62,17 +65,20 @@ export function previousPerformance(exercise: Exercise, history: WorkoutSession[
     hasData: false,
     weights: [],
     reps: [],
+    holds: [],
     setCount: 0,
     avgRpe: 0,
     volume: 0,
     pbWeight: 0,
     pbReps: 0,
+    pbHoldSeconds: 0,
     pbE1RM: 0,
   };
 
   // Personal bests across all history.
   let pbWeight = 0;
   let pbReps = 0;
+  let pbHoldSeconds = 0;
   let pbE1RM = 0;
   for (const session of history) {
     for (const result of session.exercises) {
@@ -80,6 +86,7 @@ export function previousPerformance(exercise: Exercise, history: WorkoutSession[
       for (const set of result.sets) {
         if (!set.complete) continue;
         pbWeight = Math.max(pbWeight, set.weight);
+        pbHoldSeconds = Math.max(pbHoldSeconds, setHoldSeconds(set) ?? 0);
         const e1rm = estimate1RM(set.weight, set.reps);
         if (e1rm > pbE1RM) {
           pbE1RM = e1rm;
@@ -97,22 +104,27 @@ export function previousPerformance(exercise: Exercise, history: WorkoutSession[
     if (!done.length) continue;
     const weights = done.map((set) => set.weight);
     const reps = done.map((set) => set.reps);
+    const holds = done
+      .map((set) => setHoldSeconds(set))
+      .filter((seconds): seconds is number => seconds != null && seconds > 0);
     const avgRpe = done.reduce((sum, set) => sum + set.rpe, 0) / done.length;
     const volume = done.reduce((sum, set) => sum + set.weight * set.reps, 0);
     return {
       hasData: true,
       weights,
       reps,
+      holds,
       setCount: done.length,
       avgRpe: Math.round(avgRpe * 10) / 10,
       volume,
       pbWeight,
       pbReps,
+      pbHoldSeconds,
       pbE1RM,
     };
   }
 
-  return { ...empty, pbWeight, pbReps, pbE1RM };
+  return { ...empty, pbWeight, pbReps, pbHoldSeconds, pbE1RM };
 }
 
 // --------------------------------------------------------------------------

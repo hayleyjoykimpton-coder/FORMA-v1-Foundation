@@ -22,6 +22,10 @@ export type Exercise = {
    * Overrides the library default when set.
    */
   videoUrl?: string;
+  /** Shared key for a programmed superset (e.g. "D"). */
+  supersetKey?: string;
+  /** Slot label inside that group (e.g. "D1", "D2"). */
+  supersetMark?: string;
 };
 
 export type Workout = {
@@ -40,6 +44,8 @@ export type SetResult = {
   /** Partial-session logging: a set that was left unfinished. */
   skipped?: boolean;
   completedAt?: string;
+  /** Timed holds (plank, wall sit, etc.) — seconds completed. */
+  holdSeconds?: number;
 };
 
 export type ExerciseResult = {
@@ -53,6 +59,11 @@ export type ExerciseResult = {
   sets: SetResult[];
   note?: string;
   discomfort?: number;
+  /**
+   * Format-specific WOD score (AMRAP / FOR TIME / EMOM / …).
+   * Present only for Cracker WOD finishers — never reuse SetResult for WODs.
+   */
+  wodResult?: import("./wod").WodResult;
 };
 
 export type WorkoutSession = {

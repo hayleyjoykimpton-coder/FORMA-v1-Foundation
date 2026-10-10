@@ -62,6 +62,9 @@ export const JESS_COACHING_CLIENT_01 = "/cracker/move/jess-coaching-client-01.jp
 /** Hands-on form guidance — same session as client-01 (canonical path). */
 export const JESS_COACHING_FORM = JESS_COACHING_CLIENT_01;
 
+/** Jess kneeling to cue a dumbbell bench press — Life & Soul gym. Week 1 LEARN cover. */
+export const JESS_COACHING_DUMBBELL_BENCH = "/cracker/move/jess-coaching-dumbbell-bench.jpg";
+
 /** Jess demonstrating lateral raise with client + dumbbells. */
 export const JESS_LATERAL_RAISE = "/cracker/move/jess-lateral-raise.jpg";
 
@@ -86,10 +89,11 @@ export const CRACKER_BADGE_IMAGE = "/brand/christmas-cracker-512.png";
  */
 export const MOVE_IMAGES: Record<MoveImageSlot, string> = {
   hero: JESS_LAS_PORTRAIT,
-  week1: JESS_COACHING_CLIENT_01,
+  week1: JESS_COACHING_DUMBBELL_BENCH,
   week2: JESS_COACHING_LATERAL_02,
   week3: JESS_COACHING_CLIENT,
-  week4: JMK_TRAINING_IMAGE,
+  // Real coaching photo — not the JMK "Real Results" promo graphic
+  week4: JESS_COACHING_FULL_BARBELL,
   week5: JESS_COACHING_LATERAL,
   week6: JESS_COACHING_PULLDOWN,
   lower: JESS_COACHING_CLIENT_01,
@@ -136,6 +140,7 @@ export const MOVE_IMAGE_POOL: string[] = [
   JESS_COACHING_FULL_BARBELL,
   JESS_LATERAL_RAISE,
   JESS_COACHING_LATERAL,
+  JESS_COACHING_DUMBBELL_BENCH,
   JMK_TRAINING_IMAGE,
 ];
 

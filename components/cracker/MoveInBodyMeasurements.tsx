@@ -17,6 +17,7 @@ import {
 } from "@/lib/crackerMoveCheckIns";
 
 type CardId =
+  | "weight"
   | "smm"
   | "bfp"
   | "visceral"
@@ -58,6 +59,11 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
   useEffect(() => {
     setState(loadMoveCheckIns());
   }, []);
+
+  useEffect(() => {
+    if (!editing) return;
+    window.scrollTo(0, 0);
+  }, [editing]);
 
   const inI = state.inbody_initial;
   const inF = state.inbody_final;
@@ -103,6 +109,7 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
 
   const results = useMemo(
     () => [
+      metricLine("Weight", inI?.weightKg, inF?.weightKg, " kg"),
       metricLine("SMM", inI?.skeletalMuscleMassKg, inF?.skeletalMuscleMassKg, " kg"),
       metricLine("Body fat", inI?.bodyFatPercent, inF?.bodyFatPercent, "%"),
       metricLine("Visceral fat", inI?.visceralFat, inF?.visceralFat),
@@ -112,6 +119,99 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
     ],
     [inI, inF, mI, mF],
   );
+
+  if (editing && ["weight", "smm", "bfp", "visceral"].includes(editing)) {
+    return (
+      <EditorPage title={inBodyTitle(editing)} onSave={saveInBody}>
+        <div className="move-compare-grid move-compare-head">
+          <span>START</span>
+          <span>FINAL</span>
+          <span>CHANGE</span>
+        </div>
+        {editing === "weight" ? (
+          <NumberCompare
+            label="kg"
+            initial={draftInInitial.weightKg}
+            final={draftInFinal.weightKg}
+            unit=" kg"
+            onInitial={(n) => setDraftInInitial((c) => ({ ...c, weightKg: n }))}
+            onFinal={(n) => setDraftInFinal((c) => ({ ...c, weightKg: n }))}
+          />
+        ) : null}
+        {editing === "smm" ? (
+          <NumberCompare
+            label="kg"
+            initial={draftInInitial.skeletalMuscleMassKg}
+            final={draftInFinal.skeletalMuscleMassKg}
+            unit=" kg"
+            onInitial={(n) => setDraftInInitial((c) => ({ ...c, skeletalMuscleMassKg: n }))}
+            onFinal={(n) => setDraftInFinal((c) => ({ ...c, skeletalMuscleMassKg: n }))}
+          />
+        ) : null}
+        {editing === "bfp" ? (
+          <NumberCompare
+            label="%"
+            initial={draftInInitial.bodyFatPercent}
+            final={draftInFinal.bodyFatPercent}
+            unit="%"
+            onInitial={(n) => setDraftInInitial((c) => ({ ...c, bodyFatPercent: n }))}
+            onFinal={(n) => setDraftInFinal((c) => ({ ...c, bodyFatPercent: n }))}
+          />
+        ) : null}
+        {editing === "visceral" ? (
+          <NumberCompare
+            label="score"
+            initial={draftInInitial.visceralFat}
+            final={draftInFinal.visceralFat}
+            onInitial={(n) => setDraftInInitial((c) => ({ ...c, visceralFat: n }))}
+            onFinal={(n) => setDraftInFinal((c) => ({ ...c, visceralFat: n }))}
+          />
+        ) : null}
+      </EditorPage>
+    );
+  }
+
+  if (editing && ["chest", "waist", "hips"].includes(editing)) {
+    return (
+      <EditorPage title={measureTitle(editing)} onSave={saveMeasurements}>
+        <div className="move-compare-grid move-compare-head">
+          <span>START</span>
+          <span>FINAL</span>
+          <span>CHANGE</span>
+        </div>
+        {editing === "chest" ? (
+          <NumberCompare
+            label="cm"
+            initial={draftMInitial.chestCm}
+            final={draftMFinal.chestCm}
+            unit=" cm"
+            onInitial={(n) => setDraftMInitial((c) => ({ ...c, chestCm: n }))}
+            onFinal={(n) => setDraftMFinal((c) => ({ ...c, chestCm: n }))}
+          />
+        ) : null}
+        {editing === "waist" ? (
+          <NumberCompare
+            label="cm"
+            initial={draftMInitial.waistCm}
+            final={draftMFinal.waistCm}
+            unit=" cm"
+            onInitial={(n) => setDraftMInitial((c) => ({ ...c, waistCm: n }))}
+            onFinal={(n) => setDraftMFinal((c) => ({ ...c, waistCm: n }))}
+          />
+        ) : null}
+        {editing === "hips" ? (
+          <NumberCompare
+            label="cm"
+            initial={draftMInitial.hipsCm}
+            final={draftMFinal.hipsCm}
+            unit=" cm"
+            onInitial={(n) => setDraftMInitial((c) => ({ ...c, hipsCm: n }))}
+            onFinal={(n) => setDraftMFinal((c) => ({ ...c, hipsCm: n }))}
+          />
+        ) : null}
+      </EditorPage>
+    );
+  }
 
   return (
     <div className="screen cracker-screen cracker-move cracker-move-panel">
@@ -151,6 +251,12 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
       <section className="move-metric-section">
         <p className="eyebrow">INBODY</p>
         <div className="move-test-stack">
+          <MetricCard
+            title="WEIGHT"
+            unit="kg"
+            summary={formatPair(inI?.weightKg, inF?.weightKg, " kg")}
+            onOpen={() => openInBody("weight")}
+          />
           <MetricCard
             title="SKELETAL MUSCLE MASS"
             unit="kg"
@@ -220,89 +326,6 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
           <p className="muted">Use the same method at both check-ins.</p>
         </div>
       ) : null}
-
-      {editing && ["smm", "bfp", "visceral"].includes(editing) ? (
-        <EditorSheet title={inBodyTitle(editing)} onClose={() => setEditing(null)} onSave={saveInBody}>
-          <div className="move-compare-grid move-compare-head">
-            <span>START</span>
-            <span>FINAL</span>
-            <span>CHANGE</span>
-          </div>
-          {editing === "smm" ? (
-            <NumberCompare
-              label="kg"
-              initial={draftInInitial.skeletalMuscleMassKg}
-              final={draftInFinal.skeletalMuscleMassKg}
-              unit=" kg"
-              onInitial={(n) => setDraftInInitial((c) => ({ ...c, skeletalMuscleMassKg: n }))}
-              onFinal={(n) => setDraftInFinal((c) => ({ ...c, skeletalMuscleMassKg: n }))}
-            />
-          ) : null}
-          {editing === "bfp" ? (
-            <NumberCompare
-              label="%"
-              initial={draftInInitial.bodyFatPercent}
-              final={draftInFinal.bodyFatPercent}
-              unit="%"
-              onInitial={(n) => setDraftInInitial((c) => ({ ...c, bodyFatPercent: n }))}
-              onFinal={(n) => setDraftInFinal((c) => ({ ...c, bodyFatPercent: n }))}
-            />
-          ) : null}
-          {editing === "visceral" ? (
-            <NumberCompare
-              label="score"
-              initial={draftInInitial.visceralFat}
-              final={draftInFinal.visceralFat}
-              onInitial={(n) => setDraftInInitial((c) => ({ ...c, visceralFat: n }))}
-              onFinal={(n) => setDraftInFinal((c) => ({ ...c, visceralFat: n }))}
-            />
-          ) : null}
-        </EditorSheet>
-      ) : null}
-
-      {editing && ["chest", "waist", "hips"].includes(editing) ? (
-        <EditorSheet
-          title={measureTitle(editing)}
-          onClose={() => setEditing(null)}
-          onSave={saveMeasurements}
-        >
-          <div className="move-compare-grid move-compare-head">
-            <span>START</span>
-            <span>FINAL</span>
-            <span>CHANGE</span>
-          </div>
-          {editing === "chest" ? (
-            <NumberCompare
-              label="cm"
-              initial={draftMInitial.chestCm}
-              final={draftMFinal.chestCm}
-              unit=" cm"
-              onInitial={(n) => setDraftMInitial((c) => ({ ...c, chestCm: n }))}
-              onFinal={(n) => setDraftMFinal((c) => ({ ...c, chestCm: n }))}
-            />
-          ) : null}
-          {editing === "waist" ? (
-            <NumberCompare
-              label="cm"
-              initial={draftMInitial.waistCm}
-              final={draftMFinal.waistCm}
-              unit=" cm"
-              onInitial={(n) => setDraftMInitial((c) => ({ ...c, waistCm: n }))}
-              onFinal={(n) => setDraftMFinal((c) => ({ ...c, waistCm: n }))}
-            />
-          ) : null}
-          {editing === "hips" ? (
-            <NumberCompare
-              label="cm"
-              initial={draftMInitial.hipsCm}
-              final={draftMFinal.hipsCm}
-              unit=" cm"
-              onInitial={(n) => setDraftMInitial((c) => ({ ...c, hipsCm: n }))}
-              onFinal={(n) => setDraftMFinal((c) => ({ ...c, hipsCm: n }))}
-            />
-          ) : null}
-        </EditorSheet>
-      ) : null}
     </div>
   );
 }
@@ -331,33 +354,28 @@ function MetricCard({
   );
 }
 
-function EditorSheet({
+function EditorPage({
   title,
-  onClose,
   onSave,
   children,
 }: {
   title: string;
-  onClose: () => void;
   onSave: () => void;
   children: ReactNode;
 }) {
   return (
-    <div className="move-editor-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="move-editor-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="move-editor-head">
-          <h2>{title}</h2>
-          <button type="button" className="text-btn" onClick={onClose}>
-            Close
-          </button>
+    <div className="screen cracker-screen cracker-move cracker-move-panel move-editor-page">
+      <header className="cracker-topbar">
+        <div>
+          <p className="cracker-screen-kicker">INBODY + MEASUREMENTS</p>
+          <h1 className="cracker-screen-title">{title}</h1>
         </div>
-        <div className="move-editor-fields">{children}</div>
+        <button type="button" className="text-btn" onClick={onSave}>
+          Done
+        </button>
+      </header>
+      <div className="move-editor-fields">{children}</div>
+      <div className="move-editor-actions">
         <button type="button" className="cta-btn" onClick={onSave}>
           SAVE
         </button>
@@ -407,6 +425,7 @@ function NumberCompare({
 }
 
 function inBodyTitle(id: CardId): string {
+  if (id === "weight") return "WEIGHT";
   if (id === "smm") return "SKELETAL MUSCLE MASS";
   if (id === "bfp") return "BODY FAT PERCENTAGE";
   return "VISCERAL FAT";
