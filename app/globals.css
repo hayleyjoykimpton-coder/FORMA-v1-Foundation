@@ -5109,8 +5109,16 @@ button.avatar { padding: 0; }
 .cracker-move-with-subnav:has(.move-editor-page) .move-subnav {
   display: none;
 }
+.cracker-move-with-subnav .cracker-screen.move-editor-page,
+.move-editor-page {
+  min-height: 100dvh;
+  justify-content: center;
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--cracker-tabbar-clearance, calc(110px + env(safe-area-inset-bottom, 0px)));
+}
 .move-editor-page .cracker-topbar {
   align-items: flex-start;
+  width: 100%;
 }
 .move-editor-actions {
   display: flex;
