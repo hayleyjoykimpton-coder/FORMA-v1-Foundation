@@ -51,7 +51,7 @@ export const CRACKER_EXTERNAL_LINKS = {
     intermediate: {
       lower: { week1: "", week2: "", week3: "" },
       upper: { week1: "", week2: "", week3: "" },
-      full: { week1: "", week2: "", week3: "" },
+      full: { week1: "", week2: "", week3: "https://youtube.com/shorts/5VO7OkeiFQE?feature=share" },
     },
   },
   naomiVideos: {
