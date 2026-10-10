@@ -49,7 +49,7 @@ export const CRACKER_EXTERNAL_LINKS = {
       },
     },
     intermediate: {
-      lower: { week1: "", week2: "https://youtube.com/shorts/XfkCqw64i_0", week3: "https://youtube.com/shorts/ILAt0zeuMKI?feature=share" },
+      lower: { week1: "https://youtube.com/shorts/7-c338U0CUU?feature=share", week2: "https://youtube.com/shorts/XfkCqw64i_0", week3: "https://youtube.com/shorts/ILAt0zeuMKI?feature=share" },
       upper: { week1: "https://youtube.com/shorts/mSesU1Bpydg?feature=share", week2: "https://youtube.com/shorts/hBg12P2VCVs?feature=share", week3: "https://youtube.com/shorts/LXGutkXD9X0?feature=share" },
       full: { week1: "https://youtube.com/shorts/ReydEwFWN3k?feature=share", week2: "https://youtube.com/shorts/zMfn6qYPJFI?feature=share", week3: "https://youtube.com/shorts/5VO7OkeiFQE?feature=share" },
     },
