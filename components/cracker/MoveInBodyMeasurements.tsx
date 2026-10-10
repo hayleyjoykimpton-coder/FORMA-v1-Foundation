@@ -373,6 +373,8 @@ function EditorSheet({
         </div>
         <div className="move-editor-scroll">
           <div className="move-editor-fields">{children}</div>
+        </div>
+        <div className="move-editor-actions">
           <button type="button" className="cta-btn" onClick={onSave}>
             SAVE
           </button>

@@ -443,11 +443,12 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
               />
             ) : null}
 
-            <button type="button" className="cta-btn" onClick={saveEditor}>
-              SAVE RESULTS
-            </button>
-            <p className="muted">Done and Save both keep these numbers.</p>
-            {savedNote ? <p className="auth-info">{savedNote}</p> : null}
+            </div>
+            <div className="move-editor-actions">
+              <button type="button" className="cta-btn" onClick={saveEditor}>
+                SAVE RESULTS
+              </button>
+              {savedNote ? <p className="auth-info">{savedNote}</p> : null}
             </div>
           </div>
         </div>
