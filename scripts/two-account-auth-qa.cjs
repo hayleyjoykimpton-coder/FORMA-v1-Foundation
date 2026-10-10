@@ -182,7 +182,7 @@ async function saveFitnessPushups(page, reps) {
   await goMove(page);
   await page.getByRole("tab", { name: /fitness testing/i }).click();
   await page.getByRole("button", { name: /PUSH-UPS/i }).first().click();
-  const initial = page.locator(".move-editor-sheet input").first();
+  const initial = page.locator(".move-editor-page input").first();
   await initial.fill(String(reps));
   await page.getByRole("button", { name: /save results/i }).click();
   await page.waitForTimeout(400);
@@ -193,7 +193,7 @@ async function saveInBodyFat(page, pct) {
   await goMove(page);
   await page.getByRole("tab", { name: /inbody/i }).click();
   await page.getByRole("button", { name: /BODY FAT/i }).first().click();
-  const initial = page.locator(".move-editor-sheet input").first();
+  const initial = page.locator(".move-editor-page input").first();
   await initial.fill(String(pct));
   await page.getByRole("button", { name: /^SAVE$/i }).click();
   await page.waitForTimeout(400);

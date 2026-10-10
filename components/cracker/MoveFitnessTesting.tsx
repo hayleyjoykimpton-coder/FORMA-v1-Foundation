@@ -18,7 +18,6 @@ import {
   type DeadliftVariation,
   type FitnessCheckIn,
 } from "@/lib/crackerMoveCheckIns";
-import { useLockBodyScroll } from "@/lib/lockBodyScroll";
 
 type TestId = "deadlift" | "cardio500" | "pushups" | "situps" | "confidence" | "finisher";
 
@@ -218,11 +217,15 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
   const [draftInitial, setDraftInitial] = useState<FitnessCheckIn>({});
   const [draftFinal, setDraftFinal] = useState<FitnessCheckIn>({});
   const [savedNote, setSavedNote] = useState("");
-  useLockBodyScroll(editing != null);
 
   useEffect(() => {
     setState(loadMoveCheckIns());
   }, []);
+
+  useEffect(() => {
+    if (!editing) return;
+    window.scrollTo(0, 0);
+  }, [editing]);
 
   const initial = state.fitness_initial;
   const final = state.fitness_final;
@@ -269,6 +272,89 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
   const patchInitial = (patch: Partial<FitnessCheckIn>) =>
     setDraftInitial((c) => ({ ...c, ...patch }));
   const patchFinal = (patch: Partial<FitnessCheckIn>) => setDraftFinal((c) => ({ ...c, ...patch }));
+
+  if (editing) {
+    return (
+      <div className="screen cracker-screen cracker-move cracker-move-panel move-editor-page">
+        <header className="cracker-topbar">
+          <div>
+            <p className="cracker-screen-kicker">FITNESS CHECK-IN</p>
+            <h1 className="cracker-screen-title">{editorTitle(editing)}</h1>
+            <p className="muted move-editor-standards">{editorStandards(editing)}</p>
+          </div>
+          <button type="button" className="text-btn" onClick={saveEditor}>
+            Done
+          </button>
+        </header>
+
+        {editing === "cardio500" || editing === "finisher" ? null : (
+          <div className="move-compare-grid move-compare-head">
+            <span>INITIAL</span>
+            <span>FINAL</span>
+            <span>CHANGE</span>
+          </div>
+        )}
+
+        {editing === "deadlift" ? (
+          <DeadliftEditor
+            initial={draftInitial}
+            final={draftFinal}
+            onInitial={patchInitial}
+            onFinal={patchFinal}
+          />
+        ) : null}
+        {editing === "cardio500" ? (
+          <CardioEditor
+            initial={draftInitial}
+            final={draftFinal}
+            onInitial={patchInitial}
+            onFinal={patchFinal}
+          />
+        ) : null}
+        {editing === "pushups" ? (
+          <RepsEditor
+            label="Max quality reps"
+            initial={draftInitial.pushupReps}
+            final={draftFinal.pushupReps}
+            onInitial={(n) => patchInitial({ pushupReps: n })}
+            onFinal={(n) => patchFinal({ pushupReps: n })}
+          />
+        ) : null}
+        {editing === "situps" ? (
+          <RepsEditor
+            label="Max reps in 60s"
+            initial={draftInitial.situpReps}
+            final={draftFinal.situpReps}
+            onInitial={(n) => patchInitial({ situpReps: n })}
+            onFinal={(n) => patchFinal({ situpReps: n })}
+          />
+        ) : null}
+        {editing === "confidence" ? (
+          <ConfidenceEditor
+            initial={draftInitial.gymConfidence}
+            final={draftFinal.gymConfidence}
+            onInitial={(n) => patchInitial({ gymConfidence: n })}
+            onFinal={(n) => patchFinal({ gymConfidence: n })}
+          />
+        ) : null}
+        {editing === "finisher" ? (
+          <FinisherEditor
+            initial={draftInitial}
+            final={draftFinal}
+            onInitial={patchInitial}
+            onFinal={patchFinal}
+          />
+        ) : null}
+
+        <div className="move-editor-actions">
+          <button type="button" className="cta-btn" onClick={saveEditor}>
+            SAVE RESULTS
+          </button>
+          {savedNote ? <p className="auth-info">{savedNote}</p> : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="screen cracker-screen cracker-move cracker-move-panel">
@@ -365,94 +451,6 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
           onOpen={() => openEditor("finisher")}
         />
       </div>
-
-      {editing ? (
-        <div className="move-editor-backdrop" role="presentation" onClick={saveEditor}>
-          <div
-            className="move-editor-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Edit test results"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="move-editor-head">
-              <h2>{editorTitle(editing)}</h2>
-              <button type="button" className="text-btn" onClick={saveEditor}>
-                Done
-              </button>
-            </div>
-            <div className="move-editor-scroll">
-            <p className="muted move-editor-standards">{editorStandards(editing)}</p>
-
-            {editing === "cardio500" || editing === "finisher" ? null : (
-              <div className="move-compare-grid move-compare-head">
-                <span>INITIAL</span>
-                <span>FINAL</span>
-                <span>CHANGE</span>
-              </div>
-            )}
-
-            {editing === "deadlift" ? (
-              <DeadliftEditor
-                initial={draftInitial}
-                final={draftFinal}
-                onInitial={patchInitial}
-                onFinal={patchFinal}
-              />
-            ) : null}
-            {editing === "cardio500" ? (
-              <CardioEditor
-                initial={draftInitial}
-                final={draftFinal}
-                onInitial={patchInitial}
-                onFinal={patchFinal}
-              />
-            ) : null}
-            {editing === "pushups" ? (
-              <RepsEditor
-                label="Max quality reps"
-                initial={draftInitial.pushupReps}
-                final={draftFinal.pushupReps}
-                onInitial={(n) => patchInitial({ pushupReps: n })}
-                onFinal={(n) => patchFinal({ pushupReps: n })}
-              />
-            ) : null}
-            {editing === "situps" ? (
-              <RepsEditor
-                label="Max reps in 60s"
-                initial={draftInitial.situpReps}
-                final={draftFinal.situpReps}
-                onInitial={(n) => patchInitial({ situpReps: n })}
-                onFinal={(n) => patchFinal({ situpReps: n })}
-              />
-            ) : null}
-            {editing === "confidence" ? (
-              <ConfidenceEditor
-                initial={draftInitial.gymConfidence}
-                final={draftFinal.gymConfidence}
-                onInitial={(n) => patchInitial({ gymConfidence: n })}
-                onFinal={(n) => patchFinal({ gymConfidence: n })}
-              />
-            ) : null}
-            {editing === "finisher" ? (
-              <FinisherEditor
-                initial={draftInitial}
-                final={draftFinal}
-                onInitial={patchInitial}
-                onFinal={patchFinal}
-              />
-            ) : null}
-
-            </div>
-            <div className="move-editor-actions">
-              <button type="button" className="cta-btn" onClick={saveEditor}>
-                SAVE RESULTS
-              </button>
-              {savedNote ? <p className="auth-info">{savedNote}</p> : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
