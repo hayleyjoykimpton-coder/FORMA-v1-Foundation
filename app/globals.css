@@ -5156,6 +5156,61 @@ button.avatar { padding: 0; }
   }
 }
 
+.fitness-stopwatch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(36, 63, 130, 0.16);
+}
+.fitness-stopwatch .wod-timer strong {
+  font-size: 40px;
+}
+.fitness-stopwatch-log {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.fitness-stopwatch-log .secondary-btn {
+  margin: 0;
+  min-height: 44px;
+}
+.fitness-time-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fitness-time-parts {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: end;
+}
+.fitness-time-colon {
+  padding-bottom: 10px;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--cracker-navy);
+}
+.fitness-time-parts input {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.fitness-time-change {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fitness-time-change .move-compare-change {
+  padding-bottom: 0;
+  min-width: 0;
+}
+
 /* —— WOD logger (format-specific, not strength sets) —— */
 .wod-logger {
   display: flex;

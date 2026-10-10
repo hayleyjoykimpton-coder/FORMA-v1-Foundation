@@ -11,7 +11,6 @@ import {
   loadMoveCheckIns,
   numericalChange,
   parseOptionalNumber,
-  parseTimeToSeconds,
   saveMoveCheckIns,
   stampLoggedAt,
   type CardioMode,
@@ -86,39 +85,128 @@ function ChangeCell({
   return <span className="move-compare-change">{change.text}</span>;
 }
 
-function TimeInputs({
+function combineMinutesSeconds(minutesRaw: string, secondsRaw: string): number | undefined {
+  if (!minutesRaw.trim() && !secondsRaw.trim()) return undefined;
+  const minutes = minutesRaw.trim() === "" ? 0 : Number(minutesRaw);
+  const seconds = secondsRaw.trim() === "" ? 0 : Number(secondsRaw);
+  if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) return undefined;
+  return Math.max(0, Math.round(minutes * 60 + seconds));
+}
+
+function FitnessTimeEntry({
   value,
   onChange,
-  id,
+  label,
 }: {
   value?: number;
   onChange: (seconds: number | undefined) => void;
-  id: string;
+  label: string;
 }) {
-  const [text, setText] = useState(value != null ? formatSeconds(value) : "");
-  const [focused, setFocused] = useState(false);
-  useEffect(() => {
-    if (!focused) setText(value != null ? formatSeconds(value) : "");
-  }, [value, focused]);
+  const minutes = value != null ? String(Math.floor(value / 60)) : "";
+  const secondsPart = value != null ? String(Math.round(value % 60)) : "";
   return (
-    <input
-      id={id}
-      type="text"
-      inputMode="numeric"
-      placeholder="MM:SS"
-      value={text}
-      onFocus={() => setFocused(true)}
-      onChange={(e) => {
-        setText(e.target.value);
-        onChange(parseTimeToSeconds(e.target.value));
-      }}
-      onBlur={() => {
-        setFocused(false);
-        if (value != null) setText(formatSeconds(value));
-        else setText("");
-      }}
-      aria-label="Time MM:SS"
-    />
+    <div className="fitness-time-entry">
+      <span className="eyebrow">{label}</span>
+      <div className="fitness-time-parts">
+        <label>
+          Min
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            placeholder="0"
+            value={minutes}
+            onChange={(event) => onChange(combineMinutesSeconds(event.target.value, secondsPart))}
+          />
+        </label>
+        <span className="fitness-time-colon" aria-hidden="true">
+          :
+        </span>
+        <label>
+          Sec
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            placeholder="00"
+            value={secondsPart}
+            onChange={(event) => onChange(combineMinutesSeconds(minutes, event.target.value))}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function FitnessStopwatch({
+  onUseInitial,
+  onUseFinal,
+}: {
+  onUseInitial: (seconds: number) => void;
+  onUseFinal: (seconds: number) => void;
+}) {
+  const [elapsed, setElapsed] = useState(0);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    if (!running) return;
+    const started = Date.now() - elapsed * 1000;
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - started) / 1000));
+    }, 200);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- restart only when running flips
+  }, [running]);
+
+  return (
+    <div className="fitness-stopwatch">
+      <div className="wod-timer-row">
+        <div className={`wod-timer${running ? " running" : ""}`} aria-live="polite">
+          <span className="eyebrow">{running ? "Timing" : "Timer"}</span>
+          <strong>{formatSeconds(elapsed)}</strong>
+        </div>
+        <div className="wod-timer-actions">
+          <button type="button" className="secondary-btn" onClick={() => setRunning((current) => !current)}>
+            {running ? "Stop" : "Start"}
+          </button>
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={() => {
+              setRunning(false);
+              setElapsed(0);
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+      <div className="fitness-stopwatch-log">
+        <button
+          type="button"
+          className="secondary-btn"
+          disabled={elapsed <= 0}
+          onClick={() => {
+            setRunning(false);
+            onUseInitial(elapsed);
+          }}
+        >
+          Use for INITIAL
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          disabled={elapsed <= 0}
+          onClick={() => {
+            setRunning(false);
+            onUseFinal(elapsed);
+          }}
+        >
+          Use for FINAL
+        </button>
+      </div>
+      <p className="muted">Start, stop when you finish, then save the time to Initial or Final. You can also type minutes and seconds.</p>
+    </div>
   );
 }
 
@@ -293,11 +381,13 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
             </div>
             <p className="muted move-editor-standards">{editorStandards(editing)}</p>
 
-            <div className="move-compare-grid move-compare-head">
-              <span>INITIAL</span>
-              <span>FINAL</span>
-              <span>CHANGE</span>
-            </div>
+            {editing === "cardio500" || editing === "finisher" ? null : (
+              <div className="move-compare-grid move-compare-head">
+                <span>INITIAL</span>
+                <span>FINAL</span>
+                <span>CHANGE</span>
+              </div>
+            )}
 
             {editing === "deadlift" ? (
               <DeadliftEditor
@@ -536,23 +626,22 @@ function CardioEditor({
           ROW
         </button>
       </div>
-      <div className="move-compare-grid">
-        <label>
-          Time
-          <TimeInputs
-            id="cardio-initial"
-            value={initial.cardio500Seconds}
-            onChange={(s) => onInitial({ cardio500Seconds: s })}
-          />
-        </label>
-        <label>
-          Time
-          <TimeInputs
-            id="cardio-final"
-            value={final.cardio500Seconds}
-            onChange={(s) => onFinal({ cardio500Seconds: s })}
-          />
-        </label>
+      <FitnessStopwatch
+        onUseInitial={(s) => onInitial({ cardio500Seconds: s })}
+        onUseFinal={(s) => onFinal({ cardio500Seconds: s })}
+      />
+      <FitnessTimeEntry
+        label="INITIAL"
+        value={initial.cardio500Seconds}
+        onChange={(s) => onInitial({ cardio500Seconds: s })}
+      />
+      <FitnessTimeEntry
+        label="FINAL"
+        value={final.cardio500Seconds}
+        onChange={(s) => onFinal({ cardio500Seconds: s })}
+      />
+      <div className="fitness-time-change">
+        <span className="eyebrow">CHANGE</span>
         <ChangeCell initial={initial.cardio500Seconds} final={final.cardio500Seconds} asTime />
       </div>
     </div>
@@ -705,23 +794,22 @@ function FinisherEditor({
         </label>
         <ChangeCell initial={initial.finisherThrusterKg} final={final.finisherThrusterKg} unit=" kg" />
       </div>
-      <div className="move-compare-grid">
-        <label>
-          Completion time
-          <TimeInputs
-            id="finisher-initial"
-            value={initial.finisherSeconds}
-            onChange={(s) => onInitial({ finisherSeconds: s })}
-          />
-        </label>
-        <label>
-          Completion time
-          <TimeInputs
-            id="finisher-final"
-            value={final.finisherSeconds}
-            onChange={(s) => onFinal({ finisherSeconds: s })}
-          />
-        </label>
+      <FitnessStopwatch
+        onUseInitial={(s) => onInitial({ finisherSeconds: s })}
+        onUseFinal={(s) => onFinal({ finisherSeconds: s })}
+      />
+      <FitnessTimeEntry
+        label="INITIAL"
+        value={initial.finisherSeconds}
+        onChange={(s) => onInitial({ finisherSeconds: s })}
+      />
+      <FitnessTimeEntry
+        label="FINAL"
+        value={final.finisherSeconds}
+        onChange={(s) => onFinal({ finisherSeconds: s })}
+      />
+      <div className="fitness-time-change">
+        <span className="eyebrow">CHANGE</span>
         <ChangeCell initial={initial.finisherSeconds} final={final.finisherSeconds} asTime />
       </div>
     </div>
