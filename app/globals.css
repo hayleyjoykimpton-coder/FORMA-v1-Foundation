@@ -2244,6 +2244,83 @@ textarea::placeholder {
   letter-spacing: 0.06em;
 }
 
+.workout-preview {
+  width: 100%;
+  margin-top: 6px;
+  border-radius: 16px;
+  background: rgba(36, 63, 130, 0.05);
+  border: 1px solid rgba(36, 63, 130, 0.1);
+}
+.workout-preview > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+}
+.workout-preview > summary::-webkit-details-marker,
+.workout-preview > summary::marker {
+  display: none;
+  content: none;
+}
+.workout-preview > summary strong {
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--cracker-navy);
+}
+.workout-preview > summary::after {
+  content: "Show session";
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cracker-blue);
+}
+.workout-preview[open] > summary::after {
+  content: "Hide session";
+}
+.workout-preview-list {
+  margin: 0;
+  padding: 0 14px 14px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.workout-preview-list > li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+}
+.workout-preview-list strong {
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--cracker-navy);
+}
+.workout-preview-list span {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.workout-preview-superset ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.workout-preview-superset li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .cracker-hero-media {
   min-height: 200px;
   border-radius: 22px;

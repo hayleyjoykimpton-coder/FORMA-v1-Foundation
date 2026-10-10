@@ -31,6 +31,7 @@ import {
 } from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
 import { CrackerResumeCard } from "@/components/cracker/CrackerResumeCard";
+import { WorkoutSessionPreview } from "@/components/cracker/WorkoutSessionPreview";
 import {
   crackerSessionDemoUrl,
   crackerWeeklyTrainingDemoSourceWeek,
@@ -70,15 +71,6 @@ type Props = {
   /** Incremented when the MOVE tab is tapped so we open Training at the top. */
   openSignal?: number;
 };
-
-function shortSummary(workout: Workout): string {
-  const strength = workout.exercises.filter((e) => !/^WOD/i.test(e.name));
-  const wod = workout.exercises.find((e) => /^WOD/i.test(e.name));
-  const first = strength[0]?.name;
-  const wodLabel = wod?.name.replace(/^WOD ·\s*/i, "") ?? "WOD";
-  if (first) return `${strength.length} lifts · ${wodLabel}`;
-  return wodLabel;
-}
 
 function isSessionDone(
   workout: Workout,
@@ -401,7 +393,7 @@ export function CrackerMove({
                 <div className="cracker-workout-body">
                   <p className="eyebrow">{workout.day}</p>
                   <h2>{workout.title.toUpperCase()}</h2>
-                  <p className="muted">{shortSummary(workout)}</p>
+                  <WorkoutSessionPreview workout={startTarget} />
                   {sessionDemo ? (
                     <InAppVideo
                       url={sessionDemo}
