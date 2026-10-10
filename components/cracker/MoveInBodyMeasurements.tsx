@@ -15,6 +15,7 @@ import {
   type InBodyCheckIn,
   type MeasurementsCheckIn,
 } from "@/lib/crackerMoveCheckIns";
+import { useLockBodyScroll } from "@/lib/lockBodyScroll";
 
 type CardId =
   | "weight"
@@ -55,6 +56,7 @@ export function MoveInBodyMeasurements({ profileInitial, profilePhoto, onOpenPro
   const [draftInFinal, setDraftInFinal] = useState<InBodyCheckIn>({});
   const [draftMInitial, setDraftMInitial] = useState<MeasurementsCheckIn>({});
   const [draftMFinal, setDraftMFinal] = useState<MeasurementsCheckIn>({});
+  useLockBodyScroll(editing != null);
 
   useEffect(() => {
     setState(loadMoveCheckIns());
@@ -369,10 +371,12 @@ function EditorSheet({
             Done
           </button>
         </div>
-        <div className="move-editor-fields">{children}</div>
-        <button type="button" className="cta-btn" onClick={onSave}>
-          SAVE
-        </button>
+        <div className="move-editor-scroll">
+          <div className="move-editor-fields">{children}</div>
+          <button type="button" className="cta-btn" onClick={onSave}>
+            SAVE
+          </button>
+        </div>
       </div>
     </div>
   );

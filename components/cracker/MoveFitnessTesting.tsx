@@ -18,6 +18,7 @@ import {
   type DeadliftVariation,
   type FitnessCheckIn,
 } from "@/lib/crackerMoveCheckIns";
+import { useLockBodyScroll } from "@/lib/lockBodyScroll";
 
 type TestId = "deadlift" | "cardio500" | "pushups" | "situps" | "confidence" | "finisher";
 
@@ -217,6 +218,7 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
   const [draftInitial, setDraftInitial] = useState<FitnessCheckIn>({});
   const [draftFinal, setDraftFinal] = useState<FitnessCheckIn>({});
   const [savedNote, setSavedNote] = useState("");
+  useLockBodyScroll(editing != null);
 
   useEffect(() => {
     setState(loadMoveCheckIns());
@@ -379,6 +381,7 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
                 Done
               </button>
             </div>
+            <div className="move-editor-scroll">
             <p className="muted move-editor-standards">{editorStandards(editing)}</p>
 
             {editing === "cardio500" || editing === "finisher" ? null : (
@@ -445,6 +448,7 @@ export function MoveFitnessTesting({ profileInitial, profilePhoto, onOpenProfile
             </button>
             <p className="muted">Done and Save both keep these numbers.</p>
             {savedNote ? <p className="auth-info">{savedNote}</p> : null}
+            </div>
           </div>
         </div>
       ) : null}
