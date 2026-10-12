@@ -2236,12 +2236,28 @@ textarea::placeholder {
   font-weight: 400;
 }
 
-.cracker-workout-body .cta-btn {
+.cracker-workout-body .cta-btn,
+.cracker-workout-body .secondary-btn {
   margin-top: 8px;
   width: 100%;
   min-height: 52px;
   font-weight: 700;
   letter-spacing: 0.06em;
+}
+.cracker-tyg-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(36, 63, 130, 0.12);
+}
+.cracker-tyg-note p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .workout-preview {

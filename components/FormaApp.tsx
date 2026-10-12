@@ -153,6 +153,7 @@ import {
 } from "@/lib/crackerProgram";
 import { crackerSessionDemoUrl } from "@/lib/jessTrainer";
 import { CrackerShell } from "@/components/cracker/CrackerShell";
+import { buildTygClassSession } from "@/lib/tygClass";
 import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { saveCrackerTab, saveMoveSubTab, saveRecapFocus } from "@/lib/crackerNav";
 import { WodLogger } from "@/components/WodLogger";
@@ -1411,6 +1412,29 @@ export default function FormaApp() {
     });
   };
 
+  const logTygClass = (workout: Workout) => {
+    if (!profile) return;
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(
+        `Log a The Yard Gym class in place of ${workout.title} for this week? It will count toward your sessions and challenge progress.`,
+      )
+    ) {
+      return;
+    }
+    const completed = buildTygClassSession({
+      id: uid(),
+      workout,
+      week: crackerWeekFromWorkoutId(workout.id) ?? weekInCycle,
+      level: crackerLevelFromExperience(profile.experienceLevel),
+      season,
+    });
+    const nextHistory = [...history, completed];
+    setHistory(nextHistory);
+    void flushCloudNow({ history: nextHistory });
+    setSyncNote(`TYG class logged · ${workout.title}`);
+  };
+
   const updateExerciseNote = (exerciseIndex: number, note: string) => {
     setSession((current) => {
       if (!current) return current;
@@ -2436,6 +2460,7 @@ export default function FormaApp() {
           profilePhoto={profile.profilePhoto}
           onOpenProfile={() => setProfileOpen(true)}
           onStartWorkout={startWorkout}
+          onLogTygClass={logTygClass}
           photos={progressPhotos}
           onAddPhoto={handleAddPhoto}
           onDeletePhoto={handleDeletePhoto}

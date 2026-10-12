@@ -59,6 +59,7 @@ type Props = {
   liveWorkouts: Workout[];
   history: WorkoutSession[];
   onStart: (workout: Workout) => void;
+  onLogTygClass?: (workout: Workout) => void;
   onOpenProfile: () => void;
   profileInitial: string;
   profilePhoto?: string;
@@ -83,8 +84,10 @@ function isSessionDone(
     if (session.crackerLevel && session.crackerLevel !== level) return false;
     const sameId = session.workoutId === workout.id;
     const sameTitle =
-      session.workoutTitle.replace(/\s*·\s*Wk\d+/i, "").trim().toLowerCase() ===
-      workout.title.toLowerCase();
+      session.workoutTitle
+        .replace(/\s*·\s*(Wk\d+|TYG class).*$/i, "")
+        .trim()
+        .toLowerCase() === workout.title.toLowerCase();
     return sameId || (sameTitle && (session.week === viewWeek || session.week == null));
   });
 }
@@ -120,6 +123,7 @@ export function CrackerMove({
   liveWorkouts,
   history,
   onStart,
+  onLogTygClass,
   onOpenProfile,
   profileInitial,
   profilePhoto,
@@ -355,6 +359,14 @@ export function CrackerMove({
           />
         ) : null}
 
+        <article className="cracker-tyg-note">
+          <p className="eyebrow">THE YARD GYM</p>
+          <p>
+            If you did a TYG class instead of a gym-program session, log it on that card so this week
+            and your challenge progress stay accurate.
+          </p>
+        </article>
+
         <div className="cracker-workout-stack">
           {ordered.map((workout, orderIdx) => {
             const idx = crackerSessionIndex(workout.title) || orderIdx + 1;
@@ -407,6 +419,15 @@ export function CrackerMove({
                         ? "START AGAIN"
                         : "START WORKOUT"}
                   </button>
+                  {onLogTygClass && !done ? (
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => onLogTygClass(startTarget)}
+                    >
+                      LOG TYG CLASS INSTEAD
+                    </button>
+                  ) : null}
                 </div>
               </article>
             );

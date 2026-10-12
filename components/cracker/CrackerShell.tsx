@@ -30,6 +30,7 @@ type Props = {
   profilePhoto?: string;
   onOpenProfile: () => void;
   onStartWorkout: (workout: Workout) => void;
+  onLogTygClass?: (workout: Workout) => void;
   photos: ProgressPhoto[];
   onAddPhoto: (photo: ProgressPhoto) => void;
   onDeletePhoto: (id: string) => void;
@@ -51,6 +52,7 @@ export function CrackerShell({
   profilePhoto,
   onOpenProfile,
   onStartWorkout,
+  onLogTygClass,
   photos,
   onAddPhoto,
   onDeletePhoto,
@@ -115,6 +117,7 @@ export function CrackerShell({
           liveWorkouts={workouts}
           history={history}
           onStart={onStartWorkout}
+          onLogTygClass={onLogTygClass}
           onOpenProfile={onOpenProfile}
           profileInitial={profileInitial}
           profilePhoto={profilePhoto}

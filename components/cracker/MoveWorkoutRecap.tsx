@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { takeRecapFocus } from "@/lib/crackerNav";
 import { buildWorkoutRecaps, type WorkoutRecap } from "@/lib/workoutRecap";
 import type { WorkoutSession } from "@/lib/types";
+import { isTygClassSession } from "@/lib/tygClass";
 
 type Props = {
   history: WorkoutSession[];
@@ -29,8 +30,11 @@ function RecapCard({
         </span>
         <strong>{recap.session.workoutTitle}</strong>
         <p>
-          {recap.setsDone}/{recap.setsTotal} sets
-          {recap.volumeKg > 0 ? ` · ${recap.volumeKg.toLocaleString()} kg volume` : ""}
+          {isTygClassSession(recap.session)
+            ? "The Yard Gym class · counted for this week"
+            : `${recap.setsDone}/${recap.setsTotal} sets${
+                recap.volumeKg > 0 ? ` · ${recap.volumeKg.toLocaleString()} kg volume` : ""
+              }`}
         </p>
         {recap.volumeVsLast ? <small>{recap.volumeVsLast}</small> : null}
       </button>
