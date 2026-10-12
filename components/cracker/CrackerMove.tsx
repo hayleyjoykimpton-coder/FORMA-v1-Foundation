@@ -362,8 +362,9 @@ export function CrackerMove({
         <article className="cracker-tyg-note">
           <p className="eyebrow">THE YARD GYM</p>
           <p>
-            If you did a TYG class instead of a gym-program session, log it on that card so this week
-            and your challenge progress stay accurate.
+            If you trained in a TYG class instead of the gym program, scroll to Lower Body, Upper
+            Body or Full Body below and tap <strong>Log TYG class instead</strong>. That session
+            still counts for this week.
           </p>
         </article>
 
@@ -425,7 +426,7 @@ export function CrackerMove({
                       className="secondary-btn"
                       onClick={() => onLogTygClass(startTarget)}
                     >
-                      LOG TYG CLASS INSTEAD
+                      LOG TYG CLASS INSTEAD OF THIS SESSION
                     </button>
                   ) : null}
                 </div>
