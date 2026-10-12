@@ -132,20 +132,21 @@ export function MoveProgressPhotos({
             </button>
           ))}
         </div>
-        <label className="cta-btn photo-upload-cta">
-          {busy ? "Saving…" : `Add ${PHOTO_LABELS[addCategory].toLowerCase()} · week ${addWeek}`}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            disabled={busy}
-            onChange={(event) => {
-              void handleFile(event.target.files?.[0] ?? null, addWeek, addCategory);
-              event.target.value = "";
-            }}
+        <div className="photo-source-row">
+          <PhotoFileButton
+            className="cta-btn photo-upload-cta"
+            label={busy ? "Saving…" : "Take photo"}
+            capture
+            busy={busy}
+            onFile={(file) => void handleFile(file, addWeek, addCategory)}
           />
-        </label>
+          <PhotoFileButton
+            className="secondary-btn photo-upload-cta"
+            label={busy ? "Saving…" : "Choose from camera roll"}
+            busy={busy}
+            onFile={(file) => void handleFile(file, addWeek, addCategory)}
+          />
+        </div>
       </section>
 
       <section className="card move-photos-compare" aria-label="Compare weeks">
@@ -231,20 +232,24 @@ export function MoveProgressPhotos({
                         </button>
                       </>
                     ) : (
-                      <label className="move-photos-empty-slot">
+                      <div className="move-photos-empty-slot">
                         <span>+ {PHOTO_LABELS[category]}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          hidden
-                          disabled={busy}
-                          onChange={(event) => {
-                            void handleFile(event.target.files?.[0] ?? null, week, category);
-                            event.target.value = "";
-                          }}
-                        />
-                      </label>
+                        <div className="photo-source-row photo-source-row--compact">
+                          <PhotoFileButton
+                            className="text-btn"
+                            label="Camera"
+                            capture
+                            busy={busy}
+                            onFile={(file) => void handleFile(file, week, category)}
+                          />
+                          <PhotoFileButton
+                            className="text-btn"
+                            label="Camera roll"
+                            busy={busy}
+                            onFile={(file) => void handleFile(file, week, category)}
+                          />
+                        </div>
+                      </div>
                     )}
                     <span className="photo-cap">{PHOTO_LABELS[category]}</span>
                   </div>
@@ -255,6 +260,37 @@ export function MoveProgressPhotos({
         </div>
       </section>
     </div>
+  );
+}
+
+function PhotoFileButton({
+  className,
+  label,
+  capture,
+  busy,
+  onFile,
+}: {
+  className: string;
+  label: string;
+  capture?: boolean;
+  busy: boolean;
+  onFile: (file: File | null) => void;
+}) {
+  return (
+    <label className={className}>
+      {label}
+      <input
+        type="file"
+        accept="image/*"
+        {...(capture ? { capture: "environment" as const } : {})}
+        hidden
+        disabled={busy}
+        onChange={(event) => {
+          onFile(event.target.files?.[0] ?? null);
+          event.target.value = "";
+        }}
+      />
+    </label>
   );
 }
 
@@ -293,21 +329,24 @@ function CompareSlot({
           </button>
         </>
       ) : (
-        <label className="compare-placeholder empty-cta-card move-photos-empty-slot">
+        <div className="compare-placeholder empty-cta-card move-photos-empty-slot">
           <p>No week {week} {PHOTO_LABELS[category].toLowerCase()} yet.</p>
-          <span className="secondary-btn">Add photo</span>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            disabled={busy}
-            onChange={(event) => {
-              onAdd(event.target.files?.[0] ?? null);
-              event.target.value = "";
-            }}
-          />
-        </label>
+          <div className="photo-source-row">
+            <PhotoFileButton
+              className="secondary-btn"
+              label="Take photo"
+              capture
+              busy={busy}
+              onFile={onAdd}
+            />
+            <PhotoFileButton
+              className="secondary-btn"
+              label="Camera roll"
+              busy={busy}
+              onFile={onAdd}
+            />
+          </div>
+        </div>
       )}
       <span className="photo-cap">
         Week {week} · {PHOTO_LABELS[category]}
