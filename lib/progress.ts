@@ -55,6 +55,8 @@ export type ProgressPhoto = {
   image: string; // data URL
   category: PhotoCategory;
   notes: string;
+  /** Christmas Cracker programme week (1–6). Optional for older photos. */
+  week?: number;
 };
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -169,4 +171,16 @@ export function weeksTracked(entries: ProgressEntry[], profile: UserProfile | nu
   if (!startIso) return 0;
   const days = (Date.now() - new Date(startIso).getTime()) / 86_400_000;
   return Math.max(0, Math.floor(days / 7));
+}
+
+const CRACKER_START = Date.UTC(2026, 9, 12);
+
+/** Map a photo to Cracker week 1–6. */
+export function photoCrackerWeek(photo: ProgressPhoto): number {
+  if (photo.week && photo.week >= 1 && photo.week <= 6) return photo.week;
+  const at = new Date(photo.date).getTime();
+  if (!Number.isFinite(at)) return 1;
+  const diff = Math.floor((at - CRACKER_START) / (7 * 86_400_000));
+  if (diff < 0) return 1;
+  return Math.min(6, diff + 1);
 }

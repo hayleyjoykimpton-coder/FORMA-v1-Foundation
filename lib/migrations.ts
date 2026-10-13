@@ -36,6 +36,12 @@ export type SessionDraftStored = {
   results: ExerciseResult[];
   readiness?: number;
   restRemaining?: number;
+  /** Used to rematch if programme ids change mid-week. */
+  workoutTitle?: string;
+  /** Snapshot so a programme rebuild cannot wipe an in-progress session. */
+  workout?: Workout;
+  /** True while the session screen is open — used to auto-resume after a reload. */
+  live?: boolean;
 };
 
 export type LoadedState = {
@@ -221,10 +227,9 @@ export function loadForma(): LoadedState {
       };
     }
 
-    // 3. New user — seed the FORMA Foundation programme.
-    const fresh = seed();
-    persistCore(fresh.workouts, fresh.history, fresh.week);
-    return fresh;
+    // 3. Empty cache — seed in memory only. Signed-in restore writes the
+    // account's cloud programme; local-only users persist via the app effect.
+    return seed();
   } catch {
     // Avoid wiping history when a single key is corrupt.
     try {

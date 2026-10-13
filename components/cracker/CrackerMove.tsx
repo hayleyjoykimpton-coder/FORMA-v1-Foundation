@@ -17,32 +17,44 @@ import {
   type MoveChecklistState,
 } from "@/lib/crackerMoveChecklist";
 import { JessHeadTrainerCard } from "@/components/cracker/JessHeadTrainerCard";
+import { InAppVideo } from "@/components/cracker/InAppVideo";
 import { MoveFitnessTesting } from "@/components/cracker/MoveFitnessTesting";
 import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasurements";
+import { MoveLearnLibrary } from "@/components/cracker/MoveLearnLibrary";
+import { MoveMyProgress } from "@/components/cracker/MoveMyProgress";
+import { MoveProgressPhotos } from "@/components/cracker/MoveProgressPhotos";
+import { MoveWods } from "@/components/cracker/MoveWods";
+import { MoveWorkoutRecap } from "@/components/cracker/MoveWorkoutRecap";
+import {
+  loadMoveSubTab,
+  saveMoveSubTab,
+  type MoveSubTab,
+} from "@/lib/crackerNav";
 import { moveImage, moveMediaForSession, moveWeekImage } from "@/lib/moveImages";
+import { CrackerResumeCard } from "@/components/cracker/CrackerResumeCard";
+import { WorkoutSessionPreview } from "@/components/cracker/WorkoutSessionPreview";
+import {
+  crackerSessionDemoUrl,
+  crackerWeeklyTrainingDemoSourceWeek,
+  crackerWeeklyTrainingVideoUrl,
+} from "@/lib/jessTrainer";
+import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
+import { isOptionalCrackerWod, isWodExerciseName } from "@/lib/wod";
 
-export type MoveSubTab = "training" | "fitness" | "inbody";
+export type { MoveSubTab };
 
 const MOVE_SUBTABS: { key: MoveSubTab; label: string }[] = [
   { key: "training", label: "TRAINING" },
+  { key: "wods", label: "WODS" },
+  { key: "learn", label: "LEARN" },
+  { key: "progress", label: "MY PROGRESS" },
+  { key: "recap", label: "RECAP" },
   { key: "fitness", label: "FITNESS TESTING" },
   { key: "inbody", label: "INBODY + MEASUREMENTS" },
+  { key: "photos", label: "PHOTOS" },
 ];
-
-const MOVE_SUBTAB_KEY = "forma-cracker-move-subtab-v1";
-
-function loadMoveSubTab(): MoveSubTab {
-  if (typeof window === "undefined") return "training";
-  try {
-    const raw = window.localStorage.getItem(MOVE_SUBTAB_KEY);
-    if (raw === "fitness" || raw === "inbody" || raw === "training") return raw;
-  } catch {
-    /* ignore */
-  }
-  return "training";
-}
 
 type Props = {
   currentWeek: number;
@@ -50,19 +62,19 @@ type Props = {
   liveWorkouts: Workout[];
   history: WorkoutSession[];
   onStart: (workout: Workout) => void;
+  onLogTygClass?: (workout: Workout) => void;
   onOpenProfile: () => void;
   profileInitial: string;
   profilePhoto?: string;
+  photos: ProgressPhoto[];
+  onAddPhoto: (photo: ProgressPhoto) => void;
+  onDeletePhoto: (id: string) => void;
+  pausedTitle?: string | null;
+  onResumeWorkout?: () => void;
+  onDiscardWorkout?: () => void;
+  /** Incremented when the MOVE tab is tapped so we open Training at the top. */
+  openSignal?: number;
 };
-
-function shortSummary(workout: Workout): string {
-  const strength = workout.exercises.filter((e) => !/^WOD/i.test(e.name));
-  const wod = workout.exercises.find((e) => /^WOD/i.test(e.name));
-  const first = strength[0]?.name;
-  const wodLabel = wod?.name.replace(/^WOD ·\s*/i, "") ?? "WOD";
-  if (first) return `${strength.length} lifts · ${wodLabel}`;
-  return wodLabel;
-}
 
 function isSessionDone(
   workout: Workout,
@@ -71,12 +83,15 @@ function isSessionDone(
   history: WorkoutSession[],
 ): boolean {
   return history.some((session) => {
+    if (isOptionalCrackerWod({ id: session.workoutId, title: session.workoutTitle })) return false;
     if (session.week != null && session.week !== viewWeek) return false;
     if (session.crackerLevel && session.crackerLevel !== level) return false;
     const sameId = session.workoutId === workout.id;
     const sameTitle =
-      session.workoutTitle.replace(/\s*·\s*Wk\d+/i, "").trim().toLowerCase() ===
-      workout.title.toLowerCase();
+      session.workoutTitle
+        .replace(/\s*·\s*(Wk\d+|TYG class).*$/i, "")
+        .trim()
+        .toLowerCase() === workout.title.toLowerCase();
     return sameId || (sameTitle && (session.week === viewWeek || session.week == null));
   });
 }
@@ -112,11 +127,19 @@ export function CrackerMove({
   liveWorkouts,
   history,
   onStart,
+  onLogTygClass,
   onOpenProfile,
   profileInitial,
   profilePhoto,
+  photos,
+  onAddPhoto,
+  onDeletePhoto,
+  pausedTitle,
+  onResumeWorkout,
+  onDiscardWorkout,
+  openSignal = 0,
 }: Props) {
-  const [subTab, setSubTab] = useState<MoveSubTab>("training");
+  const [subTab, setSubTab] = useState<MoveSubTab>(() => loadMoveSubTab());
   const [viewWeek, setViewWeek] = useState(currentWeek);
   const [checklist, setChecklist] = useState<MoveChecklistState>({ weeks: {} });
   const level: CrackerLevel = crackerLevelFromExperience(experience);
@@ -124,7 +147,9 @@ export function CrackerMove({
   const theme = CRACKER_WEEK_THEMES[viewWeek - 1];
   const weekChecks = getWeekChecklist(checklist, level, viewWeek);
   const weekBanner = moveWeekImage(viewWeek);
-  const learnImage = moveImage("learnWithJess");
+  const learnImage = moveWeekImage(viewWeek) ?? moveImage("learnWithJess");
+  const educationVideo = crackerWeeklyTrainingVideoUrl(viewWeek);
+  const educationDemoSourceWeek = crackerWeeklyTrainingDemoSourceWeek(viewWeek);
 
   useEffect(() => {
     setChecklist(loadMoveChecklist());
@@ -132,21 +157,40 @@ export function CrackerMove({
   }, []);
 
   useEffect(() => {
+    if (!openSignal) return;
+    setSubTab(loadMoveSubTab());
+    const scrollTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      document.querySelector(".cracker-shell")?.scrollTo({ top: 0 });
+      document.querySelector(".move-subnav")?.scrollTo({ left: 0 });
+    };
+    scrollTop();
+    const frame = window.requestAnimationFrame(scrollTop);
+    return () => window.cancelAnimationFrame(frame);
+  }, [openSignal]);
+
+  useEffect(() => {
     setViewWeek(currentWeek);
   }, [currentWeek]);
 
   const selectSubTab = (tab: MoveSubTab) => {
     setSubTab(tab);
-    try {
-      window.localStorage.setItem(MOVE_SUBTAB_KEY, tab);
-    } catch {
-      /* ignore */
-    }
+    saveMoveSubTab(tab);
   };
 
   const workouts = useMemo(() => {
-    if (viewWeek === currentWeek && liveWorkouts.length) return liveWorkouts;
-    return buildCrackerWorkouts(level, viewWeek);
+    const source =
+      viewWeek === currentWeek && liveWorkouts.length
+        ? liveWorkouts
+        : buildCrackerWorkouts(level, viewWeek);
+    return source.flatMap((workout) => {
+      if (isOptionalCrackerWod(workout)) return [];
+      const exercises = workout.exercises.filter((exercise) => !isWodExerciseName(exercise.name));
+      if (!exercises.length) return [];
+      return exercises.length === workout.exercises.length ? [workout] : [{ ...workout, exercises }];
+    });
   }, [viewWeek, currentWeek, liveWorkouts, level]);
 
   const ordered = useMemo(() => {
@@ -170,6 +214,70 @@ export function CrackerMove({
       return next;
     });
   };
+
+  if (subTab === "wods") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveWods
+          currentWeek={currentWeek}
+          experience={experience}
+          history={history}
+          onStart={onStart}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+          pausedTitle={pausedTitle}
+          onResumeWorkout={onResumeWorkout}
+          onDiscardWorkout={onDiscardWorkout}
+        />
+      </div>
+    );
+  }
+
+  if (subTab === "learn") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveLearnLibrary
+          level={level}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
+  if (subTab === "progress") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveMyProgress
+          currentWeek={currentWeek}
+          experience={experience}
+          history={history}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
+  if (subTab === "recap") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveWorkoutRecap
+          history={history}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
 
   if (subTab === "fitness") {
     return (
@@ -197,10 +305,27 @@ export function CrackerMove({
     );
   }
 
+  if (subTab === "photos") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveProgressPhotos
+          currentWeek={currentWeek}
+          photos={photos}
+          onAddPhoto={onAddPhoto}
+          onDeletePhoto={onDeletePhoto}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="cracker-move-with-subnav">
       <MoveSubNav active={subTab} onChange={selectSubTab} />
-      <div className="screen cracker-screen cracker-move">
+      <div className="screen cracker-screen cracker-move training-page training-layout">
         <header className="cracker-topbar">
           <div>
             <p className="cracker-screen-kicker">MOVE</p>
@@ -258,6 +383,101 @@ export function CrackerMove({
           </div>
         )}
 
+        {pausedTitle &&
+        !isOptionalCrackerWod({ title: pausedTitle }) &&
+        onResumeWorkout &&
+        onDiscardWorkout ? (
+          <CrackerResumeCard
+            title={pausedTitle}
+            onResume={onResumeWorkout}
+            onDiscard={onDiscardWorkout}
+          />
+        ) : null}
+
+        <article className="cracker-tyg-note">
+          <p className="eyebrow">THE YARD GYM</p>
+          <p>
+            If you trained in a TYG class instead of the gym program, scroll to Lower Body, Upper
+            Body or Full Body below and tap <strong>Log TYG class instead</strong>. That session
+            still counts for this week.
+          </p>
+        </article>
+
+        <article className="cracker-tyg-note">
+          <p className="eyebrow">OPTIONAL WODS</p>
+          <p>
+            WODs now live in the <strong>WODS</strong> tab. They are extra, and they do not count
+            toward your 3 sessions or challenge progress.
+          </p>
+        </article>
+
+        <div className="cracker-workout-stack">
+          {ordered.map((workout, orderIdx) => {
+            const idx = crackerSessionIndex(workout.title) || orderIdx + 1;
+            const done = doneMap.get(workout.id);
+            const media = moveMediaForSession(workout.title);
+            const startTarget =
+              viewWeek === currentWeek
+                ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
+                : workout;
+            const cropMod = media.cropClass ? ` ${media.cropClass}` : "";
+            const sessionDemo = crackerSessionDemoUrl(level, workout.title, viewWeek);
+
+            return (
+              <article
+                key={workout.id}
+                className={`cracker-workout-card${done ? " is-done" : ""}`}
+              >
+                {media.kind === "photo" && media.src ? (
+                  <div
+                    className={`cracker-workout-media cracker-workout-media--photo${cropMod}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={media.src} alt="" />
+                    <span className="cracker-workout-chip">Session {idx} of 3</span>
+                    {done ? <span className="cracker-workout-done">Done</span> : null}
+                  </div>
+                ) : (
+                  <div
+                    className={`cracker-workout-media cracker-workout-media--neutral accent-${media.label.toLowerCase()}`}
+                  >
+                    <span className="cracker-workout-neutral-label">{media.label}</span>
+                    <span className="cracker-workout-chip">Session {idx} of 3</span>
+                    {done ? <span className="cracker-workout-done">Done</span> : null}
+                  </div>
+                )}
+                <div className="cracker-workout-body">
+                  <p className="eyebrow">{workout.day}</p>
+                  <h2>{workout.title.toUpperCase()}</h2>
+                  <WorkoutSessionPreview workout={startTarget} />
+                  {sessionDemo ? (
+                    <InAppVideo
+                      url={sessionDemo}
+                      title={`Jess · ${workout.title} · Week ${viewWeek}`}
+                    />
+                  ) : null}
+                  <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
+                    {pausedTitle && startTarget.title === pausedTitle
+                      ? "CONTINUE WORKOUT"
+                      : done
+                        ? "START AGAIN"
+                        : "START WORKOUT"}
+                  </button>
+                  {onLogTygClass && !done ? (
+                    <button
+                      type="button"
+                      className="secondary-btn"
+                      onClick={() => onLogTygClass(startTarget)}
+                    >
+                      LOG TYG CLASS INSTEAD OF THIS SESSION
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
         <section className="cracker-this-week" aria-label="This week">
           <p className="eyebrow">THIS WEEK</p>
           <ul className="cracker-week-checklist">
@@ -296,7 +516,11 @@ export function CrackerMove({
         </section>
 
         <article className="cracker-learn-card">
-          {learnImage ? (
+          {educationVideo ? (
+            <div className="cracker-learn-media cracker-learn-media--video">
+              <InAppVideo url={educationVideo} title={`Learn with Jess · ${education.title}`} />
+            </div>
+          ) : learnImage ? (
             <div className="cracker-learn-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={learnImage} alt="" />
@@ -306,64 +530,23 @@ export function CrackerMove({
             <p className="eyebrow">LEARN WITH JESS</p>
             <h2>{education.title}</h2>
             <p>{education.summary}</p>
+            {educationDemoSourceWeek !== viewWeek ? (
+              <p className="muted">Same training demo as week {educationDemoSourceWeek}.</p>
+            ) : null}
+            {educationVideo ? null : (
+              <p className="muted">This week&apos;s video will play here once Jess&apos;s link is in.</p>
+            )}
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => patchChecklist({ education: true })}
+              onClick={() => patchChecklist({ education: !weekChecks.education })}
             >
               {weekChecks.education ? "MARKED COMPLETE" : "MARK EDUCATION DONE"}
             </button>
           </div>
         </article>
 
-        <JessHeadTrainerCard week={viewWeek} />
-
-        <div className="cracker-workout-stack">
-          {ordered.map((workout, orderIdx) => {
-            const idx = crackerSessionIndex(workout.title) || orderIdx + 1;
-            const done = doneMap.get(workout.id);
-            const media = moveMediaForSession(workout.title);
-            const startTarget =
-              viewWeek === currentWeek
-                ? liveWorkouts.find((live) => live.title === workout.title) ?? workout
-                : workout;
-            const cropMod = media.cropClass ? ` ${media.cropClass}` : "";
-
-            return (
-              <article
-                key={workout.id}
-                className={`cracker-workout-card${done ? " is-done" : ""}`}
-              >
-                {media.kind === "photo" && media.src ? (
-                  <div
-                    className={`cracker-workout-media cracker-workout-media--photo${cropMod}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={media.src} alt="" />
-                    <span className="cracker-workout-chip">Session {idx} of 3</span>
-                    {done ? <span className="cracker-workout-done">Done</span> : null}
-                  </div>
-                ) : (
-                  <div
-                    className={`cracker-workout-media cracker-workout-media--neutral accent-${media.label.toLowerCase()}`}
-                  >
-                    <span className="cracker-workout-neutral-label">{media.label}</span>
-                    <span className="cracker-workout-chip">Session {idx} of 3</span>
-                    {done ? <span className="cracker-workout-done">Done</span> : null}
-                  </div>
-                )}
-                <div className="cracker-workout-body">
-                  <p className="eyebrow">{workout.day}</p>
-                  <h2>{workout.title.toUpperCase()}</h2>
-                  <p className="muted">{shortSummary(workout)}</p>
-                  <button type="button" className="cta-btn" onClick={() => onStart(startTarget)}>
-                    {done ? "START AGAIN" : "START WORKOUT"}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <JessHeadTrainerCard />
       </div>
     </div>
   );

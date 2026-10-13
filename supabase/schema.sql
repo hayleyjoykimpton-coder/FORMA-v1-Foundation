@@ -33,7 +33,9 @@ create table if not exists public.profiles (
 -- Existing projects: add club if missing
 alter table public.profiles add column if not exists club text not null default '';
 
--- App blob state (workouts, history, programme meta, progress, photos, session draft)
+-- App blob state (workouts, history, programme meta, progress, photos, session draft).
+-- This table is the source of truth for signed-in members. Browser localStorage
+-- is only a cache. Reinstalling the PWA must restore from these rows.
 create table if not exists public.user_state (
   user_id uuid primary key references auth.users (id) on delete cascade,
   workouts jsonb not null default '[]'::jsonb,
