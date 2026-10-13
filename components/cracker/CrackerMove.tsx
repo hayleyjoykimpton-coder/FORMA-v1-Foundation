@@ -23,6 +23,7 @@ import { MoveInBodyMeasurements } from "@/components/cracker/MoveInBodyMeasureme
 import { MoveLearnLibrary } from "@/components/cracker/MoveLearnLibrary";
 import { MoveMyProgress } from "@/components/cracker/MoveMyProgress";
 import { MoveProgressPhotos } from "@/components/cracker/MoveProgressPhotos";
+import { MoveWods } from "@/components/cracker/MoveWods";
 import { MoveWorkoutRecap } from "@/components/cracker/MoveWorkoutRecap";
 import {
   loadMoveSubTab,
@@ -40,11 +41,13 @@ import {
 import type { ProgressPhoto } from "@/lib/progress";
 import type { ExperienceLevel } from "@/lib/user";
 import type { Workout, WorkoutSession } from "@/lib/types";
+import { isOptionalCrackerWod, isWodExerciseName } from "@/lib/wod";
 
 export type { MoveSubTab };
 
 const MOVE_SUBTABS: { key: MoveSubTab; label: string }[] = [
   { key: "training", label: "TRAINING" },
+  { key: "wods", label: "WODS" },
   { key: "learn", label: "LEARN" },
   { key: "progress", label: "MY PROGRESS" },
   { key: "recap", label: "RECAP" },
@@ -80,6 +83,7 @@ function isSessionDone(
   history: WorkoutSession[],
 ): boolean {
   return history.some((session) => {
+    if (isOptionalCrackerWod({ id: session.workoutId, title: session.workoutTitle })) return false;
     if (session.week != null && session.week !== viewWeek) return false;
     if (session.crackerLevel && session.crackerLevel !== level) return false;
     const sameId = session.workoutId === workout.id;
@@ -177,8 +181,16 @@ export function CrackerMove({
   };
 
   const workouts = useMemo(() => {
-    if (viewWeek === currentWeek && liveWorkouts.length) return liveWorkouts;
-    return buildCrackerWorkouts(level, viewWeek);
+    const source =
+      viewWeek === currentWeek && liveWorkouts.length
+        ? liveWorkouts
+        : buildCrackerWorkouts(level, viewWeek);
+    return source.flatMap((workout) => {
+      if (isOptionalCrackerWod(workout)) return [];
+      const exercises = workout.exercises.filter((exercise) => !isWodExerciseName(exercise.name));
+      if (!exercises.length) return [];
+      return exercises.length === workout.exercises.length ? [workout] : [{ ...workout, exercises }];
+    });
   }, [viewWeek, currentWeek, liveWorkouts, level]);
 
   const ordered = useMemo(() => {
@@ -202,6 +214,26 @@ export function CrackerMove({
       return next;
     });
   };
+
+  if (subTab === "wods") {
+    return (
+      <div className="cracker-move-with-subnav">
+        <MoveSubNav active={subTab} onChange={selectSubTab} />
+        <MoveWods
+          currentWeek={currentWeek}
+          experience={experience}
+          history={history}
+          onStart={onStart}
+          profileInitial={profileInitial}
+          profilePhoto={profilePhoto}
+          onOpenProfile={onOpenProfile}
+          pausedTitle={pausedTitle}
+          onResumeWorkout={onResumeWorkout}
+          onDiscardWorkout={onDiscardWorkout}
+        />
+      </div>
+    );
+  }
 
   if (subTab === "learn") {
     return (
@@ -351,7 +383,10 @@ export function CrackerMove({
           </div>
         )}
 
-        {pausedTitle && onResumeWorkout && onDiscardWorkout ? (
+        {pausedTitle &&
+        !isOptionalCrackerWod({ title: pausedTitle }) &&
+        onResumeWorkout &&
+        onDiscardWorkout ? (
           <CrackerResumeCard
             title={pausedTitle}
             onResume={onResumeWorkout}
@@ -365,6 +400,14 @@ export function CrackerMove({
             If you trained in a TYG class instead of the gym program, scroll to Lower Body, Upper
             Body or Full Body below and tap <strong>Log TYG class instead</strong>. That session
             still counts for this week.
+          </p>
+        </article>
+
+        <article className="cracker-tyg-note">
+          <p className="eyebrow">OPTIONAL WODS</p>
+          <p>
+            WODs now live in the <strong>WODS</strong> tab. They are extra, and they do not count
+            toward your 3 sessions or challenge progress.
           </p>
         </article>
 

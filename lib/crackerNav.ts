@@ -2,6 +2,7 @@ import type { CrackerTab } from "@/components/cracker/types";
 
 export type MoveSubTab =
   | "training"
+  | "wods"
   | "learn"
   | "progress"
   | "fitness"
@@ -24,6 +25,7 @@ export function loadMoveSubTab(): MoveSubTab {
       raw === "fitness" ||
       raw === "inbody" ||
       raw === "training" ||
+      raw === "wods" ||
       raw === "recap" ||
       raw === "photos" ||
       raw === "learn" ||

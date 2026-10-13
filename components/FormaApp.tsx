@@ -170,6 +170,7 @@ import {
 } from "@/lib/superset";
 import {
   formatWodScore,
+  isOptionalCrackerWod,
   isWodExerciseName,
   isWodResultComplete,
   type WodResult,
@@ -1355,11 +1356,16 @@ export default function FormaApp() {
 
   const finishWorkout = () => {
     const workoutForSession =
-      (session && workouts.find((workout) => workout.id === session.workoutId)) || null;
+      session?.workoutSnapshot ??
+      (session && workouts.find((workout) => workout.id === session.workoutId)) ??
+      null;
     if (!session || !workoutForSession) return;
-    const incomplete = session.results.some((result) =>
-      result.sets.some((set) => !set.complete && !set.skipped),
-    );
+    const incomplete = session.results.some((result) => {
+      if (isWodExerciseName(result.name) || result.wodResult) {
+        return !isWodResultComplete(result.wodResult);
+      }
+      return result.sets.some((set) => !set.complete && !set.skipped);
+    });
     if (
       incomplete &&
       typeof window !== "undefined" &&
@@ -1367,21 +1373,25 @@ export default function FormaApp() {
     ) {
       return;
     }
-    const exercises = session.results.map((result) => ({
-      ...result,
-      note: result.note?.trim() || undefined,
-      sets: result.sets.map((set) => ({
-        ...set,
-        skipped: set.skipped || !set.complete,
-      })),
-    }));
+    const exercises = session.results.map((result) => {
+      const wodDone = isWodExerciseName(result.name) && isWodResultComplete(result.wodResult);
+      return {
+        ...result,
+        note: result.note?.trim() || undefined,
+        sets: result.sets.map((set) => ({
+          ...set,
+          complete: wodDone ? true : set.complete,
+          skipped: wodDone ? false : set.skipped || !set.complete,
+        })),
+      };
+    });
     const completed: WorkoutSession = {
       id: uid(),
       workoutId: workoutForSession.id,
       workoutTitle: workoutForSession.title,
       completedAt: new Date().toISOString(),
       season,
-      week: weekInCycle,
+      week: crackerWeekFromWorkoutId(workoutForSession.id) ?? weekInCycle,
       readiness: session.readiness,
       crackerLevel:
         challengeMode === "cracker" && profile
@@ -2107,7 +2117,7 @@ export default function FormaApp() {
     };
     const sessionDemoWeek = crackerWeekFromWorkoutId(sessionWorkout.id) ?? weekInCycle;
     const sessionDemoUrl =
-      challengeMode === "cracker"
+      challengeMode === "cracker" && !isOptionalCrackerWod(sessionWorkout)
         ? crackerSessionDemoUrl(
             crackerLevelFromExperience(profile.experienceLevel),
             sessionWorkout.title,
@@ -3123,8 +3133,9 @@ export default function FormaApp() {
                 <SectionHeading eyebrow="Challenge" title={weekLabel} />
                 <article className="card phase-card cracker-phase-card">
                   <p className="muted">
-                    Lower · Upper · Full Body each week, with a WOD finisher. Weeks 1 and 6 include the
-                    fitness test — log results in the Fitness test card on Home.
+                    Lower · Upper · Full Body each week. Optional WODs are in the WODS tab and do not
+                    count toward your 3 sessions. Weeks 1 and 6 include the fitness test — log results
+                    in the Fitness test card on Home.
                   </p>
                   <p className="muted phase-week-meta">
                     {weekLabel}

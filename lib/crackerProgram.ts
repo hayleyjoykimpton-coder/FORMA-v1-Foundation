@@ -724,9 +724,34 @@ function makeExercise(
   };
 }
 
+function makeCrackerWodExercise(wod: CrackerWod): Exercise {
+  const wallBallNote =
+    /wall ball/i.test(wod.work) || /wall ball/i.test(wod.intensity)
+      ? "\nIf no wall ball is available, substitute Single DB Thruster."
+      : "";
+  const deathByNote = /death by/i.test(wod.format)
+    ? "\nDeath By score = last minute completed."
+    : "";
+  return makeExercise(`WOD · ${wod.format}`, 1, 1, 1, {
+    notes: `${wod.work}\n${wod.intensity}${wallBallNote}${deathByNote}`,
+    restSeconds: 0,
+    rpe: 8,
+  });
+}
+
+function wodDurationMinutes(format: string): number {
+  const match = format.match(/(\d+)\s*min/i);
+  if (match) return Math.max(12, Number(match[1]));
+  return 15;
+}
+
+function crackerDaySlug(title: string): string {
+  return title.toLowerCase().replace(/\s+/g, "-");
+}
+
 /**
- * Build the three Cracker sessions for a given week (1–6).
- * Exercise names and WODs come from the DRAFT Beginner / Intermediate tables.
+ * Build the three Cracker strength sessions for a given week (1–6).
+ * Optional WODs live in `buildCrackerWods` and are not part of these workouts.
  */
 export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout[] {
   const plan = level === "beginner" ? CRACKER_BEGINNER : CRACKER_INTERMEDIATE;
@@ -754,23 +779,9 @@ export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout
       strength = [hinge, hip, squat, pull, push, shoulders, core];
     }
 
-    const wod = day.wods[w - 1];
-    const wallBallNote =
-      /wall ball/i.test(wod.work) || /wall ball/i.test(wod.intensity)
-        ? "\nIf no wall ball is available, substitute Single DB Thruster."
-        : "";
-    const deathByNote = /death by/i.test(wod.format)
-      ? "\nDeath By score = last minute completed."
-      : "";
-    const wodExercise = makeExercise(`WOD · ${wod.format}`, 1, 1, 1, {
-      notes: `${wod.work}\n${wod.intensity}${wallBallNote}${deathByNote}`,
-      restSeconds: 0,
-      rpe: 8,
-    });
-
-    const exercises = stampSupersetFields([...strength, wodExercise]);
-    const duration = Math.max(45, strength.length * 8 + 15);
-    const slug = day.title.toLowerCase().replace(/\s+/g, "-");
+    const exercises = stampSupersetFields(strength);
+    const duration = Math.max(40, strength.length * 8);
+    const slug = crackerDaySlug(day.title);
 
     return {
       id: `cracker-${level}-w${w}-${slug}`,
@@ -780,6 +791,27 @@ export function buildCrackerWorkouts(level: CrackerLevel, week: number): Workout
       exercises,
       // session ordinal for UI (1–3)
       // kept in notes via theme; CrackerMove maps by title
+    };
+  });
+}
+
+/**
+ * Optional WODs for the same week — one per training day.
+ * These do not count toward the 3 weekly sessions or 18-workout challenge.
+ */
+export function buildCrackerWods(level: CrackerLevel, week: number): Workout[] {
+  const plan = level === "beginner" ? CRACKER_BEGINNER : CRACKER_INTERMEDIATE;
+  const w = Math.min(6, Math.max(1, week));
+
+  return plan.map((day) => {
+    const wod = day.wods[w - 1];
+    const slug = crackerDaySlug(day.title);
+    return {
+      id: `cracker-${level}-w${w}-wod-${slug}`,
+      day: day.day,
+      title: `WOD · ${day.title}`,
+      duration: wodDurationMinutes(wod.format),
+      exercises: stampSupersetFields([makeCrackerWodExercise(wod)]),
     };
   });
 }

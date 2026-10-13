@@ -99,6 +99,19 @@ export function isWodExerciseName(name: string): boolean {
   return /^WOD\b/i.test(name.trim());
 }
 
+/** Standalone optional WOD session (not Lower / Upper / Full Body). */
+export function isOptionalCrackerWod(input: {
+  id?: string;
+  workoutId?: string;
+  title?: string;
+  workoutTitle?: string;
+}): boolean {
+  const id = input.id ?? input.workoutId ?? "";
+  if (/(?:^|-)wod-/.test(id)) return true;
+  const title = (input.workoutTitle ?? input.title ?? "").trim();
+  return /^WOD\b/i.test(title);
+}
+
 /** Strip `WOD · ` prefix to get the format string. */
 export function wodFormatFromName(name: string): string {
   return name.replace(/^WOD\s*·\s*/i, "").trim();

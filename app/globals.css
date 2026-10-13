@@ -2215,6 +2215,10 @@ textarea::placeholder {
 }
 
 .cracker-workout-chip { left: 12px; }
+.cracker-workout-chip.is-optional {
+  background: var(--cracker-gold);
+  color: var(--cracker-navy);
+}
 .cracker-workout-done {
   right: 12px;
   background: var(--cracker-blue);

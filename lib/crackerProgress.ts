@@ -4,6 +4,7 @@
  */
 
 import { crackerSessionIndex, type CrackerLevel } from "./crackerProgram";
+import { isOptionalCrackerWod } from "./wod";
 import {
   getWeekChecklist,
   type MoveChecklistState,
@@ -41,6 +42,7 @@ export type ChallengeProgress = {
 function uniqueCrackerWorkouts(history: WorkoutSession[]): number {
   const keys = new Set<string>();
   for (const session of history) {
+    if (isOptionalCrackerWod({ id: session.workoutId, title: session.workoutTitle })) continue;
     const week = session.week;
     const idx = crackerSessionIndex(session.workoutTitle);
     const isCrackerSession =

@@ -115,7 +115,7 @@ export function MoveMyProgress({
         <p className="move-progress-stat">
           {summary.workoutsDone} / {summary.workoutsTarget}
         </p>
-        <p className="muted">Workouts completed</p>
+        <p className="muted">Workouts completed · optional WODs are not counted</p>
         <div className="cracker-progress" aria-hidden="true">
           <span
             style={{

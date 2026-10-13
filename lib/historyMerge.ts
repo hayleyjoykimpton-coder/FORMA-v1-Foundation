@@ -1,6 +1,7 @@
 import { mergeByIdPreferNewer } from "./cloudGuard";
 import type { ProgressEntry, ProgressPhoto } from "./progress";
 import type { WorkoutSession } from "./types";
+import { isOptionalCrackerWod } from "./wod";
 
 /**
  * Union workout histories by session id. Prefer the richer / newer copy when
@@ -81,7 +82,8 @@ export function completedWorkoutIdsThisWeek(
   return ids;
 }
 
-/** Completed sessions in the current Mon–Sun calendar week (not programme week number). */
+/** Completed sessions in the current Mon–Sun calendar week (not programme week number).
+ *  Optional Cracker WODs are excluded so they do not affect weekly progress. */
 export function sessionsCompletedThisCalendarWeek(
   history: WorkoutSession[],
   now = new Date(),
@@ -92,6 +94,7 @@ export function sessionsCompletedThisCalendarWeek(
   for (const session of history) {
     const at = new Date(session.completedAt).getTime();
     if (!Number.isFinite(at) || at < start || at >= end) continue;
+    if (isOptionalCrackerWod({ id: session.workoutId, title: session.workoutTitle })) continue;
     count += 1;
   }
   return count;
